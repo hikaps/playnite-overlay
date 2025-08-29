@@ -23,11 +23,17 @@ jobs:
       - name: .NET Info
         run: dotnet --info
 
-      - name: Restore
-        run: dotnet restore playnite-overlay.sln
+      - name: Restore Plugin
+        run: dotnet restore src/OverlayPlugin/OverlayPlugin.csproj
 
-      - name: Build (Debug)
-        run: dotnet build playnite-overlay.sln -c Debug --no-restore
+      - name: Restore UI
+        run: dotnet restore src/OverlayUI/OverlayUI.csproj
+
+      - name: Build Plugin (Debug)
+        run: dotnet build src/OverlayPlugin/OverlayPlugin.csproj -c Debug --no-restore
+
+      - name: Build UI (Debug)
+        run: dotnet build src/OverlayUI/OverlayUI.csproj -c Debug --no-restore
 
       - name: Test
         run: dotnet test tests/OverlayPlugin.Tests/OverlayPlugin.Tests.csproj -c Debug --no-build

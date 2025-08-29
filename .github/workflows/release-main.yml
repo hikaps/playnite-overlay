@@ -20,11 +20,17 @@ jobs:
             6.0.x
             7.0.x
 
-      - name: Restore
-        run: dotnet restore playnite-overlay.sln
+      - name: Restore Plugin
+        run: dotnet restore src/OverlayPlugin/OverlayPlugin.csproj
 
-      - name: Build (Release)
-        run: dotnet build playnite-overlay.sln -c Release --no-restore
+      - name: Restore UI
+        run: dotnet restore src/OverlayUI/OverlayUI.csproj
+
+      - name: Build Plugin (Release)
+        run: dotnet build src/OverlayPlugin/OverlayPlugin.csproj -c Release --no-restore
+
+      - name: Build UI (Release)
+        run: dotnet build src/OverlayUI/OverlayUI.csproj -c Release --no-restore
 
       - name: Determine version
         id: ver
