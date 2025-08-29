@@ -1,0 +1,35 @@
+name: CI (develop)
+
+on:
+  push:
+    branches: [ develop ]
+  pull_request:
+    branches: [ develop ]
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            6.0.x
+            7.0.x
+
+      - name: .NET Info
+        run: dotnet --info
+
+      - name: Restore
+        run: dotnet restore
+
+      - name: Build (Debug)
+        run: dotnet build -c Debug --no-restore
+
+      - name: Test
+        run: dotnet test -c Debug --no-build
+        continue-on-error: true
+
