@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net6.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <Nullable>enable</Nullable>
+    <AssemblyName>OverlayPlugin</AssemblyName>
+    <RootNamespace>PlayniteOverlay</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <!-- Placeholder reference; restore once PlayniteSDK is available locally.
+    <PackageReference Include="PlayniteSDK" Version="X.Y.Z" /> -->
+  </ItemGroup>
+</Project>
+
