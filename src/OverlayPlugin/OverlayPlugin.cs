@@ -2,6 +2,7 @@ using System;
 using System.Threading;
 using Playnite.SDK;
 using Playnite.SDK.Plugins;
+using Playnite.SDK.Events;
 
 namespace PlayniteOverlay;
 
@@ -114,4 +115,3 @@ public class GameSwitcher
         // TODO: Ask Playnite to stop current game or kill process with confirmation.
     }
 }
-
