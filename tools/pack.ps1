@@ -18,6 +18,8 @@ if (-not (Test-Path $manifest)) { throw "Missing extension/extension.yaml" }
 Copy-Item $manifest 'build/package/extension.yaml' -Force
 
 $dllCandidates = @(
+  'src/OverlayPlugin/bin/Release/net472/OverlayPlugin.dll',
+  'src/OverlayPlugin/bin/Release/net48/OverlayPlugin.dll',
   'src/OverlayPlugin/bin/Release/net8.0-windows/OverlayPlugin.dll',
   'src/OverlayPlugin/bin/Release/net7.0-windows/OverlayPlugin.dll',
   'src/OverlayPlugin/bin/Release/net6.0-windows/OverlayPlugin.dll'
@@ -32,4 +34,3 @@ $zip = Join-Path $OutDir $name
 if (Test-Path $zip) { Remove-Item $zip -Force }
 Compress-Archive -Path 'build/package/*' -DestinationPath $zip
 Write-Host "Created: $zip"
-

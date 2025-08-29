@@ -1,7 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFramework>net6.0-windows</TargetFramework>
-    <UseWPF>true</UseWPF>
+    <TargetFramework>net472</TargetFramework>
     <Nullable>enable</Nullable>
     <AssemblyName>OverlayPlugin</AssemblyName>
     <RootNamespace>PlayniteOverlay</RootNamespace>
