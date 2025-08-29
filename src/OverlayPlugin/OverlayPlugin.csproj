@@ -7,8 +7,7 @@
     <RootNamespace>PlayniteOverlay</RootNamespace>
   </PropertyGroup>
   <ItemGroup>
-    <!-- Placeholder reference; restore once PlayniteSDK is available locally.
-    <PackageReference Include="PlayniteSDK" Version="X.Y.Z" /> -->
+    <PackageReference Include="PlayniteSDK" Version="6.*" />
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.*" />
   </ItemGroup>
 </Project>
-

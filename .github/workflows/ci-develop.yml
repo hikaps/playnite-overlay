@@ -24,12 +24,11 @@ jobs:
         run: dotnet --info
 
       - name: Restore
-        run: dotnet restore
+        run: dotnet restore playnite-overlay.sln
 
       - name: Build (Debug)
-        run: dotnet build -c Debug --no-restore
+        run: dotnet build playnite-overlay.sln -c Debug --no-restore
 
       - name: Test
-        run: dotnet test -c Debug --no-build
+        run: dotnet test tests/OverlayPlugin.Tests/OverlayPlugin.Tests.csproj -c Debug --no-build
         continue-on-error: true
-

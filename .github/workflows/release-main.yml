@@ -21,10 +21,10 @@ jobs:
             7.0.x
 
       - name: Restore
-        run: dotnet restore
+        run: dotnet restore playnite-overlay.sln
 
       - name: Build (Release)
-        run: dotnet build -c Release --no-restore
+        run: dotnet build playnite-overlay.sln -c Release --no-restore
 
       - name: Determine version
         id: ver
@@ -53,4 +53,3 @@ jobs:
           draft: true
           files: |
             dist/*.pext
-
