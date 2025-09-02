@@ -1,8 +1,8 @@
-using CommunityToolkit.Mvvm.ComponentModel;
+using MVVM = CommunityToolkit.Mvvm.ComponentModel;
 
 namespace PlayniteOverlay;
 
-public class OverlaySettings : ObservableObject
+public class OverlaySettings : MVVM.ObservableObject
 {
     private bool useControllerToOpen = true;
     public bool UseControllerToOpen
@@ -32,4 +32,3 @@ public class OverlaySettings : ObservableObject
         set => SetProperty(ref customHotkey, value);
     }
 }
-

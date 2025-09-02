@@ -1,11 +1,11 @@
 using System;
 using System.Collections.Generic;
-using CommunityToolkit.Mvvm.ComponentModel;
 using Playnite.SDK;
+using MVVM = CommunityToolkit.Mvvm.ComponentModel;
 
 namespace PlayniteOverlay;
 
-public class OverlaySettingsViewModel : ObservableObject, ISettings
+public class OverlaySettingsViewModel : MVVM.ObservableObject, ISettings
 {
     private readonly OverlayPlugin plugin;
 
