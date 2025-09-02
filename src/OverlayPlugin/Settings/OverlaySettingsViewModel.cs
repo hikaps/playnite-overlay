@@ -1,3 +1,5 @@
+using System;
+using System.Collections.Generic;
 using CommunityToolkit.Mvvm.ComponentModel;
 using Playnite.SDK;
 
@@ -35,5 +37,26 @@ public class OverlaySettingsViewModel : ObservableObject, ISettings
     {
         plugin.SavePluginSettings(Settings);
         plugin.ApplySettings(Settings);
+    }
+
+    public bool VerifySettings(out List<string> errors)
+    {
+        errors = new List<string>();
+
+        if (Settings.EnableCustomHotkey && string.IsNullOrWhiteSpace(Settings.CustomHotkey))
+        {
+            errors.Add("Custom hotkey is enabled but not set.");
+        }
+
+        var allowed = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            "Guide", "Start+Back", "Back+Start", "LB+RB", "RB+LB"
+        };
+        if (!allowed.Contains(Settings.ControllerCombo ?? string.Empty))
+        {
+            errors.Add("Controller combo must be Guide, Start+Back, or LB+RB.");
+        }
+
+        return errors.Count == 0;
     }
 }
