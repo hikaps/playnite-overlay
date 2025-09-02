@@ -33,6 +33,11 @@ public class OverlayPlugin : GenericPlugin
 
     public override Guid Id => PluginId;
 
+    public override PluginProperties Properties => new PluginProperties
+    {
+        HasSettings = true
+    };
+
     public override void OnGameStarted(OnGameStartedEventArgs args)
     {
         input.Start();
@@ -46,6 +51,7 @@ public class OverlayPlugin : GenericPlugin
 
     private void ToggleOverlay()
     {
+        logger.Info("Toggling overlay (visible={0})", overlay.IsVisible);
         if (overlay.IsVisible)
         {
             overlay.Hide();
@@ -77,7 +83,21 @@ public class OverlayPlugin : GenericPlugin
 
     // Settings plumbing
     public override ISettings GetSettings(bool firstRunSettings) => settings;
-    public override UserControl GetSettingsView(bool firstRunSettings) => new OverlaySettingsView { DataContext = settings };
+    public override UserControl GetSettingsView(bool firstRunSettings)
+    {
+        try
+        {
+            return new OverlaySettingsView { DataContext = settings };
+        }
+        catch (Exception ex)
+        {
+            logger.Error(ex, "Failed to create settings view, falling back to basic UI.");
+            var stack = new StackPanel { Margin = new System.Windows.Thickness(10) };
+            stack.Children.Add(new TextBlock { Text = "Playnite Overlay Settings", FontWeight = System.Windows.FontWeights.Bold, FontSize = 14 });
+            stack.Children.Add(new TextBlock { Text = "Settings UI failed to load. You can still edit settings in JSON or retry after restart.", TextWrapping = System.Windows.TextWrapping.Wrap });
+            return new UserControl { Content = stack };
+        }
+    }
 
     internal void ApplySettings(OverlaySettings newSettings)
     {
@@ -196,17 +216,38 @@ public class InputListener
 public class OverlayService
 {
     public bool IsVisible { get; private set; }
+    private OverlayWindow? window;
 
     public void Show(Action onSwitch, Action onExit)
     {
+        if (IsVisible)
+        {
+            return;
+        }
         IsVisible = true;
-        // TODO: Launch WPF overlay window via OverlayUI with provided callbacks.
+        System.Windows.Application.Current?.Dispatcher.Invoke(() =>
+        {
+            window = new OverlayWindow(onSwitch, onExit)
+            {
+                Topmost = true
+            };
+            window.Closed += (_, __) => { IsVisible = false; window = null; };
+            window.Show();
+        });
     }
 
     public void Hide()
     {
+        if (!IsVisible)
+        {
+            return;
+        }
+        System.Windows.Application.Current?.Dispatcher.Invoke(() =>
+        {
+            try { window?.Close(); } catch { /* ignore */ }
+            window = null;
+        });
         IsVisible = false;
-        // TODO: Close overlay window and restore focus to game.
     }
 }
 
