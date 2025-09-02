@@ -26,6 +26,12 @@ public class OverlayPlugin : GenericPlugin
         switcher = new GameSwitcher(api);
         settings = new OverlaySettingsViewModel(this);
 
+        // Enable settings page in Playnite
+        Properties = new GenericPluginProperties
+        {
+            HasSettings = true
+        };
+
         input.ApplySettings(settings.Settings);
 
         input.ToggleRequested += (_, __) => ToggleOverlay();
@@ -33,10 +39,7 @@ public class OverlayPlugin : GenericPlugin
 
     public override Guid Id => PluginId;
 
-    public override PluginProperties Properties => new PluginProperties
-    {
-        HasSettings = true
-    };
+    
 
     public override void OnGameStarted(OnGameStartedEventArgs args)
     {
