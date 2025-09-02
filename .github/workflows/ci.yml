@@ -44,7 +44,7 @@ jobs:
           dotnet restore src/OverlayUI/OverlayUI.csproj
           dotnet restore tests/OverlayPlugin.Tests/OverlayPlugin.Tests.csproj
 
-      - name: Build
+      - name: Build (Release)
         run: |
           dotnet build src/OverlayPlugin/OverlayPlugin.csproj -c Release --no-restore
           dotnet build src/OverlayUI/OverlayUI.csproj -c Release --no-restore
@@ -52,6 +52,19 @@ jobs:
       - name: Test with coverage
         run: |
           dotnet test tests/OverlayPlugin.Tests/OverlayPlugin.Tests.csproj -c Release --no-restore --collect:"XPlat Code Coverage" --results-directory TestResults
+
+      - name: Determine version
+        id: ver
+        shell: pwsh
+        run: |
+          $v = (Select-String -Path 'extension/extension.yaml' -Pattern '^Version:\s*(.+)$').Matches.Groups[1].Value.Trim()
+          if (-not $v) { $v = "0.0.0" }
+          "version=$v" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+
+      - name: Package .pext
+        shell: pwsh
+        run: |
+          pwsh tools/pack.ps1 -Version "${{ steps.ver.outputs.version }}" -OutDir dist
 
       - name: Upload test results
         if: always()
@@ -62,3 +75,9 @@ jobs:
             TestResults/**/*.trx
             TestResults/**/*.xml
             TestResults/**/coverage.cobertura.xml
+
+      - name: Upload .pext artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: pext
+          path: dist/*.pext
