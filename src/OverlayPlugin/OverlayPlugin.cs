@@ -54,7 +54,7 @@ public class OverlayPlugin : GenericPlugin
 
     private void ToggleOverlay()
     {
-        logger.Info("Toggling overlay (visible={0})", overlay.IsVisible);
+        logger.Info($"Toggling overlay (visible={overlay.IsVisible})");
         if (overlay.IsVisible)
         {
             overlay.Hide();
