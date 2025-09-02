@@ -74,8 +74,13 @@ jobs:
 
       - name: List dist
         if: always()
+        shell: pwsh
         run: |
-          dir dist || true
+          if (Test-Path dist) {
+            Get-ChildItem dist -Recurse | Select-Object FullName, Length
+          } else {
+            Write-Host "No dist directory to list."
+          }
 
       - name: Upload .pext artifact
         if: always()
@@ -83,3 +88,4 @@ jobs:
         with:
           name: pext-${{ steps.ver.outputs.version }}-${{ steps.ver.outputs.branch }}-${{ steps.ver.outputs.sha }}
           path: dist/*.pext
+          if-no-files-found: warn
