@@ -5,9 +5,16 @@
     <Nullable>enable</Nullable>
     <AssemblyName>OverlayPlugin</AssemblyName>
     <RootNamespace>PlayniteOverlay</RootNamespace>
+    <UseWPF>true</UseWPF>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="PlayniteSDK" Version="6.12.0" />
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.*" />
+  </ItemGroup>
+  <ItemGroup>
+    <Reference Include="PresentationFramework" />
+    <Reference Include="PresentationCore" />
+    <Reference Include="WindowsBase" />
+    <Reference Include="System.Xaml" />
   </ItemGroup>
 </Project>
