@@ -1,0 +1,64 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build-test:
+    name: Build and Test (Windows)
+    runs-on: windows-latest
+    env:
+      DOTNET_NOLOGO: true
+      DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 6 SDK (WindowsDesktop)
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '6.0.x'
+
+      - name: Setup .NET 8 SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Cache NuGet
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.nuget/packages
+          key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj') }}
+          restore-keys: |
+            ${{ runner.os }}-nuget-
+
+      - name: Restore
+        run: |
+          dotnet restore src/OverlayPlugin/OverlayPlugin.csproj
+          dotnet restore src/OverlayUI/OverlayUI.csproj
+          dotnet restore tests/OverlayPlugin.Tests/OverlayPlugin.Tests.csproj
+
+      - name: Build
+        run: |
+          dotnet build src/OverlayPlugin/OverlayPlugin.csproj -c Release --no-restore
+          dotnet build src/OverlayUI/OverlayUI.csproj -c Release --no-restore
+
+      - name: Test with coverage
+        run: |
+          dotnet test tests/OverlayPlugin.Tests/OverlayPlugin.Tests.csproj -c Release --no-restore --collect:"XPlat Code Coverage" --results-directory TestResults
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: |
+            TestResults/**/*.trx
+            TestResults/**/*.xml
+            TestResults/**/coverage.cobertura.xml
