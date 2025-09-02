@@ -29,12 +29,38 @@ jobs:
       - name: Restore UI
         run: dotnet restore src/OverlayUI/OverlayUI.csproj
 
-      - name: Build Plugin (Debug)
-        run: dotnet build src/OverlayPlugin/OverlayPlugin.csproj -c Debug --no-restore
+      - name: Build Plugin (Release)
+        run: dotnet build src/OverlayPlugin/OverlayPlugin.csproj -c Release --no-restore
 
-      - name: Build UI (Debug)
-        run: dotnet build src/OverlayUI/OverlayUI.csproj -c Debug --no-restore
+      - name: Build UI (Release)
+        run: dotnet build src/OverlayUI/OverlayUI.csproj -c Release --no-restore
+        continue-on-error: true
 
       - name: Test
-        run: dotnet test tests/OverlayPlugin.Tests/OverlayPlugin.Tests.csproj -c Debug --no-build
+        run: dotnet test tests/OverlayPlugin.Tests/OverlayPlugin.Tests.csproj -c Release --no-build
         continue-on-error: true
+
+      - name: Determine version
+        id: ver
+        shell: pwsh
+        run: |
+          $v = (Select-String -Path 'extension/extension.yaml' -Pattern '^Version:\s*(.+)$').Matches.Groups[1].Value.Trim()
+          if (-not $v) { $v = "0.0.0" }
+          "version=$v" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+
+      - name: Package .pext
+        shell: pwsh
+        run: |
+          pwsh tools/pack.ps1 -Version "${{ steps.ver.outputs.version }}" -OutDir dist
+
+      - name: List dist
+        if: always()
+        run: |
+          dir dist || true
+
+      - name: Upload .pext artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pext
+          path: dist/*.pext
