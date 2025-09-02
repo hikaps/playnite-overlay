@@ -2,6 +2,8 @@ using System;
 using System.Threading;
 using Playnite.SDK;
 using Playnite.SDK.Plugins;
+using System.Collections.Generic;
+using System.Windows.Controls;
 using Playnite.SDK.Events;
 
 namespace PlayniteOverlay;
@@ -14,6 +16,7 @@ public class OverlayPlugin : GenericPlugin
     private readonly InputListener input;
     private readonly OverlayService overlay;
     private readonly GameSwitcher switcher;
+    private readonly OverlaySettingsViewModel settings;
 
     public OverlayPlugin(IPlayniteAPI api) : base(api)
     {
@@ -21,6 +24,9 @@ public class OverlayPlugin : GenericPlugin
         input = new InputListener();
         overlay = new OverlayService();
         switcher = new GameSwitcher(api);
+        settings = new OverlaySettingsViewModel(this);
+
+        input.ApplySettings(settings.Settings);
 
         input.ToggleRequested += (_, __) => ToggleOverlay();
     }
@@ -57,19 +63,101 @@ public class OverlayPlugin : GenericPlugin
             });
         }
     }
+
+    // Expose menu action so users can bind Playnite shortcuts
+    public override IEnumerable<MainMenuItem> GetMainMenuItems(GetMainMenuItemsArgs args)
+    {
+        yield return new MainMenuItem
+        {
+            Description = "Toggle Overlay",
+            MenuSection = "&Overlay",
+            Action = _ => ToggleOverlay()
+        };
+    }
+
+    // Settings plumbing
+    public override ISettings GetSettings(bool firstRunSettings) => settings;
+    public override UserControl GetSettingsView(bool firstRunSettings) => new OverlaySettingsView { DataContext = settings };
+
+    internal void ApplySettings(OverlaySettings newSettings)
+    {
+        input.ApplySettings(newSettings);
+    }
 }
 
 public class InputListener
 {
     private Timer? timer;
     public event EventHandler? ToggleRequested;
+    private string? customHotkeyGesture;
+    private bool enableController = true;
+    private HotkeyManager? hotkey;
+    private readonly ushort[] lastButtons = new ushort[4];
+    private string controllerCombo = "Guide";
 
     public void Start()
     {
+        // Register global hotkey on UI thread if enabled
+        if (!string.IsNullOrWhiteSpace(customHotkeyGesture))
+        {
+            System.Windows.Application.Current?.Dispatcher.Invoke(() =>
+            {
+                hotkey ??= new HotkeyManager();
+                hotkey.Register(customHotkeyGesture!, () => TriggerToggle());
+            });
+        }
+
         timer ??= new Timer(_ =>
         {
-            // TODO: Poll XInputGetKeystroke for Guide button.
-            // Placeholder for development without native bindings.
+            // Controller polling
+            if (enableController)
+            {
+                // Check up to 4 controllers
+                for (int i = 0; i < 4; i++)
+                {
+                    // If Guide requested, try keystroke first (edge-triggered)
+                    if (controllerCombo.Equals("Guide", StringComparison.OrdinalIgnoreCase))
+                    {
+                        if (XInput.TryGetKeystroke(i, out var stroke))
+                        {
+                            if ((stroke.Flags & XInput.XINPUT_KEYSTROKE_KEYDOWN) != 0 && stroke.VirtualKey == XInput.VK_PAD_GUIDE_BUTTON)
+                            {
+                                TriggerToggle();
+                                continue;
+                            }
+                        }
+                    }
+
+                    // Fallbacks/other combos via state polling
+                    if (!XInput.TryGetState(i, out var state))
+                        continue;
+
+                    var buttons = state.Gamepad.wButtons;
+
+                    if (controllerCombo.Equals("Start+Back", StringComparison.OrdinalIgnoreCase) || controllerCombo.Equals("Back+Start", StringComparison.OrdinalIgnoreCase))
+                    {
+                        ushort mask = (ushort)(XInput.XINPUT_GAMEPAD_START | XInput.XINPUT_GAMEPAD_BACK);
+                        bool now = (buttons & mask) == mask;
+                        bool prev = (lastButtons[i] & mask) == mask;
+                        if (now && !prev)
+                        {
+                            TriggerToggle();
+                        }
+                    }
+                    else if (controllerCombo.Equals("LB+RB", StringComparison.OrdinalIgnoreCase) || controllerCombo.Equals("RB+LB", StringComparison.OrdinalIgnoreCase))
+                    {
+                        ushort mask = (ushort)(XInput.XINPUT_GAMEPAD_LEFT_SHOULDER | XInput.XINPUT_GAMEPAD_RIGHT_SHOULDER);
+                        bool now = (buttons & mask) == mask;
+                        bool prev = (lastButtons[i] & mask) == mask;
+                        if (now && !prev)
+                        {
+                            TriggerToggle();
+                        }
+                    }
+
+                    lastButtons[i] = buttons;
+                }
+            }
         }, null, 0, 50);
     }
 
@@ -77,10 +165,32 @@ public class InputListener
     {
         timer?.Dispose();
         timer = null;
+        hotkey?.Unregister();
     }
 
     // For keyboard fallback during dev/testing
     public void TriggerToggle() => ToggleRequested?.Invoke(this, EventArgs.Empty);
+
+    public void ApplySettings(OverlaySettings settings)
+    {
+        customHotkeyGesture = settings.EnableCustomHotkey ? settings.CustomHotkey : null;
+        enableController = settings.UseControllerToOpen;
+        controllerCombo = settings.ControllerCombo ?? "Guide";
+
+        // Re-register hotkey on UI thread
+        System.Windows.Application.Current?.Dispatcher.Invoke(() =>
+        {
+            if (string.IsNullOrWhiteSpace(customHotkeyGesture))
+            {
+                hotkey?.Unregister();
+            }
+            else
+            {
+                hotkey ??= new HotkeyManager();
+                hotkey.Register(customHotkeyGesture!, () => TriggerToggle());
+            }
+        });
+    }
 }
 
 public class OverlayService
