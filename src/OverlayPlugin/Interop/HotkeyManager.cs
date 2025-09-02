@@ -89,7 +89,7 @@ internal sealed class HotkeyManager : IDisposable
             // Cleanup hook if registration fails
             source.RemoveHook(hook);
             hook = null;
-            onHotkey = null;
+            this.onHotkey = null;
             return false;
         }
 
@@ -124,4 +124,3 @@ internal sealed class HotkeyManager : IDisposable
         Unregister();
     }
 }
-
