@@ -1,0 +1,17 @@
+<Project>
+
+  <!-- Define the paths for all possible .targets files (they're not all always present) -->
+  <PropertyGroup>
+    <_CommunityToolkitMvvmFeatureSwitchesTargets>$(MSBuildThisFileDirectory)CommunityToolkit.Mvvm.FeatureSwitches.targets</_CommunityToolkitMvvmFeatureSwitchesTargets>
+    <_CommunityToolkitMvvmSourceGeneratorsTargets>$(MSBuildThisFileDirectory)CommunityToolkit.Mvvm.SourceGenerators.targets</_CommunityToolkitMvvmSourceGeneratorsTargets>
+    <_CommunityToolkitMvvmWindowsTargets>$(MSBuildThisFileDirectory)CommunityToolkit.Mvvm.Windows.targets</_CommunityToolkitMvvmWindowsTargets>
+    <_CommunityToolkitMvvmWindowsSdkTargets>$(MSBuildThisFileDirectory)CommunityToolkit.Mvvm.WindowsSdk.targets</_CommunityToolkitMvvmWindowsSdkTargets>
+  </PropertyGroup>
+
+  <!-- Import all available .targets -->
+  <Import Project="$(_CommunityToolkitMvvmFeatureSwitchesTargets)" />
+  <Import Project="$(_CommunityToolkitMvvmSourceGeneratorsTargets)" />
+  <Import Project="$(_CommunityToolkitMvvmWindowsTargets)" />
+  <Import Project="$(_CommunityToolkitMvvmWindowsSdkTargets)" />
+
+</Project>
