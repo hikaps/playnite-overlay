@@ -33,7 +33,11 @@
                           IsChecked="{Binding Settings.UseControllerToOpen}"/>
                 <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
                     <TextBlock Text="Button combo:" VerticalAlignment="Center"/>
-                    <TextBox Width="160" Margin="8,0,0,0" Text="{Binding Settings.ControllerCombo}"/>
+                    <ComboBox Width="160" Margin="8,0,0,0" SelectedItem="{Binding Settings.ControllerCombo}">
+                        <ComboBoxItem Content="Guide" />
+                        <ComboBoxItem Content="Start+Back" />
+                        <ComboBoxItem Content="LB+RB" />
+                    </ComboBox>
                 </StackPanel>
                 <TextBlock Margin="0,6,0,0" TextWrapping="Wrap"
                            Foreground="Gray"

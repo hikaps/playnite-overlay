@@ -3,23 +3,23 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         WindowStyle="None"
         AllowsTransparency="True"
-        Background="#80000000"
+        Background="#B3000000"
         Topmost="True"
         ShowInTaskbar="False"
-        WindowStartupLocation="CenterScreen"
-        Width="800" Height="450">
-    <Grid>
-        <Border CornerRadius="8" Background="#CC1E1E1E" Padding="20" HorizontalAlignment="Center" VerticalAlignment="Center">
+        WindowStartupLocation="Manual"
+        WindowState="Maximized"
+        ResizeMode="NoResize"
+        Focusable="True">
+    <Grid x:Name="Backdrop" Background="Transparent">
+        <Border CornerRadius="10" Background="#EE1E1E1E" Padding="24" HorizontalAlignment="Center" VerticalAlignment="Center" Width="640">
             <StackPanel>
-                <TextBlock Text="Playnite Overlay" FontSize="20" FontWeight="Bold" Foreground="White" Margin="0,0,0,10"/>
-                <TextBlock Text="This is a placeholder overlay."
-                           Foreground="Gainsboro"/>
-                <StackPanel Orientation="Horizontal" Margin="0,12,0,0" HorizontalAlignment="Right">
-                    <Button x:Name="SwitchBtn" Content="Switch Game" Margin="0,0,8,0" Padding="10,4"/>
-                    <Button x:Name="ExitBtn" Content="Exit Current" Padding="10,4"/>
+                <TextBlock Text="Playnite Overlay" FontSize="22" FontWeight="Bold" Foreground="White" Margin="0,0,0,12"/>
+                <TextBlock Text="Switch to another game or exit the current one." Foreground="#D0D0D0" TextWrapping="Wrap"/>
+                <StackPanel Orientation="Horizontal" Margin="0,16,0,0" HorizontalAlignment="Right">
+                    <Button x:Name="SwitchBtn" Content="Switch Game" Margin="0,0,10,0" Padding="14,6"/>
+                    <Button x:Name="ExitBtn" Content="Exit Current" Padding="14,6"/>
                 </StackPanel>
             </StackPanel>
         </Border>
     </Grid>
 </Window>
-

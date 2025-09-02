@@ -1,5 +1,6 @@
 using System;
 using System.Windows;
+using System.Windows.Input;
 
 namespace PlayniteOverlay;
 
@@ -16,7 +17,8 @@ public partial class OverlayWindow : Window
 
         SwitchBtn.Click += (_, __) => this.onSwitch();
         ExitBtn.Click += (_, __) => this.onExit();
-        MouseDown += (_, e) => { if (e.ChangedButton == System.Windows.Input.MouseButton.Left) this.DragMove(); };
+        Backdrop.MouseLeftButtonDown += (_, __) => this.Close();
+        KeyDown += (_, e) => { if (e.Key == Key.Escape) this.Close(); };
+        Loaded += (_, __) => { Activate(); Focus(); Keyboard.Focus(this); };
     }
 }
-

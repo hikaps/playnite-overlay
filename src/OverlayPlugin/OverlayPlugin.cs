@@ -1,15 +1,17 @@
 using System;
 using System.Threading;
-using Playnite.SDK;
-using Playnite.SDK.Plugins;
 using System.Collections.Generic;
 using System.Windows.Controls;
+using Playnite.SDK;
 using Playnite.SDK.Events;
+using Playnite.SDK.Plugins;
 
 namespace PlayniteOverlay;
 
 public class OverlayPlugin : GenericPlugin
 {
+    private const string MenuSection = "&Overlay";
+    private const string ToggleOverlayDescription = "Toggle Overlay";
     public static readonly Guid PluginId = new ("11111111-2222-3333-4444-555555555555");
 
     private readonly ILogger logger;
@@ -78,8 +80,8 @@ public class OverlayPlugin : GenericPlugin
     {
         yield return new MainMenuItem
         {
-            Description = "Toggle Overlay",
-            MenuSection = "&Overlay",
+            Description = ToggleOverlayDescription,
+            MenuSection = MenuSection,
             Action = _ => ToggleOverlay()
         };
     }
@@ -156,20 +158,19 @@ public class InputListener
                         continue;
 
                     var buttons = state.Gamepad.wButtons;
-
-                    if (controllerCombo.Equals("Start+Back", StringComparison.OrdinalIgnoreCase) || controllerCombo.Equals("Back+Start", StringComparison.OrdinalIgnoreCase))
+                    ushort mask = 0;
+                    var combo = controllerCombo.ToUpperInvariant();
+                    if (combo == "START+BACK" || combo == "BACK+START")
                     {
-                        ushort mask = (ushort)(XInput.XINPUT_GAMEPAD_START | XInput.XINPUT_GAMEPAD_BACK);
-                        bool now = (buttons & mask) == mask;
-                        bool prev = (lastButtons[i] & mask) == mask;
-                        if (now && !prev)
-                        {
-                            TriggerToggle();
-                        }
+                        mask = (ushort)(XInput.XINPUT_GAMEPAD_START | XInput.XINPUT_GAMEPAD_BACK);
                     }
-                    else if (controllerCombo.Equals("LB+RB", StringComparison.OrdinalIgnoreCase) || controllerCombo.Equals("RB+LB", StringComparison.OrdinalIgnoreCase))
+                    else if (combo == "LB+RB" || combo == "RB+LB")
                     {
-                        ushort mask = (ushort)(XInput.XINPUT_GAMEPAD_LEFT_SHOULDER | XInput.XINPUT_GAMEPAD_RIGHT_SHOULDER);
+                        mask = (ushort)(XInput.XINPUT_GAMEPAD_LEFT_SHOULDER | XInput.XINPUT_GAMEPAD_RIGHT_SHOULDER);
+                    }
+
+                    if (mask != 0)
+                    {
                         bool now = (buttons & mask) == mask;
                         bool prev = (lastButtons[i] & mask) == mask;
                         if (now && !prev)
