@@ -45,11 +45,13 @@ public class OverlayPlugin : GenericPlugin
 
     public override void OnGameStarted(OnGameStartedEventArgs args)
     {
+        switcher.SetCurrent(args.Game);
         input.Start();
     }
 
     public override void OnGameStopped(OnGameStoppedEventArgs args)
     {
+        switcher.ClearCurrent();
         input.Stop();
         overlay.Hide();
     }
@@ -63,6 +65,7 @@ public class OverlayPlugin : GenericPlugin
         }
         else
         {
+            var title = switcher.CurrentGameTitle ?? "Overlay";
             overlay.Show(() =>
             {
                 // Example callbacks; wire to UI commands in OverlayUI
@@ -71,7 +74,7 @@ public class OverlayPlugin : GenericPlugin
             () =>
             {
                 switcher.ExitCurrent();
-            });
+            }, title);
         }
     }
 
@@ -222,7 +225,7 @@ public class OverlayService
     public bool IsVisible { get; private set; }
     private OverlayWindow? window;
 
-    public void Show(Action onSwitch, Action onExit)
+    public void Show(Action onSwitch, Action onExit, string title)
     {
         if (IsVisible)
         {
@@ -231,9 +234,18 @@ public class OverlayService
         IsVisible = true;
         System.Windows.Application.Current?.Dispatcher.Invoke(() =>
         {
-            window = new OverlayWindow(onSwitch, onExit)
+            window = new OverlayWindow(onSwitch, onExit, title)
             {
                 Topmost = true
+            };
+            window.Loaded += (_, __) =>
+            {
+                var px = Monitors.GetActiveMonitorBoundsInPixels();
+                var dips = Monitors.PixelsToDips(window, px);
+                window.Left = dips.Left;
+                window.Top = dips.Top;
+                window.Width = dips.Width;
+                window.Height = dips.Height;
             };
             window.Closed += (_, __) => { IsVisible = false; window = null; };
             window.Show();
@@ -258,6 +270,7 @@ public class OverlayService
 public class GameSwitcher
 {
     private readonly IPlayniteAPI api;
+    private Playnite.SDK.Models.Game? current;
     public GameSwitcher(IPlayniteAPI api) => this.api = api;
 
     public void SwitchToNextRecommended()
@@ -269,4 +282,16 @@ public class GameSwitcher
     {
         // TODO: Ask Playnite to stop current game or kill process with confirmation.
     }
+
+    public void SetCurrent(Playnite.SDK.Models.Game? game)
+    {
+        current = game;
+    }
+
+    public void ClearCurrent()
+    {
+        current = null;
+    }
+
+    public string? CurrentGameTitle => current?.Name;
 }
