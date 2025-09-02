@@ -73,21 +73,9 @@ jobs:
       - name: Package .pext
         shell: pwsh
         run: |
-          $bindir = "src/OverlayPlugin/bin/Release/net472"
-          $dll = Join-Path $bindir "OverlayPlugin.dll"
-          $manifest = "extension/extension.yaml"
-          $icon = "extension/icon.png"
-          if (-not (Test-Path $dll)) { throw "Missing DLL: $dll" }
-          if (-not (Test-Path $manifest)) { throw "Missing manifest: $manifest" }
-          New-Item -ItemType Directory -Force -Path dist | Out-Null
           $safeBranch = "${{ steps.ver.outputs.branch }}" -replace "[^A-Za-z0-9._-]","-"
-          $name = "playnite-overlay-${{ steps.ver.outputs.version }}-$safeBranch-${{ steps.ver.outputs.sha }}.pext"
-          $dest = Join-Path dist $name
-          if (Test-Path $dest) { Remove-Item $dest -Force }
-          $libFiles = Get-ChildItem $bindir -File | Where-Object { $_.Extension -in '.dll','.pdb' } | ForEach-Object { $_.FullName }
-          $paths = @($manifest) + $libFiles
-          if (Test-Path $icon) { $paths += $icon }
-          Compress-Archive -Path $paths -DestinationPath $dest
+          $ver = "${{ steps.ver.outputs.version }}-$safeBranch-${{ steps.ver.outputs.sha }}"
+          pwsh -File tools/pack.ps1 -Version $ver -OutDir dist
 
       - name: List dist
         if: always()
