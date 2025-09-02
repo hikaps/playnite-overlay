@@ -11,9 +11,9 @@
         ResizeMode="NoResize"
         Focusable="True">
     <Grid x:Name="Backdrop" Background="Transparent">
-        <Border CornerRadius="10" Background="#EE1E1E1E" Padding="24" HorizontalAlignment="Center" VerticalAlignment="Center" Width="640">
+        <Border CornerRadius="10" Background="#EE1E1E1E" Padding="24" HorizontalAlignment="Center" VerticalAlignment="Center" Width="720">
             <StackPanel>
-                <TextBlock Text="Playnite Overlay" FontSize="22" FontWeight="Bold" Foreground="White" Margin="0,0,0,12"/>
+                <TextBlock x:Name="TitleText" Text="Playnite Overlay" FontSize="22" FontWeight="Bold" Foreground="White" Margin="0,0,0,12"/>
                 <TextBlock Text="Switch to another game or exit the current one." Foreground="#D0D0D0" TextWrapping="Wrap"/>
                 <StackPanel Orientation="Horizontal" Margin="0,16,0,0" HorizontalAlignment="Right">
                     <Button x:Name="SwitchBtn" Content="Switch Game" Margin="0,0,10,0" Padding="14,6"/>
