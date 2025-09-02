@@ -9,6 +9,10 @@ on:
 jobs:
   build:
     runs-on: windows-latest
+    env:
+      DOTNET_NOLOGO: true
+      DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
+      DOTNET_CLI_TELEMETRY_OPTOUT: true
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -46,20 +50,26 @@ jobs:
         run: |
           $v = (Select-String -Path 'extension/extension.yaml' -Pattern '^Version:\s*(.+)$').Matches.Groups[1].Value.Trim()
           if (-not $v) { $v = "0.0.0" }
-          "version=$v" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          $sha = (git rev-parse --short HEAD).Trim()
+          $branch = $env:GITHUB_REF_NAME
+          if (-not $branch) { $branch = (git rev-parse --abbrev-ref HEAD).Trim() }
+          "version=$v`nsha=$sha`nbranch=$branch" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
 
       - name: Package .pext
         shell: pwsh
         run: |
           $dll = Join-Path "src/OverlayPlugin/bin/Release/net472" "OverlayPlugin.dll"
           $manifest = "extension/extension.yaml"
+          $icon = "extension/icon.png"
           if (-not (Test-Path $dll)) { throw "Missing DLL: $dll" }
           if (-not (Test-Path $manifest)) { throw "Missing manifest: $manifest" }
           New-Item -ItemType Directory -Force -Path dist | Out-Null
-          $name = "playnite-overlay-${{ steps.ver.outputs.version }}.pext"
+          $safeBranch = "${{ steps.ver.outputs.branch }}" -replace "[^A-Za-z0-9._-]","-"
+          $name = "playnite-overlay-${{ steps.ver.outputs.version }}-$safeBranch-${{ steps.ver.outputs.sha }}.pext"
           $dest = Join-Path dist $name
           if (Test-Path $dest) { Remove-Item $dest -Force }
           $paths = @($dll, $manifest)
+          if (Test-Path $icon) { $paths += $icon }
           Compress-Archive -Path $paths -DestinationPath $dest
 
       - name: List dist
@@ -71,5 +81,5 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: pext
+          name: pext-${{ steps.ver.outputs.version }}-${{ steps.ver.outputs.branch }}-${{ steps.ver.outputs.sha }}
           path: dist/*.pext
