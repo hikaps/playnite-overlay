@@ -11,14 +11,43 @@
         ResizeMode="NoResize"
         Focusable="True">
     <Grid x:Name="Backdrop" Background="Transparent">
-        <Border CornerRadius="10" Background="#EE1E1E1E" Padding="24" HorizontalAlignment="Center" VerticalAlignment="Center" Width="720">
+        <Border CornerRadius="10" Background="#EE1E1E1E" Padding="24" HorizontalAlignment="Center" VerticalAlignment="Center" Width="860">
             <StackPanel>
                 <TextBlock x:Name="TitleText" Text="Playnite Overlay" FontSize="22" FontWeight="Bold" Foreground="White" Margin="0,0,0,12"/>
-                <TextBlock Text="Switch to another game or exit the current one." Foreground="#D0D0D0" TextWrapping="Wrap"/>
-                <StackPanel Orientation="Horizontal" Margin="0,16,0,0" HorizontalAlignment="Right">
-                    <Button x:Name="SwitchBtn" Content="Switch Game" Margin="0,0,10,0" Padding="14,6"/>
-                    <Button x:Name="ExitBtn" Content="Exit Current" Padding="14,6"/>
-                </StackPanel>
+                <Grid Margin="0,8,0,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="200"/>
+                        <ColumnDefinition Width="16"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <Border Grid.Column="0" Background="#222" CornerRadius="6" Height="280" HorizontalAlignment="Stretch">
+                        <Image x:Name="CoverImage" Stretch="UniformToFill" ClipToBounds="True" />
+                    </Border>
+                    <StackPanel Grid.Column="2">
+                        <TextBlock Text="Recently played" Foreground="#CCCCCC" Margin="0,0,0,6"/>
+                        <ItemsControl x:Name="RecentList">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Background="#2A2A2A" CornerRadius="6" Margin="0,0,0,8" Padding="8">
+                                        <DockPanel>
+                                            <Image Width="48" Height="64" Stretch="UniformToFill" Margin="0,0,10,0">
+                                                <Image.Source>
+                                                    <BitmapImage UriSource="{Binding ImagePath}" CacheOption="OnLoad"/>
+                                                </Image.Source>
+                                            </Image>
+                                            <TextBlock Text="{Binding Title}" Foreground="White" VerticalAlignment="Center"/>
+                                            <Button Content="Play" Padding="10,4" DockPanel.Dock="Right" CommandParameter="{Binding}"/>
+                                        </DockPanel>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                        <StackPanel Orientation="Horizontal" Margin="0,16,0,0" HorizontalAlignment="Right">
+                            <Button x:Name="SwitchBtn" Content="Switch Game" Margin="0,0,10,0" Padding="14,6"/>
+                            <Button x:Name="ExitBtn" Content="Exit Current" Padding="14,6"/>
+                        </StackPanel>
+                    </StackPanel>
+                </Grid>
             </StackPanel>
         </Border>
     </Grid>

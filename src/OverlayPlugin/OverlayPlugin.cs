@@ -1,5 +1,6 @@
 using System;
 using System.Threading;
+using System.Linq;
 using System.Collections.Generic;
 using System.Windows.Controls;
 using Playnite.SDK;
@@ -65,7 +66,11 @@ public class OverlayPlugin : GenericPlugin
         }
         else
         {
-            var title = switcher.CurrentGameTitle ?? "Overlay";
+            var title = switcher.CurrentGameTitle ?? "Playnite Overlay";
+            var recommendations = switcher.GetRecentGames(6)
+                .Select(g => OverlayItem.FromGame(g, switcher))
+                .ToList();
+
             overlay.Show(() =>
             {
                 // Example callbacks; wire to UI commands in OverlayUI
@@ -74,7 +79,7 @@ public class OverlayPlugin : GenericPlugin
             () =>
             {
                 switcher.ExitCurrent();
-            }, title);
+            }, title, recommendations);
         }
     }
 
@@ -225,7 +230,7 @@ public class OverlayService
     public bool IsVisible { get; private set; }
     private OverlayWindow? window;
 
-    public void Show(Action onSwitch, Action onExit, string title)
+    public void Show(Action onSwitch, Action onExit, string title, System.Collections.Generic.IEnumerable<OverlayItem> items)
     {
         if (IsVisible)
         {
@@ -234,7 +239,7 @@ public class OverlayService
         IsVisible = true;
         System.Windows.Application.Current?.Dispatcher.Invoke(() =>
         {
-            window = new OverlayWindow(onSwitch, onExit, title)
+            window = new OverlayWindow(onSwitch, onExit, title, items)
             {
                 Topmost = true
             };
@@ -294,4 +299,54 @@ public class GameSwitcher
     }
 
     public string? CurrentGameTitle => current?.Name;
+
+    public System.Collections.Generic.IEnumerable<Playnite.SDK.Models.Game> GetRecentGames(int count)
+    {
+        var games = api.Database.Games.AsQueryable();
+        var excludeId = current?.Id;
+        var query = games.Where(g => g.LastActivity != null);
+        if (excludeId != null)
+        {
+            query = query.Where(g => g.Id != excludeId);
+        }
+        return query
+            .OrderByDescending(g => g.LastActivity)
+            .Take(count)
+            .ToList();
+    }
+
+    public void StartGame(Guid gameId)
+    {
+        var game = api.Database.Games[gameId];
+        if (game != null)
+        {
+            api.StartGame(game);
+        }
+    }
+
+    public string? ResolveImagePath(string? imageRef)
+    {
+        if (string.IsNullOrWhiteSpace(imageRef)) return null;
+        if (imageRef.StartsWith("http", StringComparison.OrdinalIgnoreCase)) return imageRef;
+        return api.Database.GetFullFilePath(imageRef);
+    }
+}
+
+public class OverlayItem
+{
+    public string Title { get; set; } = string.Empty;
+    public Guid GameId { get; set; }
+    public string? ImagePath { get; set; }
+    public Action? OnSelect { get; set; }
+
+    public static OverlayItem FromGame(Playnite.SDK.Models.Game game, GameSwitcher switcher)
+    {
+        return new OverlayItem
+        {
+            Title = game.Name,
+            GameId = game.Id,
+            ImagePath = switcher.ResolveImagePath(string.IsNullOrWhiteSpace(game.CoverImage) ? game.Icon : game.CoverImage),
+            OnSelect = () => switcher.StartGame(game.Id)
+        };
+    }
 }
