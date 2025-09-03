@@ -317,11 +317,8 @@ public class GameSwitcher
 
     public void StartGame(Guid gameId)
     {
-        var game = api.Database.Games[gameId];
-        if (game != null)
-        {
-            api.StartGame(game);
-        }
+        // Playnite SDK 6.12 expects a Guid for StartGame
+        api.StartGame(gameId);
     }
 
     public string? ResolveImagePath(string? imageRef)
