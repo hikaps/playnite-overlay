@@ -11,6 +11,7 @@ public partial class OverlayWindow : Window
     private readonly Action onSwitch;
     private readonly Action onExit;
     private readonly List<OverlayItem> items;
+    private bool isClosing;
 
     public OverlayWindow(Action onSwitch, Action onExit, string title, IEnumerable<OverlayItem> items)
     {
@@ -38,7 +39,20 @@ public partial class OverlayWindow : Window
         ExitBtn.Click += (_, __) => this.onExit();
         Backdrop.MouseLeftButtonDown += (_, __) => this.Close();
         KeyDown += (_, e) => { if (e.Key == Key.Escape) this.Close(); };
-        Loaded += (_, __) => { Activate(); Focus(); Keyboard.Focus(this); };
+        Loaded += (_, __) =>
+        {
+            Activate(); Focus(); Keyboard.Focus(this);
+            try
+            {
+                var anim = new System.Windows.Media.Animation.DoubleAnimation(0, 1, new Duration(TimeSpan.FromMilliseconds(180)))
+                {
+                    EasingFunction = new System.Windows.Media.Animation.CubicEase { EasingMode = System.Windows.Media.Animation.EasingMode.EaseOut }
+                };
+                RootCard.BeginAnimation(UIElement.OpacityProperty, anim);
+            }
+            catch { }
+        };
+        Closing += OnClosingWithFade;
     }
 
     private void OnRecentPlayClick(object sender, RoutedEventArgs e)
@@ -47,6 +61,30 @@ public partial class OverlayWindow : Window
         {
             item.OnSelect?.Invoke();
             Close();
+        }
+    }
+
+    private void OnClosingWithFade(object? sender, System.ComponentModel.CancelEventArgs e)
+    {
+        if (isClosing)
+        {
+            return;
+        }
+        e.Cancel = true;
+        isClosing = true;
+        try
+        {
+            var anim = new System.Windows.Media.Animation.DoubleAnimation(1, 0, new Duration(TimeSpan.FromMilliseconds(120)))
+            {
+                EasingFunction = new System.Windows.Media.Animation.CubicEase { EasingMode = System.Windows.Media.Animation.EasingMode.EaseIn }
+            };
+            anim.Completed += (_, __) => { isClosing = false; this.Close(); };
+            RootCard.BeginAnimation(UIElement.OpacityProperty, anim);
+        }
+        catch
+        {
+            isClosing = false;
+            this.Close();
         }
     }
 }

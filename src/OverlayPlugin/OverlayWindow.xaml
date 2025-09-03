@@ -11,9 +11,9 @@
         ResizeMode="NoResize"
         Focusable="True">
     <Grid x:Name="Backdrop" Background="Transparent">
-        <Border CornerRadius="10" Background="#EE1E1E1E" Padding="24" HorizontalAlignment="Center" VerticalAlignment="Center" Width="860">
+        <Border x:Name="RootCard" CornerRadius="10" Background="#EE1E1E1E" Padding="24" HorizontalAlignment="Center" VerticalAlignment="Center" Width="860" Opacity="0">
             <StackPanel>
-                <TextBlock x:Name="TitleText" Text="Playnite Overlay" FontSize="22" FontWeight="Bold" Foreground="White" Margin="0,0,0,12"/>
+                <TextBlock x:Name="TitleText" Text="Playnite Overlay" FontSize="24" FontWeight="SemiBold" Foreground="White" Margin="0,0,0,12"/>
                 <Grid Margin="0,8,0,0">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="200"/>
