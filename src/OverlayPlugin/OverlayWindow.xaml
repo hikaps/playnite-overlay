@@ -29,14 +29,19 @@
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
                                     <Border Background="#2A2A2A" CornerRadius="6" Margin="0,0,0,8" Padding="8">
-                                        <DockPanel>
+                                        <DockPanel LastChildFill="False">
+                                            <Button Content="Play"
+                                                    Width="96" Height="32"
+                                                    HorizontalAlignment="Right" VerticalAlignment="Center"
+                                                    Margin="10,0,0,0"
+                                                    DockPanel.Dock="Right"
+                                                    CommandParameter="{Binding}"/>
                                             <Image Width="48" Height="64" Stretch="UniformToFill" Margin="0,0,10,0">
                                                 <Image.Source>
                                                     <BitmapImage UriSource="{Binding ImagePath}" CacheOption="OnLoad"/>
                                                 </Image.Source>
                                             </Image>
                                             <TextBlock Text="{Binding Title}" Foreground="White" VerticalAlignment="Center"/>
-                                            <Button Content="Play" Padding="10,4" DockPanel.Dock="Right" CommandParameter="{Binding}"/>
                                         </DockPanel>
                                     </Border>
                                 </DataTemplate>
