@@ -35,7 +35,18 @@ public partial class OverlayWindow : Window
         RecentList.ItemsSource = this.items;
         RecentList.AddHandler(System.Windows.Controls.Button.ClickEvent, new RoutedEventHandler(OnRecentPlayClick));
 
-        SwitchBtn.Click += (_, __) => { this.onSwitch(); this.Close(); };
+        SwitchBtn.Click += (_, __) =>
+        {
+            // Close overlay first, then switch/activate Playnite after window fully closed
+            RoutedEventHandler? closed = null;
+            closed = (s, e2) =>
+            {
+                this.Closed -= closed;
+                try { this.onSwitch(); } catch { }
+            };
+            this.Closed += closed;
+            this.Close();
+        };
         ExitBtn.Click += (_, __) => this.onExit();
         Backdrop.MouseLeftButtonDown += (_, __) => this.Close();
         KeyDown += (_, e) => { if (e.Key == Key.Escape) this.Close(); };
