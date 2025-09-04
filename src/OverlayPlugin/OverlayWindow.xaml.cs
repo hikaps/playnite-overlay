@@ -38,7 +38,7 @@ public partial class OverlayWindow : Window
         SwitchBtn.Click += (_, __) =>
         {
             // Close overlay first, then switch/activate Playnite after window fully closed
-            RoutedEventHandler? closed = null;
+            EventHandler? closed = null;
             closed = (s, e2) =>
             {
                 this.Closed -= closed;
