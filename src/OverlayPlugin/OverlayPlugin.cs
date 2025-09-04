@@ -73,8 +73,8 @@ public class OverlayPlugin : GenericPlugin
 
             overlay.Show(() =>
             {
-                // Example callbacks; wire to UI commands in OverlayUI
-                switcher.SwitchToNextRecommended();
+                // Return to Playnite (bring main window to front)
+                switcher.SwitchToPlaynite();
             },
             () =>
             {
@@ -278,9 +278,29 @@ public class GameSwitcher
     private Playnite.SDK.Models.Game? current;
     public GameSwitcher(IPlayniteAPI api) => this.api = api;
 
-    public void SwitchToNextRecommended()
+    public void SwitchToPlaynite()
     {
-        // TODO: Use api.Database.Games and api.StartGame(game) to switch.
+        System.Windows.Application.Current?.Dispatcher.Invoke(() =>
+        {
+            var win = System.Windows.Application.Current?.MainWindow;
+            if (win != null)
+            {
+                try
+                {
+                    if (win.WindowState == System.Windows.WindowState.Minimized)
+                    {
+                        win.WindowState = System.Windows.WindowState.Normal;
+                    }
+                    // Toggle Topmost to force z-order raise, then activate
+                    var wasTop = win.Topmost;
+                    win.Topmost = true;
+                    win.Topmost = wasTop;
+                    win.Activate();
+                    win.Focus();
+                }
+                catch { /* ignore focus errors */ }
+            }
+        });
     }
 
     public void ExitCurrent()

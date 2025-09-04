@@ -35,7 +35,7 @@ public partial class OverlayWindow : Window
         RecentList.ItemsSource = this.items;
         RecentList.AddHandler(System.Windows.Controls.Button.ClickEvent, new RoutedEventHandler(OnRecentPlayClick));
 
-        SwitchBtn.Click += (_, __) => this.onSwitch();
+        SwitchBtn.Click += (_, __) => { this.onSwitch(); this.Close(); };
         ExitBtn.Click += (_, __) => this.onExit();
         Backdrop.MouseLeftButtonDown += (_, __) => this.Close();
         KeyDown += (_, e) => { if (e.Key == Key.Escape) this.Close(); };
