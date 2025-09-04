@@ -344,8 +344,9 @@ public class GameSwitcher
     public string? ResolveImagePath(string? imageRef)
     {
         if (string.IsNullOrWhiteSpace(imageRef)) return null;
-        if (imageRef.StartsWith("http", StringComparison.OrdinalIgnoreCase)) return imageRef;
-        return api.Database.GetFullFilePath(imageRef);
+        var path = imageRef!;
+        if (path.StartsWith("http", StringComparison.OrdinalIgnoreCase)) return path;
+        return api.Database.GetFullFilePath(path);
     }
 }
 
