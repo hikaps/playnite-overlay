@@ -78,12 +78,19 @@ public partial class OverlayWindow : Window
             {
                 EasingFunction = new System.Windows.Media.Animation.CubicEase { EasingMode = System.Windows.Media.Animation.EasingMode.EaseIn }
             };
-            anim.Completed += (_, __) => { isClosing = false; this.Close(); };
+            anim.Completed += (_, __) =>
+            {
+                // Detach handler to avoid re-entrancy and blinking
+                this.Closing -= OnClosingWithFade;
+                try { RootCard.Opacity = 0; } catch { }
+                this.Close();
+            };
             RootCard.BeginAnimation(UIElement.OpacityProperty, anim);
         }
         catch
         {
-            isClosing = false;
+            // If animation fails, detach and close immediately
+            this.Closing -= OnClosingWithFade;
             this.Close();
         }
     }

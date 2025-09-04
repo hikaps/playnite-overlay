@@ -283,23 +283,23 @@ public class GameSwitcher
         System.Windows.Application.Current?.Dispatcher.Invoke(() =>
         {
             var win = System.Windows.Application.Current?.MainWindow;
+            IntPtr hwnd = IntPtr.Zero;
             if (win != null)
             {
                 try
                 {
-                    if (win.WindowState == System.Windows.WindowState.Minimized)
-                    {
-                        win.WindowState = System.Windows.WindowState.Normal;
-                    }
-                    // Toggle Topmost to force z-order raise, then activate
-                    var wasTop = win.Topmost;
-                    win.Topmost = true;
-                    win.Topmost = wasTop;
-                    win.Activate();
-                    win.Focus();
+                    var helper = new System.Windows.Interop.WindowInteropHelper(win);
+                    hwnd = helper.Handle;
                 }
-                catch { /* ignore focus errors */ }
+                catch { }
             }
+
+            if (hwnd == IntPtr.Zero)
+            {
+                try { hwnd = System.Diagnostics.Process.GetCurrentProcess().MainWindowHandle; } catch { }
+            }
+
+            Win32Window.RestoreAndActivate(hwnd);
         });
     }
 
