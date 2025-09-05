@@ -17,11 +17,43 @@ internal static class Win32Window
     [DllImport("user32.dll")]
     private static extern bool IsIconic(IntPtr hWnd);
 
-    public static void RestoreAndActivate(IntPtr hWnd)
+    [DllImport("user32.dll")]
+    private static extern bool EnumWindows(EnumWindowsProc lpEnumFunc, IntPtr lParam);
+
+    internal delegate bool EnumWindowsProc(IntPtr hWnd, IntPtr lParam);
+
+    [DllImport("user32.dll")]
+    private static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint lpdwProcessId);
+
+    public static IntPtr GetAnyWindowForProcess(int processId)
+    {
+        IntPtr found = IntPtr.Zero;
+        try
+        {
+            EnumWindows((h, p) =>
+            {
+                if (found != IntPtr.Zero)
+                {
+                    return false;
+                }
+                GetWindowThreadProcessId(h, out var pid);
+                if (pid == (uint)processId)
+                {
+                    found = h;
+                    return false;
+                }
+                return true;
+            }, IntPtr.Zero);
+        }
+        catch { }
+        return found;
+    }
+
+    public static bool RestoreAndActivate(IntPtr hWnd)
     {
         if (hWnd == IntPtr.Zero)
         {
-            return;
+            return false;
         }
 
         try
@@ -36,12 +68,12 @@ internal static class Win32Window
             }
 
             // Bring to foreground
-            SetForegroundWindow(hWnd);
+            return SetForegroundWindow(hWnd);
         }
         catch
         {
             // ignore
+            return false;
         }
     }
 }
-
