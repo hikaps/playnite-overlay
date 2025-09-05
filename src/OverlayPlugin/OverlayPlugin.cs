@@ -324,15 +324,29 @@ public class GameSwitcher
             {
                 try
                 {
-                    // Fallback for tray/minimized-without-window: relaunching the EXE should
-                    // signal the single-instance host to bring the main window to foreground.
+                    // Fallback 1: use Playnite URI to open a view (brings instance to foreground)
+                    System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                    {
+                        FileName = "playnite://playnite/search",
+                        UseShellExecute = true
+                    });
+                }
+                catch { }
+            }
+
+            if (!activated)
+            {
+                try
+                {
+                    // Fallback 2: explicit startdesktop to force window mode and foreground on single-instance
                     var exe = System.Diagnostics.Process.GetCurrentProcess().MainModule?.FileName;
                     if (!string.IsNullOrWhiteSpace(exe))
                     {
                         System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
                         {
                             FileName = exe,
-                            UseShellExecute = true,
+                            Arguments = "--startdesktop --hidesplashscreen",
+                            UseShellExecute = false,
                             WorkingDirectory = System.IO.Path.GetDirectoryName(exe) ?? string.Empty
                         });
                     }

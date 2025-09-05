@@ -42,7 +42,27 @@ public partial class OverlayWindow : Window
             closed = (s, e2) =>
             {
                 this.Closed -= closed;
-                try { this.onSwitch(); } catch { }
+                // Small delay helps avoid focus/black flash during exclusive fullscreen transitions
+                try
+                {
+                    var t = new System.Windows.Threading.DispatcherTimer
+                    {
+                        Interval = TimeSpan.FromMilliseconds(150)
+                    };
+                    EventHandler? tick = null;
+                    tick = (_, ____) =>
+                    {
+                        t.Stop();
+                        t.Tick -= tick;
+                        try { this.onSwitch(); } catch { }
+                    };
+                    t.Tick += tick;
+                    t.Start();
+                }
+                catch
+                {
+                    try { this.onSwitch(); } catch { }
+                }
             };
             this.Closed += closed;
             this.Close();
@@ -97,6 +117,15 @@ public partial class OverlayWindow : Window
                 this.Close();
             };
             RootCard.BeginAnimation(UIElement.OpacityProperty, anim);
+            try
+            {
+                var backAnim = new System.Windows.Media.Animation.DoubleAnimation(1, 0, new Duration(TimeSpan.FromMilliseconds(120)))
+                {
+                    EasingFunction = new System.Windows.Media.Animation.CubicEase { EasingMode = System.Windows.Media.Animation.EasingMode.EaseIn }
+                };
+                Backdrop.BeginAnimation(UIElement.OpacityProperty, backAnim);
+            }
+            catch { }
         }
         catch
         {
