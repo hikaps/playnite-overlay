@@ -299,7 +299,46 @@ public class GameSwitcher
                 try { hwnd = System.Diagnostics.Process.GetCurrentProcess().MainWindowHandle; } catch { }
             }
 
-            Win32Window.RestoreAndActivate(hwnd);
+            bool activated = false;
+            if (hwnd != IntPtr.Zero)
+            {
+                activated = Win32Window.RestoreAndActivate(hwnd);
+            }
+
+            if (!activated)
+            {
+                // Try any window handle owned by this process (handles tray/hidden cases)
+                try
+                {
+                    var pid = System.Diagnostics.Process.GetCurrentProcess().Id;
+                    var any = Win32Window.GetAnyWindowForProcess(pid);
+                    if (any != IntPtr.Zero)
+                    {
+                        activated = Win32Window.RestoreAndActivate(any);
+                    }
+                }
+                catch { }
+            }
+
+            if (!activated)
+            {
+                try
+                {
+                    // Fallback for tray/minimized-without-window: relaunching the EXE should
+                    // signal the single-instance host to bring the main window to foreground.
+                    var exe = System.Diagnostics.Process.GetCurrentProcess().MainModule?.FileName;
+                    if (!string.IsNullOrWhiteSpace(exe))
+                    {
+                        System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                        {
+                            FileName = exe,
+                            UseShellExecute = true,
+                            WorkingDirectory = System.IO.Path.GetDirectoryName(exe) ?? string.Empty
+                        });
+                    }
+                }
+                catch { }
+            }
         });
     }
 
