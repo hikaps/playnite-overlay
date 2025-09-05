@@ -25,6 +25,13 @@ internal static class Win32Window
     [DllImport("user32.dll")]
     private static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint lpdwProcessId);
 
+    [DllImport("user32.dll")]
+    private static extern IntPtr GetForegroundWindow();
+
+    [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool IsWindowVisible(IntPtr hWnd);
+
     public static IntPtr GetAnyWindowForProcess(int processId)
     {
         IntPtr found = IntPtr.Zero;
@@ -48,6 +55,36 @@ internal static class Win32Window
         catch { }
         return found;
     }
+
+    public static IntPtr GetVisibleWindowForProcess(int processId)
+    {
+        IntPtr found = IntPtr.Zero;
+        try
+        {
+            EnumWindows((h, p) =>
+            {
+                if (found != IntPtr.Zero)
+                {
+                    return false;
+                }
+                if (!IsWindowVisible(h))
+                {
+                    return true;
+                }
+                GetWindowThreadProcessId(h, out var pid);
+                if (pid == (uint)processId)
+                {
+                    found = h;
+                    return false;
+                }
+                return true;
+            }, IntPtr.Zero);
+        }
+        catch { }
+        return found;
+    }
+
+    public static IntPtr GetForeground() => GetForegroundWindow();
 
     public static bool RestoreAndActivate(IntPtr hWnd)
     {
