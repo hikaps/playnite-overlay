@@ -37,40 +37,15 @@ public partial class OverlayWindow : Window
 
         SwitchBtn.Click += (_, __) =>
         {
-            // Handover strategy: trigger Playnite restore first, keep overlay up
-            // until a visible window from this process appears or foreground changes.
-            try { SwitchBtn.IsEnabled = false; } catch { }
-            try { this.onSwitch(); } catch { }
-
-            IntPtr overlayHwnd = IntPtr.Zero;
-            try
+            // Close overlay first, then switch/activate Playnite after window fully closed
+            EventHandler? closed = null;
+            closed = (s, e2) =>
             {
-                var helper = new System.Windows.Interop.WindowInteropHelper(this);
-                overlayHwnd = helper.Handle;
-            }
-            catch { }
-
-            var started = DateTime.UtcNow;
-            var timer = new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromMilliseconds(50) };
-            EventHandler? tick = null;
-            tick = (_, ____) =>
-            {
-                var elapsed = (DateTime.UtcNow - started).TotalMilliseconds;
-                var pid = System.Diagnostics.Process.GetCurrentProcess().Id;
-                var fg = Win32Window.GetForeground();
-                var anyVisible = Win32Window.GetVisibleWindowForProcess(pid);
-                bool foregroundMoved = fg != IntPtr.Zero && overlayHwnd != IntPtr.Zero && fg != overlayHwnd;
-
-                if (foregroundMoved || anyVisible != IntPtr.Zero || elapsed > 1500)
-                {
-                    timer.Stop();
-                    timer.Tick -= tick;
-                    // Now close overlay (fade out will run)
-                    this.Close();
-                }
+                this.Closed -= closed;
+                try { this.onSwitch(); } catch { }
             };
-            timer.Tick += tick;
-            timer.Start();
+            this.Closed += closed;
+            this.Close();
         };
         ExitBtn.Click += (_, __) => this.onExit();
         Backdrop.MouseLeftButtonDown += (_, __) => this.Close();
@@ -122,15 +97,6 @@ public partial class OverlayWindow : Window
                 this.Close();
             };
             RootCard.BeginAnimation(UIElement.OpacityProperty, anim);
-            try
-            {
-                var backAnim = new System.Windows.Media.Animation.DoubleAnimation(1, 0, new Duration(TimeSpan.FromMilliseconds(120)))
-                {
-                    EasingFunction = new System.Windows.Media.Animation.CubicEase { EasingMode = System.Windows.Media.Animation.EasingMode.EaseIn }
-                };
-                Backdrop.BeginAnimation(UIElement.OpacityProperty, backAnim);
-            }
-            catch { }
         }
         catch
         {

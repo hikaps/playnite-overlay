@@ -17,80 +17,11 @@ internal static class Win32Window
     [DllImport("user32.dll")]
     private static extern bool IsIconic(IntPtr hWnd);
 
-    [DllImport("user32.dll")]
-    private static extern bool EnumWindows(EnumWindowsProc lpEnumFunc, IntPtr lParam);
-
-    internal delegate bool EnumWindowsProc(IntPtr hWnd, IntPtr lParam);
-
-    [DllImport("user32.dll")]
-    private static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint lpdwProcessId);
-
-    [DllImport("user32.dll")]
-    private static extern IntPtr GetForegroundWindow();
-
-    [DllImport("user32.dll")]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    private static extern bool IsWindowVisible(IntPtr hWnd);
-
-    public static IntPtr GetAnyWindowForProcess(int processId)
-    {
-        IntPtr found = IntPtr.Zero;
-        try
-        {
-            EnumWindows((h, p) =>
-            {
-                if (found != IntPtr.Zero)
-                {
-                    return false;
-                }
-                GetWindowThreadProcessId(h, out var pid);
-                if (pid == (uint)processId)
-                {
-                    found = h;
-                    return false;
-                }
-                return true;
-            }, IntPtr.Zero);
-        }
-        catch { }
-        return found;
-    }
-
-    public static IntPtr GetVisibleWindowForProcess(int processId)
-    {
-        IntPtr found = IntPtr.Zero;
-        try
-        {
-            EnumWindows((h, p) =>
-            {
-                if (found != IntPtr.Zero)
-                {
-                    return false;
-                }
-                if (!IsWindowVisible(h))
-                {
-                    return true;
-                }
-                GetWindowThreadProcessId(h, out var pid);
-                if (pid == (uint)processId)
-                {
-                    found = h;
-                    return false;
-                }
-                return true;
-            }, IntPtr.Zero);
-        }
-        catch { }
-        return found;
-    }
-
-    public static IntPtr GetForeground() => GetForegroundWindow();
-
-    public static bool RestoreAndActivate(IntPtr hWnd)
+    public static void RestoreAndActivate(IntPtr hWnd)
     {
         if (hWnd == IntPtr.Zero)
         {
-            return false;
+            return;
         }
 
         try
@@ -105,12 +36,11 @@ internal static class Win32Window
             }
 
             // Bring to foreground
-            return SetForegroundWindow(hWnd);
+            SetForegroundWindow(hWnd);
         }
         catch
         {
             // ignore
-            return false;
         }
     }
 }
