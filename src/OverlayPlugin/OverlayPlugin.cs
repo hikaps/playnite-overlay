@@ -299,60 +299,7 @@ public class GameSwitcher
                 try { hwnd = System.Diagnostics.Process.GetCurrentProcess().MainWindowHandle; } catch { }
             }
 
-            bool activated = false;
-            if (hwnd != IntPtr.Zero)
-            {
-                activated = Win32Window.RestoreAndActivate(hwnd);
-            }
-
-            if (!activated)
-            {
-                // Try any window handle owned by this process (handles tray/hidden cases)
-                try
-                {
-                    var pid = System.Diagnostics.Process.GetCurrentProcess().Id;
-                    var any = Win32Window.GetAnyWindowForProcess(pid);
-                    if (any != IntPtr.Zero)
-                    {
-                        activated = Win32Window.RestoreAndActivate(any);
-                    }
-                }
-                catch { }
-            }
-
-            if (!activated)
-            {
-                try
-                {
-                    // Fallback 1: use Playnite URI to open a view (brings instance to foreground)
-                    System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
-                    {
-                        FileName = "playnite://playnite/search",
-                        UseShellExecute = true
-                    });
-                }
-                catch { }
-            }
-
-            if (!activated)
-            {
-                try
-                {
-                    // Fallback 2: explicit startdesktop to force window mode and foreground on single-instance
-                    var exe = System.Diagnostics.Process.GetCurrentProcess().MainModule?.FileName;
-                    if (!string.IsNullOrWhiteSpace(exe))
-                    {
-                        System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
-                        {
-                            FileName = exe,
-                            Arguments = "--startdesktop --hidesplashscreen",
-                            UseShellExecute = false,
-                            WorkingDirectory = System.IO.Path.GetDirectoryName(exe) ?? string.Empty
-                        });
-                    }
-                }
-                catch { }
-            }
+            Win32Window.RestoreAndActivate(hwnd);
         });
     }
 
