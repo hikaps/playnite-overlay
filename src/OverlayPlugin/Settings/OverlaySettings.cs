@@ -18,7 +18,7 @@ public class OverlaySettings : MVVM.ObservableObject
         set => SetProperty(ref controllerCombo, value);
     }
 
-    private bool enableCustomHotkey = false;
+    private bool enableCustomHotkey = true;
     public bool EnableCustomHotkey
     {
         get => enableCustomHotkey;

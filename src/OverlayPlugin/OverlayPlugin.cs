@@ -35,6 +35,18 @@ public class OverlayPlugin : GenericPlugin
             HasSettings = true
         };
 
+        // Persist defaults on first install so they are effective immediately
+        try
+        {
+            var existing = LoadPluginSettings<OverlaySettings>();
+            if (existing == null)
+            {
+                SavePluginSettings(settings.Settings);
+            }
+        }
+        catch { }
+
+        // Apply settings (register hotkeys etc.) immediately
         input.ApplySettings(settings.Settings);
 
         input.ToggleRequested += (_, __) => ToggleOverlay();
@@ -127,18 +139,12 @@ public class InputListener
     private HotkeyManager? hotkey;
     private readonly ushort[] lastButtons = new ushort[4];
     private string controllerCombo = "Guide";
+    private bool hotkeyRegistered;
 
     public void Start()
     {
         // Register global hotkey on UI thread if enabled
-        if (!string.IsNullOrWhiteSpace(customHotkeyGesture))
-        {
-            System.Windows.Application.Current?.Dispatcher.Invoke(() =>
-            {
-                hotkey ??= new HotkeyManager();
-                hotkey.Register(customHotkeyGesture!, () => TriggerToggle());
-            });
-        }
+        TryRegisterHotkey();
 
         timer ??= new Timer(_ =>
         {
@@ -198,6 +204,7 @@ public class InputListener
         timer?.Dispose();
         timer = null;
         hotkey?.Unregister();
+        hotkeyRegistered = false;
     }
 
     // For keyboard fallback during dev/testing
@@ -210,17 +217,52 @@ public class InputListener
         controllerCombo = settings.ControllerCombo ?? "Guide";
 
         // Re-register hotkey on UI thread
-        System.Windows.Application.Current?.Dispatcher.Invoke(() =>
+        TryRegisterHotkey();
+    }
+
+    private void TryRegisterHotkey()
+    {
+        if (string.IsNullOrWhiteSpace(customHotkeyGesture))
         {
-            if (string.IsNullOrWhiteSpace(customHotkeyGesture))
+            System.Windows.Application.Current?.Dispatcher.Invoke(() =>
             {
                 hotkey?.Unregister();
-            }
-            else
+                hotkeyRegistered = false;
+            });
+            return;
+        }
+
+        System.Windows.Application.Current?.Dispatcher.Invoke(() =>
+        {
+            hotkey ??= new HotkeyManager();
+            if (hotkey.Register(customHotkeyGesture!, () => TriggerToggle()))
             {
-                hotkey ??= new HotkeyManager();
-                hotkey.Register(customHotkeyGesture!, () => TriggerToggle());
+                hotkeyRegistered = true;
+                return;
             }
+
+            // Retry registration a few times in case MainWindow isn't ready yet
+            int tries = 0;
+            var t = new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromMilliseconds(500) };
+            EventHandler? tick = null;
+            tick = (_, __) =>
+            {
+                if (hotkey!.Register(customHotkeyGesture!, () => TriggerToggle()))
+                {
+                    hotkeyRegistered = true;
+                    t.Stop();
+                    t.Tick -= tick;
+                    return;
+                }
+                tries++;
+                if (tries >= 10)
+                {
+                    t.Stop();
+                    t.Tick -= tick;
+                }
+            };
+            t.Tick += tick;
+            t.Start();
         });
     }
 }
