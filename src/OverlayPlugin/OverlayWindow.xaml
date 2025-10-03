@@ -25,28 +25,55 @@
                     </Border>
                     <StackPanel Grid.Column="2">
                         <TextBlock Text="Recently played" Foreground="#CCCCCC" Margin="0,0,0,6"/>
-                        <ItemsControl x:Name="RecentList">
-                            <ItemsControl.ItemTemplate>
+                        <ListBox x:Name="RecentList"
+                                 Background="Transparent"
+                                 BorderThickness="0"
+                                 Margin="0"
+                                 HorizontalContentAlignment="Stretch"
+                                 Focusable="False">
+                            <ListBox.ItemContainerStyle>
+                                <Style TargetType="ListBoxItem">
+                                    <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                                    <Setter Property="Padding" Value="0"/>
+                                    <Setter Property="Margin" Value="0,0,0,8"/>
+                                    <Setter Property="Template">
+                                        <Setter.Value>
+                                            <ControlTemplate TargetType="ListBoxItem">
+                                                <Border x:Name="Container" CornerRadius="6" Background="#2A2A2A" Padding="8">
+                                                    <ContentPresenter />
+                                                </Border>
+                                                <ControlTemplate.Triggers>
+                                                    <Trigger Property="IsSelected" Value="True">
+                                                        <Setter TargetName="Container" Property="Background" Value="#3A3A3A"/>
+                                                    </Trigger>
+                                                    <Trigger Property="IsMouseOver" Value="True">
+                                                        <Setter TargetName="Container" Property="Background" Value="#383838"/>
+                                                    </Trigger>
+                                                </ControlTemplate.Triggers>
+                                            </ControlTemplate>
+                                        </Setter.Value>
+                                    </Setter>
+                                </Style>
+                            </ListBox.ItemContainerStyle>
+                            <ListBox.ItemTemplate>
                                 <DataTemplate>
-                                    <Border Background="#2A2A2A" CornerRadius="6" Margin="0,0,0,8" Padding="8">
-                                        <DockPanel LastChildFill="False">
-                                            <Button Content="Play"
-                                                    Width="96" Height="32"
-                                                    HorizontalAlignment="Right" VerticalAlignment="Center"
-                                                    Margin="10,0,0,0"
-                                                    DockPanel.Dock="Right"
-                                                    CommandParameter="{Binding}"/>
-                                            <Image Width="48" Height="64" Stretch="UniformToFill" Margin="0,0,10,0">
-                                                <Image.Source>
-                                                    <BitmapImage UriSource="{Binding ImagePath}" CacheOption="OnLoad"/>
-                                                </Image.Source>
-                                            </Image>
-                                            <TextBlock Text="{Binding Title}" Foreground="White" VerticalAlignment="Center"/>
-                                        </DockPanel>
-                                    </Border>
+                                    <DockPanel LastChildFill="False">
+                                        <Button Content="Play"
+                                                Width="96" Height="32"
+                                                HorizontalAlignment="Right" VerticalAlignment="Center"
+                                                Margin="10,0,0,0"
+                                                DockPanel.Dock="Right"
+                                                CommandParameter="{Binding}"/>
+                                        <Image Width="48" Height="64" Stretch="UniformToFill" Margin="0,0,10,0">
+                                            <Image.Source>
+                                                <BitmapImage UriSource="{Binding ImagePath}" CacheOption="OnLoad"/>
+                                            </Image.Source>
+                                        </Image>
+                                        <TextBlock Text="{Binding Title}" Foreground="White" VerticalAlignment="Center"/>
+                                    </DockPanel>
                                 </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                        </ItemsControl>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
                         <StackPanel Orientation="Horizontal" Margin="0,16,0,0" HorizontalAlignment="Right">
                             <Button x:Name="SwitchBtn" Content="Switch Game" Margin="0,0,10,0" Padding="14,6"/>
                             <Button x:Name="ExitBtn" Content="Exit Current" Padding="14,6"/>

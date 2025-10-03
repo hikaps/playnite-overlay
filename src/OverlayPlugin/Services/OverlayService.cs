@@ -12,7 +12,7 @@ internal sealed class OverlayService
 
     public bool IsVisible => window != null;
 
-    public void Show(Action onSwitch, Action onExit, string title, IEnumerable<OverlayItem> items)
+    public void Show(Action onSwitch, Action onExit, string title, IEnumerable<OverlayItem> items, bool enableControllerNavigation)
     {
         if (IsVisible)
         {
@@ -26,7 +26,7 @@ internal sealed class OverlayService
                 return;
             }
 
-            window = new OverlayWindow(onSwitch, onExit, title, items)
+            window = new OverlayWindow(onSwitch, onExit, title, items, enableControllerNavigation)
             {
                 Topmost = true
             };

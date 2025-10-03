@@ -119,6 +119,7 @@ public class OverlayPlugin : GenericPlugin
             () => switcher.SwitchToPlaynite(),
             () => switcher.ExitCurrent(),
             title,
-            recommendations);
+            recommendations,
+            settings.Settings.UseControllerToOpen);
     }
 }
