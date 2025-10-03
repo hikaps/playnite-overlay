@@ -1,11 +1,13 @@
 using System;
-using System.Threading;
-using System.Linq;
 using System.Collections.Generic;
+using System.Linq;
 using System.Windows.Controls;
 using Playnite.SDK;
 using Playnite.SDK.Events;
 using Playnite.SDK.Plugins;
+using PlayniteOverlay.Input;
+using PlayniteOverlay.Models;
+using PlayniteOverlay.Services;
 
 namespace PlayniteOverlay;
 
@@ -13,7 +15,7 @@ public class OverlayPlugin : GenericPlugin
 {
     private const string MenuSection = "&Overlay";
     private const string ToggleOverlayDescription = "Toggle Overlay";
-    public static readonly Guid PluginId = new ("11111111-2222-3333-4444-555555555555");
+    public static readonly Guid PluginId = new("11111111-2222-3333-4444-555555555555");
 
     private readonly ILogger logger;
     private readonly InputListener input;
@@ -29,13 +31,11 @@ public class OverlayPlugin : GenericPlugin
         switcher = new GameSwitcher(api);
         settings = new OverlaySettingsViewModel(this);
 
-        // Enable settings page in Playnite
         Properties = new GenericPluginProperties
         {
             HasSettings = true
         };
 
-        // Persist defaults on first install so they are effective immediately
         try
         {
             var existing = LoadPluginSettings<OverlaySettings>();
@@ -44,17 +44,16 @@ public class OverlayPlugin : GenericPlugin
                 SavePluginSettings(settings.Settings);
             }
         }
-        catch { }
+        catch
+        {
+            // Ignore settings load failures to avoid breaking initialisation.
+        }
 
-        // Apply settings (register hotkeys etc.) immediately
         input.ApplySettings(settings.Settings);
-
-        input.ToggleRequested += (_, __) => ToggleOverlay();
+        input.ToggleRequested += (_, _) => ToggleOverlay();
     }
 
     public override Guid Id => PluginId;
-
-    
 
     public override void OnGameStarted(OnGameStartedEventArgs args)
     {
@@ -69,33 +68,6 @@ public class OverlayPlugin : GenericPlugin
         overlay.Hide();
     }
 
-    private void ToggleOverlay()
-    {
-        logger.Info($"Toggling overlay (visible={overlay.IsVisible})");
-        if (overlay.IsVisible)
-        {
-            overlay.Hide();
-        }
-        else
-        {
-            var title = switcher.CurrentGameTitle ?? "Playnite Overlay";
-            var recommendations = switcher.GetRecentGames(6)
-                .Select(g => OverlayItem.FromGame(g, switcher))
-                .ToList();
-
-            overlay.Show(() =>
-            {
-                // Return to Playnite (bring main window to front)
-                switcher.SwitchToPlaynite();
-            },
-            () =>
-            {
-                switcher.ExitCurrent();
-            }, title, recommendations);
-        }
-    }
-
-    // Expose menu action so users can bind Playnite shortcuts
     public override IEnumerable<MainMenuItem> GetMainMenuItems(GetMainMenuItemsArgs args)
     {
         yield return new MainMenuItem
@@ -106,8 +78,8 @@ public class OverlayPlugin : GenericPlugin
         };
     }
 
-    // Settings plumbing
     public override ISettings GetSettings(bool firstRunSettings) => settings;
+
     public override UserControl GetSettingsView(bool firstRunSettings)
     {
         try
@@ -128,285 +100,25 @@ public class OverlayPlugin : GenericPlugin
     {
         input.ApplySettings(newSettings);
     }
-}
 
-public class InputListener
-{
-    private Timer? timer;
-    public event EventHandler? ToggleRequested;
-    private string? customHotkeyGesture;
-    private bool enableController = true;
-    private HotkeyManager? hotkey;
-    private readonly ushort[] lastButtons = new ushort[4];
-    private string controllerCombo = "Guide";
-    private bool hotkeyRegistered;
-
-    public void Start()
+    private void ToggleOverlay()
     {
-        // Register global hotkey on UI thread if enabled
-        TryRegisterHotkey();
-
-        timer ??= new Timer(_ =>
+        logger.Info($"Toggling overlay (visible={overlay.IsVisible})");
+        if (overlay.IsVisible)
         {
-            // Controller polling
-            if (enableController)
-            {
-                // Check up to 4 controllers
-                for (int i = 0; i < 4; i++)
-                {
-                    // If Guide requested, try keystroke first (edge-triggered)
-                    if (controllerCombo.Equals("Guide", StringComparison.OrdinalIgnoreCase))
-                    {
-                        if (XInput.TryGetKeystroke(i, out var stroke))
-                        {
-                            if ((stroke.Flags & XInput.XINPUT_KEYSTROKE_KEYDOWN) != 0 && stroke.VirtualKey == XInput.VK_PAD_GUIDE_BUTTON)
-                            {
-                                TriggerToggle();
-                                continue;
-                            }
-                        }
-                    }
-
-                    // Fallbacks/other combos via state polling
-                    if (!XInput.TryGetState(i, out var state))
-                        continue;
-
-                    var buttons = state.Gamepad.wButtons;
-                    ushort mask = 0;
-                    var combo = controllerCombo.ToUpperInvariant();
-                    if (combo == "START+BACK" || combo == "BACK+START")
-                    {
-                        mask = (ushort)(XInput.XINPUT_GAMEPAD_START | XInput.XINPUT_GAMEPAD_BACK);
-                    }
-                    else if (combo == "LB+RB" || combo == "RB+LB")
-                    {
-                        mask = (ushort)(XInput.XINPUT_GAMEPAD_LEFT_SHOULDER | XInput.XINPUT_GAMEPAD_RIGHT_SHOULDER);
-                    }
-
-                    if (mask != 0)
-                    {
-                        bool now = (buttons & mask) == mask;
-                        bool prev = (lastButtons[i] & mask) == mask;
-                        if (now && !prev)
-                        {
-                            TriggerToggle();
-                        }
-                    }
-
-                    lastButtons[i] = buttons;
-                }
-            }
-        }, null, 0, 50);
-    }
-
-    public void Stop()
-    {
-        timer?.Dispose();
-        timer = null;
-        hotkey?.Unregister();
-        hotkeyRegistered = false;
-    }
-
-    // For keyboard fallback during dev/testing
-    public void TriggerToggle() => ToggleRequested?.Invoke(this, EventArgs.Empty);
-
-    public void ApplySettings(OverlaySettings settings)
-    {
-        customHotkeyGesture = settings.EnableCustomHotkey ? settings.CustomHotkey : null;
-        enableController = settings.UseControllerToOpen;
-        controllerCombo = settings.ControllerCombo ?? "Guide";
-
-        // Re-register hotkey on UI thread
-        TryRegisterHotkey();
-    }
-
-    private void TryRegisterHotkey()
-    {
-        if (string.IsNullOrWhiteSpace(customHotkeyGesture))
-        {
-            System.Windows.Application.Current?.Dispatcher.Invoke(() =>
-            {
-                hotkey?.Unregister();
-                hotkeyRegistered = false;
-            });
+            overlay.Hide();
             return;
         }
 
-        System.Windows.Application.Current?.Dispatcher.Invoke(() =>
-        {
-            hotkey ??= new HotkeyManager();
-            if (hotkey.Register(customHotkeyGesture!, () => TriggerToggle()))
-            {
-                hotkeyRegistered = true;
-                return;
-            }
-
-            // Retry registration a few times in case MainWindow isn't ready yet
-            int tries = 0;
-            var t = new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromMilliseconds(500) };
-            EventHandler? tick = null;
-            tick = (_, __) =>
-            {
-                if (hotkey!.Register(customHotkeyGesture!, () => TriggerToggle()))
-                {
-                    hotkeyRegistered = true;
-                    t.Stop();
-                    t.Tick -= tick;
-                    return;
-                }
-                tries++;
-                if (tries >= 10)
-                {
-                    t.Stop();
-                    t.Tick -= tick;
-                }
-            };
-            t.Tick += tick;
-            t.Start();
-        });
-    }
-}
-
-public class OverlayService
-{
-    public bool IsVisible { get; private set; }
-    private OverlayWindow? window;
-
-    public void Show(Action onSwitch, Action onExit, string title, System.Collections.Generic.IEnumerable<OverlayItem> items)
-    {
-        if (IsVisible)
-        {
-            return;
-        }
-        IsVisible = true;
-        System.Windows.Application.Current?.Dispatcher.Invoke(() =>
-        {
-            window = new OverlayWindow(onSwitch, onExit, title, items)
-            {
-                Topmost = true
-            };
-            window.Loaded += (_, __) =>
-            {
-                var px = Monitors.GetActiveMonitorBoundsInPixels();
-                var dips = Monitors.PixelsToDips(window, px);
-                window.Left = dips.Left;
-                window.Top = dips.Top;
-                window.Width = dips.Width;
-                window.Height = dips.Height;
-            };
-            window.Closed += (_, __) => { IsVisible = false; window = null; };
-            window.Show();
-        });
-    }
-
-    public void Hide()
-    {
-        if (!IsVisible)
-        {
-            return;
-        }
-        System.Windows.Application.Current?.Dispatcher.Invoke(() =>
-        {
-            try { window?.Close(); } catch { /* ignore */ }
-            window = null;
-        });
-        IsVisible = false;
-    }
-}
-
-public class GameSwitcher
-{
-    private readonly IPlayniteAPI api;
-    private Playnite.SDK.Models.Game? current;
-    public GameSwitcher(IPlayniteAPI api) => this.api = api;
-
-    public void SwitchToPlaynite()
-    {
-        System.Windows.Application.Current?.Dispatcher.Invoke(() =>
-        {
-            var win = System.Windows.Application.Current?.MainWindow;
-            IntPtr hwnd = IntPtr.Zero;
-            if (win != null)
-            {
-                try
-                {
-                    var helper = new System.Windows.Interop.WindowInteropHelper(win);
-                    hwnd = helper.Handle;
-                }
-                catch { }
-            }
-
-            if (hwnd == IntPtr.Zero)
-            {
-                try { hwnd = System.Diagnostics.Process.GetCurrentProcess().MainWindowHandle; } catch { }
-            }
-
-            Win32Window.RestoreAndActivate(hwnd);
-        });
-    }
-
-    public void ExitCurrent()
-    {
-        // TODO: Ask Playnite to stop current game or kill process with confirmation.
-    }
-
-    public void SetCurrent(Playnite.SDK.Models.Game? game)
-    {
-        current = game;
-    }
-
-    public void ClearCurrent()
-    {
-        current = null;
-    }
-
-    public string? CurrentGameTitle => current?.Name;
-
-    public System.Collections.Generic.IEnumerable<Playnite.SDK.Models.Game> GetRecentGames(int count)
-    {
-        var games = api.Database.Games.AsQueryable();
-        var excludeId = current?.Id;
-        var query = games.Where(g => g.LastActivity != null);
-        if (excludeId != null)
-        {
-            query = query.Where(g => g.Id != excludeId);
-        }
-        return query
-            .OrderByDescending(g => g.LastActivity)
-            .Take(count)
+        var title = switcher.CurrentGameTitle ?? "Playnite Overlay";
+        var recommendations = switcher.GetRecentGames(6)
+            .Select(g => OverlayItem.FromGame(g, switcher))
             .ToList();
-    }
 
-    public void StartGame(Guid gameId)
-    {
-        // Playnite SDK 6.12 expects a Guid for StartGame
-        api.StartGame(gameId);
-    }
-
-    public string? ResolveImagePath(string? imageRef)
-    {
-        if (string.IsNullOrWhiteSpace(imageRef)) return null;
-        var path = imageRef!;
-        if (path.StartsWith("http", StringComparison.OrdinalIgnoreCase)) return path;
-        return api.Database.GetFullFilePath(path);
-    }
-}
-
-public class OverlayItem
-{
-    public string Title { get; set; } = string.Empty;
-    public Guid GameId { get; set; }
-    public string? ImagePath { get; set; }
-    public Action? OnSelect { get; set; }
-
-    public static OverlayItem FromGame(Playnite.SDK.Models.Game game, GameSwitcher switcher)
-    {
-        return new OverlayItem
-        {
-            Title = game.Name,
-            GameId = game.Id,
-            ImagePath = switcher.ResolveImagePath(string.IsNullOrWhiteSpace(game.CoverImage) ? game.Icon : game.CoverImage),
-            OnSelect = () => switcher.StartGame(game.Id)
-        };
+        overlay.Show(
+            () => switcher.SwitchToPlaynite(),
+            () => switcher.ExitCurrent(),
+            title,
+            recommendations);
     }
 }

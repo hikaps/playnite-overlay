@@ -68,13 +68,13 @@ jobs:
           $sha = (git rev-parse --short HEAD).Trim()
           $branch = $env:GITHUB_REF_NAME
           if (-not $branch) { $branch = (git rev-parse --abbrev-ref HEAD).Trim() }
-          "version=$v`nsha=$sha`nbranch=$branch" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          $safeBranch = $branch -replace "[^A-Za-z0-9._-]","-"
+          "version=$v`nsha=$sha`nbranch=$branch`nsafeBranch=$safeBranch" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
 
       - name: Package .pext
         shell: pwsh
         run: |
-          $safeBranch = "${{ steps.ver.outputs.branch }}" -replace "[^A-Za-z0-9._-]","-"
-          $ver = "${{ steps.ver.outputs.version }}-$safeBranch-${{ steps.ver.outputs.sha }}"
+          $ver = "${{ steps.ver.outputs.version }}-${{ steps.ver.outputs.safeBranch }}-${{ steps.ver.outputs.sha }}"
           pwsh -File tools/pack.ps1 -Version $ver -OutDir dist
 
       - name: List dist
@@ -102,6 +102,6 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: pext-${{ steps.ver.outputs.version }}-${{ steps.ver.outputs.branch }}-${{ steps.ver.outputs.sha }}
+          name: pext-${{ steps.ver.outputs.version }}-${{ steps.ver.outputs.safeBranch }}-${{ steps.ver.outputs.sha }}
           path: dist/*.pext
           if-no-files-found: warn
