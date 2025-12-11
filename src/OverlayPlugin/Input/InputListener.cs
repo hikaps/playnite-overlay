@@ -9,11 +9,12 @@ namespace PlayniteOverlay.Input;
 
 internal sealed class InputListener
 {
-    private const int PollIntervalMs = 50;
+    private const int PollIntervalMs = 100;
     private const int HotkeyRetryLimit = 10;
 
     private static readonly ILogger logger = LogManager.GetLogger();
     private readonly ushort[] lastButtons = new ushort[4];
+    private readonly bool[] controllerConnected = new bool[4];
 
     private Timer? pollTimer;
     private HotkeyManager? hotkeyManager;
@@ -68,12 +69,30 @@ internal sealed class InputListener
         {
             if (controllerCombo.Equals("Guide", StringComparison.OrdinalIgnoreCase) && TryHandleGuideButton(index))
             {
+                // Guide button handled, but still update connection state
+                if (!controllerConnected[index])
+                {
+                    logger.Debug($"Controller {index} connected");
+                    controllerConnected[index] = true;
+                }
                 continue;
             }
 
             if (!XInput.TryGetState(index, out var state))
             {
+                if (controllerConnected[index])
+                {
+                    logger.Debug($"Controller {index} disconnected");
+                    controllerConnected[index] = false;
+                }
+                lastButtons[index] = 0;
                 continue;
+            }
+
+            if (!controllerConnected[index])
+            {
+                logger.Debug($"Controller {index} connected");
+                controllerConnected[index] = true;
             }
 
             var buttons = state.Gamepad.wButtons;
