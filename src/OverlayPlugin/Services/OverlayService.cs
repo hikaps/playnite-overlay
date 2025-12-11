@@ -8,64 +8,77 @@ namespace PlayniteOverlay.Services;
 
 internal sealed class OverlayService
 {
+    private readonly object windowLock = new object();
     private OverlayWindow? window;
 
-    public bool IsVisible => window != null;
+    public bool IsVisible
+    {
+        get { lock (windowLock) return window != null; }
+    }
 
     public void Show(Action onSwitch, Action onExit, string title, IEnumerable<OverlayItem> items, bool enableControllerNavigation)
     {
-        if (IsVisible)
-        {
-            return;
-        }
-
-        Application.Current?.Dispatcher.Invoke(() =>
+        lock (windowLock)
         {
             if (window != null)
             {
                 return;
             }
 
-            window = new OverlayWindow(onSwitch, onExit, title, items, enableControllerNavigation)
+            Application.Current?.Dispatcher.Invoke(() =>
             {
-                Topmost = true
-            };
+                window = new OverlayWindow(onSwitch, onExit, title, items, enableControllerNavigation)
+                {
+                    Topmost = true
+                };
 
-            window.Loaded += (_, _) =>
-            {
-                var pixelBounds = Monitors.GetActiveMonitorBoundsInPixels();
-                var dipBounds = Monitors.PixelsToDips(window, pixelBounds);
-                window.Left = dipBounds.Left;
-                window.Top = dipBounds.Top;
-                window.Width = dipBounds.Width;
-                window.Height = dipBounds.Height;
-            };
+                window.Loaded += (_, _) =>
+                {
+                    var pixelBounds = Monitors.GetActiveMonitorBoundsInPixels();
+                    var dipBounds = Monitors.PixelsToDips(window, pixelBounds);
+                    window.Left = dipBounds.Left;
+                    window.Top = dipBounds.Top;
+                    window.Width = dipBounds.Width;
+                    window.Height = dipBounds.Height;
+                };
 
-            window.Closed += (_, _) => window = null;
-            window.Show();
-        });
+                window.Closed += (_, _) =>
+                {
+                    lock (windowLock)
+                    {
+                        window = null;
+                    }
+                };
+
+                window.Show();
+            });
+        }
     }
 
     public void Hide()
     {
-        if (!IsVisible)
+        OverlayWindow? windowToClose = null;
+
+        lock (windowLock)
         {
-            return;
+            if (window == null)
+            {
+                return;
+            }
+
+            windowToClose = window;
+            window = null;
         }
 
         Application.Current?.Dispatcher.Invoke(() =>
         {
             try
             {
-                window?.Close();
+                windowToClose?.Close();
             }
             catch
             {
                 // Best effort close; swallow exceptions so overlay shutdown never crashes the plugin.
-            }
-            finally
-            {
-                window = null;
             }
         });
     }
