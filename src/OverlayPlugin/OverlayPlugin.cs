@@ -22,6 +22,7 @@ public class OverlayPlugin : GenericPlugin
     private readonly OverlayService overlay;
     private readonly GameSwitcher switcher;
     private readonly OverlaySettingsViewModel settings;
+    private bool isDisposed;
 
     public OverlayPlugin(IPlayniteAPI api) : base(api)
     {
@@ -50,7 +51,7 @@ public class OverlayPlugin : GenericPlugin
         }
 
         input.ApplySettings(settings.Settings);
-        input.ToggleRequested += (_, _) => ToggleOverlay();
+        input.ToggleRequested += HandleToggleRequested;
     }
 
     public override Guid Id => PluginId;
@@ -101,6 +102,11 @@ public class OverlayPlugin : GenericPlugin
         input.ApplySettings(newSettings);
     }
 
+    private void HandleToggleRequested(object? sender, EventArgs e)
+    {
+        ToggleOverlay();
+    }
+
     private void ToggleOverlay()
     {
         logger.Info($"Toggling overlay (visible={overlay.IsVisible})");
@@ -121,5 +127,24 @@ public class OverlayPlugin : GenericPlugin
             title,
             recommendations,
             settings.Settings.UseControllerToOpen);
+    }
+
+    public override void Dispose()
+    {
+        if (isDisposed)
+        {
+            return;
+        }
+
+        isDisposed = true;
+
+        // Unsubscribe from events to prevent memory leaks
+        input.ToggleRequested -= HandleToggleRequested;
+
+        // Clean up resources
+        input.Stop();
+        overlay.Hide();
+
+        base.Dispose();
     }
 }
