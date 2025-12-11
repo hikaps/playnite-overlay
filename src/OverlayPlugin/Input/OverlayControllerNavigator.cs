@@ -6,7 +6,7 @@ namespace PlayniteOverlay.Input;
 
 internal sealed class OverlayControllerNavigator : IDisposable
 {
-    private const int PollIntervalMs = 60;
+    private const int PollIntervalMs = 100;
 
     private readonly OverlayWindow window;
     private readonly Timer pollTimer;
