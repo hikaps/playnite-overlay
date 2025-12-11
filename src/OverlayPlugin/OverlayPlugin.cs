@@ -45,9 +45,9 @@ public class OverlayPlugin : GenericPlugin
                 SavePluginSettings(settings.Settings);
             }
         }
-        catch
+        catch (Exception ex)
         {
-            // Ignore settings load failures to avoid breaking initialisation.
+            logger.Debug(ex, "Failed to load plugin settings, using defaults.");
         }
 
         input.ApplySettings(settings.Settings);

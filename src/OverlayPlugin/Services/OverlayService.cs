@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Windows;
+using Playnite.SDK;
 using PlayniteOverlay;
 using PlayniteOverlay.Models;
 
@@ -8,6 +9,7 @@ namespace PlayniteOverlay.Services;
 
 internal sealed class OverlayService
 {
+    private static readonly ILogger logger = LogManager.GetLogger();
     private readonly object windowLock = new object();
     private OverlayWindow? window;
 
@@ -76,9 +78,9 @@ internal sealed class OverlayService
             {
                 windowToClose?.Close();
             }
-            catch
+            catch (Exception ex)
             {
-                // Best effort close; swallow exceptions so overlay shutdown never crashes the plugin.
+                logger.Debug(ex, "Exception while closing overlay window.");
             }
         });
     }

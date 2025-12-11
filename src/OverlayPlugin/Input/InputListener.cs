@@ -2,6 +2,7 @@ using System;
 using System.Threading;
 using System.Windows;
 using System.Windows.Threading;
+using Playnite.SDK;
 using PlayniteOverlay;
 
 namespace PlayniteOverlay.Input;
@@ -11,6 +12,7 @@ internal sealed class InputListener
     private const int PollIntervalMs = 50;
     private const int HotkeyRetryLimit = 10;
 
+    private static readonly ILogger logger = LogManager.GetLogger();
     private readonly ushort[] lastButtons = new ushort[4];
 
     private Timer? pollTimer;
@@ -131,9 +133,11 @@ internal sealed class InputListener
 
             if (hotkeyManager.Register(customHotkeyGesture!, TriggerToggle))
             {
+                logger.Debug($"Successfully registered hotkey: {customHotkeyGesture}");
                 return;
             }
 
+            logger.Debug($"Failed to register hotkey immediately, will retry: {customHotkeyGesture}");
             int attempts = 0;
             hotkeyRetryTimer = new DispatcherTimer
             {
@@ -142,8 +146,15 @@ internal sealed class InputListener
             hotkeyRetryTimer.Tick += (_, _) =>
             {
                 attempts++;
-                if (hotkeyManager.Register(customHotkeyGesture!, TriggerToggle) || attempts >= HotkeyRetryLimit)
+                if (hotkeyManager.Register(customHotkeyGesture!, TriggerToggle))
                 {
+                    logger.Debug($"Successfully registered hotkey after {attempts} attempts: {customHotkeyGesture}");
+                    hotkeyRetryTimer?.Stop();
+                    hotkeyRetryTimer = null;
+                }
+                else if (attempts >= HotkeyRetryLimit)
+                {
+                    logger.Warn($"Failed to register hotkey after {attempts} attempts: {customHotkeyGesture}");
                     hotkeyRetryTimer?.Stop();
                     hotkeyRetryTimer = null;
                 }

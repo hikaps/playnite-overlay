@@ -3,6 +3,7 @@ using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Interop;
+using Playnite.SDK;
 
 namespace PlayniteOverlay;
 
@@ -13,6 +14,8 @@ internal sealed class HotkeyManager : IDisposable
     private const uint MOD_CONTROL = 0x0002;
     private const uint MOD_SHIFT = 0x0004;
     private const uint MOD_WIN = 0x0008;
+
+    private static readonly ILogger logger = LogManager.GetLogger();
 
     [DllImport("user32.dll", SetLastError = true)]
     private static extern bool RegisterHotKey(IntPtr hWnd, int id, uint fsModifiers, uint vk);
@@ -101,7 +104,14 @@ internal sealed class HotkeyManager : IDisposable
         if (source != null && hook != null)
         {
             var hwnd = source.Handle;
-            try { UnregisterHotKey(hwnd, id); } catch { /* ignore */ }
+            try
+            {
+                UnregisterHotKey(hwnd, id);
+            }
+            catch (Exception ex)
+            {
+                logger.Debug(ex, "Failed to unregister hotkey.");
+            }
             source.RemoveHook(hook);
         }
         hook = null;
