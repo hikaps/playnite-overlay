@@ -26,8 +26,36 @@ internal sealed class OverlayControllerNavigator : IDisposable
             return;
         }
 
-        // Avoid retaining window when overlay is closing
-        if (!window.IsLoaded || !window.IsVisible)
+        // Check window state on UI thread to avoid cross-thread access violations
+        bool shouldPoll = false;
+        try
+        {
+            var dispatcher = window.Dispatcher;
+            if (dispatcher.HasShutdownStarted || dispatcher.HasShutdownFinished)
+            {
+                return;
+            }
+
+            if (dispatcher.CheckAccess())
+            {
+                // Already on UI thread
+                shouldPoll = window.IsLoaded && window.IsVisible;
+            }
+            else
+            {
+                // Marshal to UI thread
+                shouldPoll = (bool)dispatcher.Invoke(
+                    () => window.IsLoaded && window.IsVisible,
+                    DispatcherPriority.Normal);
+            }
+        }
+        catch (Exception)
+        {
+            // Dispatcher may be shutting down or window disposed
+            return;
+        }
+
+        if (!shouldPoll)
         {
             return;
         }
