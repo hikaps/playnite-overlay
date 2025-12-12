@@ -75,7 +75,18 @@ public partial class OverlayWindow : Window
             this.Closed += closed;
             this.Close();
         };
-        ExitBtn.Click += (_, __) => this.onExit();
+        ExitBtn.Click += (_, __) =>
+        {
+            // Close overlay first, then exit game after window fully closed
+            EventHandler? closed = null;
+            closed = (s, e2) =>
+            {
+                this.Closed -= closed;
+                try { this.onExit(); } catch { }
+            };
+            this.Closed += closed;
+            this.Close();
+        };
         Backdrop.MouseLeftButtonDown += (_, __) => this.Close();
         KeyDown += (_, e) => { if (e.Key == Key.Escape) this.Close(); };
         Loaded += (_, __) =>
@@ -268,7 +279,7 @@ public partial class OverlayWindow : Window
         isClosing = true;
         try
         {
-            var anim = new System.Windows.Media.Animation.DoubleAnimation(1, 0, new Duration(TimeSpan.FromMilliseconds(120)))
+            var anim = new System.Windows.Media.Animation.DoubleAnimation(1, 0, new Duration(TimeSpan.FromMilliseconds(60)))
             {
                 EasingFunction = new System.Windows.Media.Animation.CubicEase { EasingMode = System.Windows.Media.Animation.EasingMode.EaseIn }
             };
