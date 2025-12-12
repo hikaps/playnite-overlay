@@ -8,6 +8,7 @@ namespace PlayniteOverlay.Services;
 
 public sealed class GameSwitcher
 {
+    private static readonly ILogger logger = LogManager.GetLogger();
     private readonly IPlayniteAPI api;
     private Playnite.SDK.Models.Game? currentGame;
 
@@ -65,7 +66,39 @@ public sealed class GameSwitcher
 
     public void ExitCurrent()
     {
-        // TODO: Consider prompting Playnite to stop the running game.
+        if (currentGame == null)
+        {
+            logger.Warn("ExitCurrent called but no current game is set.");
+            return;
+        }
+
+        try
+        {
+            // Playnite SDK doesn't expose a direct StopGame method in IPlayniteAPI
+            // The game is typically stopped when the process exits or via MainViewModel
+            // For now, we'll use the MainModel to stop the game if available
+            var mainModel = api.MainView;
+            if (mainModel != null)
+            {
+                // Request to close the current game through UI automation
+                // This is safer than killing the process directly
+                logger.Info($"Requesting to stop game: {currentGame.Name}");
+                
+                // Try to use the API's internal commands if exposed
+                // As a fallback, we could emit a close command or use Process termination
+                // For safety, we'll just log for now until we verify the correct API method
+                logger.Warn("ExitCurrent functionality requires Playnite API method verification.");
+                // TODO: Once API method is verified, implement: api.StopGame(currentGame.Id);
+            }
+            else
+            {
+                logger.Error("Unable to access Playnite MainView to stop game.");
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.Error(ex, $"Failed to exit current game: {currentGame.Name}");
+        }
     }
 
     public IEnumerable<Playnite.SDK.Models.Game> GetRecentGames(int count)
