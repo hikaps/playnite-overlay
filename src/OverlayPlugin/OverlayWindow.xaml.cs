@@ -21,28 +21,54 @@ public partial class OverlayWindow : Window
     private int selectedIndex = -1;
     private bool isClosing;
 
-    public OverlayWindow(Action onSwitch, Action onExit, string title, IEnumerable<OverlayItem> items, bool enableControllerNavigation)
+    public OverlayWindow(Action onSwitch, Action onExit, OverlayItem? currentGame, IEnumerable<OverlayItem> recentGames, bool enableControllerNavigation)
     {
         InitializeComponent();
         this.onSwitch = onSwitch;
         this.onExit = onExit;
-        this.items = new List<OverlayItem>(items);
+        this.items = new List<OverlayItem>(recentGames);
         this.enableControllerNavigation = enableControllerNavigation;
 
-        TitleText.Text = string.IsNullOrWhiteSpace(title) ? "Playnite Overlay" : title;
-
-        // Set cover image if any from first item (approximation); could be set to current game's cover if desired
-        if (this.items.Count > 0 && !string.IsNullOrWhiteSpace(this.items[0].ImagePath))
+        // Setup current game section
+        if (currentGame != null)
         {
-            try
+            CurrentGameSection.Visibility = Visibility.Visible;
+            CurrentGameTitle.Text = currentGame.Title;
+            CurrentGameInfo.Text = currentGame.SecondaryText ?? "";
+            
+            if (!string.IsNullOrWhiteSpace(currentGame.ImagePath))
             {
-                CoverImage.Source = new BitmapImage(new System.Uri(this.items[0].ImagePath, System.UriKind.RelativeOrAbsolute));
+                try
+                {
+                    CurrentGameCover.Source = new BitmapImage(new Uri(currentGame.ImagePath, UriKind.RelativeOrAbsolute));
+                }
+                catch
+                {
+                    // Cover failed to load, image will remain empty
+                }
             }
-            catch { /* ignore invalid URIs */ }
+        }
+        else
+        {
+            CurrentGameSection.Visibility = Visibility.Collapsed;
         }
 
+        // Setup recent games list
         RecentList.ItemsSource = this.items;
-        RecentList.AddHandler(System.Windows.Controls.Button.ClickEvent, new RoutedEventHandler(OnRecentPlayClick));
+        
+        // Show empty state if no recent games
+        if (this.items.Count == 0)
+        {
+            EmptyState.Visibility = Visibility.Visible;
+            RecentList.Visibility = Visibility.Collapsed;
+        }
+        else
+        {
+            EmptyState.Visibility = Visibility.Collapsed;
+            RecentList.Visibility = Visibility.Visible;
+        }
+
+        RecentList.AddHandler(Button.ClickEvent, new RoutedEventHandler(OnRecentPlayClick));
         RecentList.SelectionChanged += (_, __) =>
         {
             if (RecentList.SelectedIndex >= 0)
@@ -51,13 +77,14 @@ public partial class OverlayWindow : Window
             }
         };
 
+        // Initial focus
         if (this.items.Count > 0)
         {
             selectedIndex = 0;
             navigationTarget = NavigationTarget.RecentList;
             Dispatcher.BeginInvoke(() => FocusListItem(selectedIndex), DispatcherPriority.Loaded);
         }
-        else
+        else if (currentGame != null)
         {
             navigationTarget = NavigationTarget.SwitchButton;
             Dispatcher.BeginInvoke(FocusSwitchButton, DispatcherPriority.Loaded);
@@ -75,6 +102,7 @@ public partial class OverlayWindow : Window
             this.Closed += closed;
             this.Close();
         };
+        
         ExitBtn.Click += (_, __) =>
         {
             // Close overlay first, then exit game after window fully closed
@@ -87,8 +115,10 @@ public partial class OverlayWindow : Window
             this.Closed += closed;
             this.Close();
         };
+        
         Backdrop.MouseLeftButtonDown += (_, __) => this.Close();
         KeyDown += (_, e) => { if (e.Key == Key.Escape) this.Close(); };
+        
         Loaded += (_, __) =>
         {
             Activate(); Focus(); Keyboard.Focus(this);
@@ -98,7 +128,7 @@ public partial class OverlayWindow : Window
             }
             try
             {
-                var anim = new System.Windows.Media.Animation.DoubleAnimation(0, 1, new Duration(TimeSpan.FromMilliseconds(180)))
+                var anim = new System.Windows.Media.Animation.DoubleAnimation(0, 1, new Duration(TimeSpan.FromMilliseconds(200)))
                 {
                     EasingFunction = new System.Windows.Media.Animation.CubicEase { EasingMode = System.Windows.Media.Animation.EasingMode.EaseOut }
                 };
@@ -106,17 +136,19 @@ public partial class OverlayWindow : Window
             }
             catch { }
         };
+        
         Closed += (_, __) =>
         {
             controllerNavigator?.Dispose();
             controllerNavigator = null;
         };
+        
         Closing += OnClosingWithFade;
     }
 
     private void OnRecentPlayClick(object sender, RoutedEventArgs e)
     {
-        if (e.OriginalSource is System.Windows.Controls.Button btn && btn.CommandParameter is OverlayItem item)
+        if (e.OriginalSource is Button btn && btn.CommandParameter is OverlayItem item)
         {
             item.OnSelect?.Invoke();
             Close();
@@ -251,10 +283,10 @@ public partial class OverlayWindow : Window
                 }
                 break;
             case NavigationTarget.SwitchButton:
-                SwitchBtn.RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Button.ClickEvent));
+                SwitchBtn.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
                 break;
             case NavigationTarget.ExitButton:
-                ExitBtn.RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Button.ClickEvent));
+                ExitBtn.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
                 break;
         }
     }
