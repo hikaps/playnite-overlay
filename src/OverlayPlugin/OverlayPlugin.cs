@@ -116,16 +116,23 @@ public class OverlayPlugin : GenericPlugin
             return;
         }
 
-        var title = switcher.CurrentGameTitle ?? "Playnite Overlay";
-        var recommendations = switcher.GetRecentGames(6)
-            .Select(g => OverlayItem.FromGame(g, switcher))
+        // Build current game item (if any)
+        OverlayItem? currentGameItem = null;
+        if (switcher.CurrentGame != null)
+        {
+            currentGameItem = OverlayItem.FromCurrentGame(switcher.CurrentGame, switcher);
+        }
+
+        // Build recent games list (excludes current game)
+        var recentGames = switcher.GetRecentGames(5)
+            .Select(g => OverlayItem.FromRecentGame(g, switcher))
             .ToList();
 
         overlay.Show(
             () => switcher.SwitchToPlaynite(),
             () => switcher.ExitCurrent(),
-            title,
-            recommendations,
+            currentGameItem,
+            recentGames,
             settings.Settings.UseControllerToOpen);
     }
 
