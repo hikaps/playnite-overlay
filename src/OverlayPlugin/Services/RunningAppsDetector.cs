@@ -46,6 +46,9 @@ public sealed class RunningAppsDetector
     [DllImport("user32.dll")]
     private static extern int GetWindowTextLength(IntPtr hWnd);
 
+    [DllImport("user32.dll")]
+    private static extern bool IsWindow(IntPtr hWnd);
+
     public RunningAppsDetector(IPlayniteAPI api)
     {
         this.api = api;
@@ -187,12 +190,23 @@ public sealed class RunningAppsDetector
             api.Notifications?.Add(
                 $"switch-app-invalid-{app.ProcessId}",
                 $"Cannot switch to {app.Title}: window not found",
-                NotificationType.Error);
+                NotificationType.Info);
             return;
         }
 
         try
         {
+            // Check if window still exists before trying to switch
+            if (!IsWindow(app.WindowHandle))
+            {
+                logger.Warn($"Cannot switch to app: window no longer exists for {app.Title}");
+                api.Notifications?.Add(
+                    $"switch-app-gone-{app.ProcessId}",
+                    $"{app.Title} is no longer running",
+                    NotificationType.Info);
+                return;
+            }
+
             Win32Window.RestoreAndActivate(app.WindowHandle);
             logger.Info($"Switched to app: {app.Title} (PID: {app.ProcessId})");
         }
@@ -415,16 +429,19 @@ public sealed class RunningAppsDetector
         try
         {
             var imagePath = GetBestImagePath(game);
+            var windowHandle = process.MainWindowHandle;
+            var processId = process.Id;
+            var title = game.Name;
 
             return new RunningApp
             {
-                Title = game.Name,
+                Title = title,
                 ImagePath = imagePath,
-                WindowHandle = process.MainWindowHandle,
+                WindowHandle = windowHandle,
                 GameId = game.Id,
-                ProcessId = process.Id,
+                ProcessId = processId,
                 Type = AppType.PlayniteGame,
-                OnSwitch = () => SwitchToApp(new RunningApp { WindowHandle = process.MainWindowHandle, Title = game.Name, ProcessId = process.Id })
+                OnSwitch = () => SwitchToApp(new RunningApp { WindowHandle = windowHandle, Title = title, ProcessId = processId })
             };
         }
         catch (Exception ex)
@@ -441,16 +458,18 @@ public sealed class RunningAppsDetector
             var title = !string.IsNullOrWhiteSpace(process.MainWindowTitle)
                 ? process.MainWindowTitle
                 : process.ProcessName;
+            var windowHandle = process.MainWindowHandle;
+            var processId = process.Id;
 
             return new RunningApp
             {
                 Title = title,
                 ImagePath = null,
-                WindowHandle = process.MainWindowHandle,
+                WindowHandle = windowHandle,
                 GameId = null,
-                ProcessId = process.Id,
+                ProcessId = processId,
                 Type = AppType.DetectedGame,
-                OnSwitch = () => SwitchToApp(new RunningApp { WindowHandle = process.MainWindowHandle, Title = title, ProcessId = process.Id })
+                OnSwitch = () => SwitchToApp(new RunningApp { WindowHandle = windowHandle, Title = title, ProcessId = processId })
             };
         }
         catch (Exception ex)
@@ -467,16 +486,18 @@ public sealed class RunningAppsDetector
             var title = !string.IsNullOrWhiteSpace(process.MainWindowTitle)
                 ? process.MainWindowTitle
                 : process.ProcessName;
+            var windowHandle = process.MainWindowHandle;
+            var processId = process.Id;
 
             return new RunningApp
             {
                 Title = title,
                 ImagePath = null,
-                WindowHandle = process.MainWindowHandle,
+                WindowHandle = windowHandle,
                 GameId = null,
-                ProcessId = process.Id,
+                ProcessId = processId,
                 Type = AppType.GenericApp,
-                OnSwitch = () => SwitchToApp(new RunningApp { WindowHandle = process.MainWindowHandle, Title = title, ProcessId = process.Id })
+                OnSwitch = () => SwitchToApp(new RunningApp { WindowHandle = windowHandle, Title = title, ProcessId = processId })
             };
         }
         catch (Exception ex)
