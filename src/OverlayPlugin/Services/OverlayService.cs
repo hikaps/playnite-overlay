@@ -18,7 +18,7 @@ internal sealed class OverlayService
         get { lock (windowLock) return window != null; }
     }
 
-    public void Show(Action onSwitch, Action onExit, string title, IEnumerable<OverlayItem> items, bool enableControllerNavigation)
+    public void Show(Action onSwitch, Action onExit, OverlayItem? currentGame, IEnumerable<RunningApp> runningApps, IEnumerable<OverlayItem> recentGames, bool enableControllerNavigation)
     {
         lock (windowLock)
         {
@@ -29,7 +29,7 @@ internal sealed class OverlayService
 
             Application.Current?.Dispatcher.Invoke(() =>
             {
-                window = new OverlayWindow(onSwitch, onExit, title, items, enableControllerNavigation)
+                window = new OverlayWindow(onSwitch, onExit, currentGame, runningApps, recentGames, enableControllerNavigation)
                 {
                     Topmost = true
                 };
