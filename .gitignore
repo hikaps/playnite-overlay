@@ -14,3 +14,6 @@ TestResults/
 # OS files
 .DS_Store
 Thumbs.db
+
+# Documentation (local only)
+AGENTS.md
