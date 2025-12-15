@@ -52,6 +52,15 @@ public class OverlayPlugin : GenericPlugin
 
         input.ApplySettings(settings.Settings);
         input.ToggleRequested += HandleToggleRequested;
+
+        // Start hotkey immediately (keyboard shortcut should always work)
+        input.StartHotkey();
+
+        // Start controller input if configured to be always active
+        if (settings.Settings.ControllerAlwaysActive)
+        {
+            input.StartController();
+        }
     }
 
     public override Guid Id => PluginId;
@@ -59,13 +68,24 @@ public class OverlayPlugin : GenericPlugin
     public override void OnGameStarted(OnGameStartedEventArgs args)
     {
         switcher.SetCurrent(args.Game);
-        input.Start();
+        
+        // Start controller input if not already running (when not always-active)
+        if (!settings.Settings.ControllerAlwaysActive)
+        {
+            input.StartController();
+        }
     }
 
     public override void OnGameStopped(OnGameStoppedEventArgs args)
     {
         switcher.ClearCurrent();
-        input.Stop();
+        
+        // Stop controller input only if not configured to be always-active
+        if (!settings.Settings.ControllerAlwaysActive)
+        {
+            input.StopController();
+        }
+        
         overlay.Hide();
     }
 
@@ -100,6 +120,17 @@ public class OverlayPlugin : GenericPlugin
     internal void ApplySettings(OverlaySettings newSettings)
     {
         input.ApplySettings(newSettings);
+        
+        // Apply controller always-active setting
+        if (newSettings.ControllerAlwaysActive)
+        {
+            input.StartController();
+        }
+        else if (switcher.CurrentGame == null)
+        {
+            // Stop controller if no game running and not always-active
+            input.StopController();
+        }
     }
 
     private void HandleToggleRequested(object? sender, EventArgs e)

@@ -25,23 +25,60 @@ internal sealed class InputListener
 
     public event EventHandler? ToggleRequested;
 
+    /// <summary>
+    /// Starts both hotkey and controller input listening.
+    /// </summary>
     public void Start()
     {
-        TryRegisterHotkey();
-        pollTimer ??= new Timer(_ => PollControllers(), null, 0, PollIntervalMs);
+        StartHotkey();
+        StartController();
     }
 
+    /// <summary>
+    /// Stops both hotkey and controller input listening.
+    /// </summary>
     public void Stop()
     {
-        pollTimer?.Dispose();
-        pollTimer = null;
+        StopHotkey();
+        StopController();
+    }
 
+    /// <summary>
+    /// Starts only hotkey input listening (keyboard shortcut).
+    /// </summary>
+    public void StartHotkey()
+    {
+        TryRegisterHotkey();
+    }
+
+    /// <summary>
+    /// Stops only hotkey input listening (keyboard shortcut).
+    /// </summary>
+    public void StopHotkey()
+    {
         Application.Current?.Dispatcher.Invoke(() =>
         {
             hotkeyRetryTimer?.Stop();
             hotkeyRetryTimer = null;
             hotkeyManager?.Unregister();
         });
+    }
+
+    /// <summary>
+    /// Starts only controller input polling (Xbox controller).
+    /// </summary>
+    public void StartController()
+    {
+        pollTimer ??= new Timer(_ => PollControllers(), null, 0, PollIntervalMs);
+    }
+
+    /// <summary>
+    /// Stops only controller input polling (Xbox controller).
+    /// </summary>
+    public void StopController()
+    {
+        pollTimer?.Dispose();
+        pollTimer = null;
     }
 
     public void ApplySettings(OverlaySettings settings)

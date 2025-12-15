@@ -31,4 +31,11 @@ public class OverlaySettings : MVVM.ObservableObject
         get => customHotkey;
         set => SetProperty(ref customHotkey, value);
     }
+
+    private bool controllerAlwaysActive = false;
+    public bool ControllerAlwaysActive
+    {
+        get => controllerAlwaysActive;
+        set => SetProperty(ref controllerAlwaysActive, value);
+    }
 }
