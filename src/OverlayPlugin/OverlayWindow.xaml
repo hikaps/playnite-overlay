@@ -64,11 +64,7 @@
                                                 Margin="10,0,0,0"
                                                 DockPanel.Dock="Right"
                                                 CommandParameter="{Binding}"/>
-                                        <Image Width="48" Height="64" Stretch="UniformToFill" Margin="0,0,10,0">
-                                            <Image.Source>
-                                                <BitmapImage UriSource="{Binding ImagePath}" CacheOption="OnLoad"/>
-                                            </Image.Source>
-                                        </Image>
+                                        <Image Width="48" Height="64" Stretch="UniformToFill" Margin="0,0,10,0" Source="{Binding ImagePath}"/>
                                         <TextBlock Text="{Binding Title}" Foreground="White" VerticalAlignment="Center"/>
                                     </DockPanel>
                                 </DataTemplate>

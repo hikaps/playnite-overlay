@@ -12,12 +12,13 @@ public sealed class OverlayItem
     public static OverlayItem FromGame(Playnite.SDK.Models.Game game, Services.GameSwitcher switcher)
     {
         var imagePath = string.IsNullOrWhiteSpace(game.CoverImage) ? game.Icon : game.CoverImage;
+        var resolvedPath = switcher.ResolveImagePath(imagePath);
 
         return new OverlayItem
         {
             Title = game.Name,
             GameId = game.Id,
-            ImagePath = switcher.ResolveImagePath(imagePath),
+            ImagePath = string.IsNullOrWhiteSpace(resolvedPath) ? null : resolvedPath,
             OnSelect = () => switcher.StartGame(game.Id)
         };
     }
