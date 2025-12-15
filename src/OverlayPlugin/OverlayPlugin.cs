@@ -161,6 +161,20 @@ public class OverlayPlugin : GenericPlugin
         OverlayItem? currentGameItem = null;
         Guid? excludeFromRunningApps = null;
 
+        // Auto-detect foreground app if no active app
+        if (switcher.ActiveApp == null)
+        {
+            var foregroundApp = switcher.DetectForegroundApp(
+                settings.Settings.ShowGenericApps,
+                settings.Settings.MaxRunningApps);
+            
+            if (foregroundApp != null)
+            {
+                switcher.SetActiveApp(foregroundApp);
+                logger.Info($"Auto-detected foreground app on overlay open: {foregroundApp.Title}");
+            }
+        }
+
         if (switcher.ActiveApp != null && switcher.IsActiveAppStillValid())
         {
             // Active app is valid - use it for NOW PLAYING
@@ -197,9 +211,20 @@ public class OverlayPlugin : GenericPlugin
 
     private void HandleExitGame()
     {
-        // Simply exit the active app (whatever is in NOW PLAYING)
+        // Exit the active app (whatever is in NOW PLAYING)
         switcher.ExitActiveApp();
         switcher.ClearActiveApp();
+        
+        // Auto-detect new foreground app after exit
+        var foregroundApp = switcher.DetectForegroundApp(
+            settings.Settings.ShowGenericApps,
+            settings.Settings.MaxRunningApps);
+        
+        if (foregroundApp != null)
+        {
+            switcher.SetActiveApp(foregroundApp);
+            logger.Info($"Auto-detected foreground app after exit: {foregroundApp.Title}");
+        }
     }
 
     public override void Dispose()
