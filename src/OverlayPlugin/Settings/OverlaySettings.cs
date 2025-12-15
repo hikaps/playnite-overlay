@@ -38,4 +38,18 @@ public class OverlaySettings : MVVM.ObservableObject
         get => controllerAlwaysActive;
         set => SetProperty(ref controllerAlwaysActive, value);
     }
+
+    private bool showGenericApps = true;
+    public bool ShowGenericApps
+    {
+        get => showGenericApps;
+        set => SetProperty(ref showGenericApps, value);
+    }
+
+    private int maxRunningApps = 10;
+    public int MaxRunningApps
+    {
+        get => maxRunningApps;
+        set => SetProperty(ref maxRunningApps, value);
+    }
 }

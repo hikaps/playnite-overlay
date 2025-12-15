@@ -15,18 +15,21 @@ public partial class OverlayWindow : Window
     private readonly Action onSwitch;
     private readonly Action onExit;
     private readonly List<OverlayItem> items;
+    private readonly List<RunningApp> runningApps;
     private readonly bool enableControllerNavigation;
     private OverlayControllerNavigator? controllerNavigator;
     private NavigationTarget navigationTarget = NavigationTarget.RecentList;
     private int selectedIndex = -1;
+    private int runningAppSelectedIndex = -1;
     private bool isClosing;
 
-    public OverlayWindow(Action onSwitch, Action onExit, OverlayItem? currentGame, IEnumerable<OverlayItem> recentGames, bool enableControllerNavigation)
+    public OverlayWindow(Action onSwitch, Action onExit, OverlayItem? currentGame, IEnumerable<RunningApp> runningApps, IEnumerable<OverlayItem> recentGames, bool enableControllerNavigation)
     {
         InitializeComponent();
         this.onSwitch = onSwitch;
         this.onExit = onExit;
         this.items = new List<OverlayItem>(recentGames);
+        this.runningApps = new List<RunningApp>(runningApps);
         this.enableControllerNavigation = enableControllerNavigation;
 
         // Setup current game section
@@ -52,6 +55,26 @@ public partial class OverlayWindow : Window
         {
             CurrentGameSection.Visibility = Visibility.Collapsed;
         }
+
+        // Setup running apps section
+        if (this.runningApps.Count > 0)
+        {
+            RunningAppsSection.Visibility = Visibility.Visible;
+            RunningAppsList.ItemsSource = this.runningApps;
+        }
+        else
+        {
+            RunningAppsSection.Visibility = Visibility.Collapsed;
+        }
+
+        RunningAppsList.AddHandler(Button.ClickEvent, new RoutedEventHandler(OnRunningAppSwitchClick));
+        RunningAppsList.SelectionChanged += (_, __) =>
+        {
+            if (RunningAppsList.SelectedIndex >= 0)
+            {
+                runningAppSelectedIndex = RunningAppsList.SelectedIndex;
+            }
+        };
 
         // Setup recent games list
         RecentList.ItemsSource = this.items;
@@ -151,6 +174,15 @@ public partial class OverlayWindow : Window
         if (e.OriginalSource is Button btn && btn.CommandParameter is OverlayItem item)
         {
             item.OnSelect?.Invoke();
+            Close();
+        }
+    }
+
+    private void OnRunningAppSwitchClick(object sender, RoutedEventArgs e)
+    {
+        if (e.OriginalSource is Button btn && btn.CommandParameter is RunningApp app)
+        {
+            app.OnSwitch?.Invoke();
             Close();
         }
     }
@@ -408,6 +440,7 @@ public partial class OverlayWindow : Window
     private enum NavigationTarget
     {
         RecentList,
+        RunningAppsList,
         SwitchButton,
         ExitButton
     }
