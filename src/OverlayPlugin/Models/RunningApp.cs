@@ -11,6 +11,8 @@ public sealed class RunningApp
     public int ProcessId { get; set; }
     public AppType Type { get; set; }
     public Action? OnSwitch { get; set; }
+    public DateTime ActivatedTime { get; set; } = DateTime.Now;
+    public ulong TotalPlaytime { get; set; }  // For Playnite games, in seconds
 }
 
 public enum AppType

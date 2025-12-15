@@ -13,6 +13,11 @@ public sealed class RunningAppsDetector
     private static readonly ILogger logger = LogManager.GetLogger();
     private readonly IPlayniteAPI api;
 
+    /// <summary>
+    /// Event fired when user switches to an app via the Switch button
+    /// </summary>
+    public event EventHandler<RunningApp>? AppSwitched;
+
     // System processes to exclude from detection
     private static readonly HashSet<string> SystemProcessNames = new(StringComparer.OrdinalIgnoreCase)
     {
@@ -209,6 +214,9 @@ public sealed class RunningAppsDetector
 
             Win32Window.RestoreAndActivate(app.WindowHandle);
             logger.Info($"Switched to app: {app.Title} (PID: {app.ProcessId})");
+            
+            // Notify subscribers that app was switched to
+            AppSwitched?.Invoke(this, app);
         }
         catch (Exception ex)
         {
@@ -441,6 +449,7 @@ public sealed class RunningAppsDetector
                 GameId = game.Id,
                 ProcessId = processId,
                 Type = AppType.PlayniteGame,
+                TotalPlaytime = game.Playtime,
                 OnSwitch = () => SwitchToApp(new RunningApp { WindowHandle = windowHandle, Title = title, ProcessId = processId })
             };
         }
