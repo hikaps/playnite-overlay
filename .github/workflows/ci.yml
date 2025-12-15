@@ -1,0 +1,107 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build-test:
+    name: Build and Test (Windows)
+    runs-on: windows-latest
+    env:
+      DOTNET_NOLOGO: true
+      DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
+      DOTNET_CLI_TELEMETRY_OPTOUT: true
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 6 SDK (WindowsDesktop)
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '6.0.x'
+
+      - name: Setup .NET 8 SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Cache NuGet
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.nuget/packages
+          key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj') }}
+          restore-keys: |
+            ${{ runner.os }}-nuget-
+
+      - name: Restore
+        run: |
+          dotnet restore src/OverlayPlugin/OverlayPlugin.csproj
+          dotnet restore src/OverlayUI/OverlayUI.csproj
+          dotnet restore tests/OverlayPlugin.Tests/OverlayPlugin.Tests.csproj
+
+      - name: Build plugin (Release)
+        run: |
+          dotnet build src/OverlayPlugin/OverlayPlugin.csproj -c Release --no-restore
+
+      - name: Build UI (Release)
+        continue-on-error: true
+        run: |
+          dotnet build src/OverlayUI/OverlayUI.csproj -c Release --no-restore
+
+      - name: Test with coverage
+        continue-on-error: true
+        run: |
+          dotnet test tests/OverlayPlugin.Tests/OverlayPlugin.Tests.csproj -c Release --no-restore --collect:"XPlat Code Coverage" --results-directory TestResults
+
+      - name: Determine version
+        id: ver
+        shell: pwsh
+        run: |
+          $v = (Select-String -Path 'extension/extension.yaml' -Pattern '^Version:\s*(.+)$').Matches.Groups[1].Value.Trim()
+          if (-not $v) { $v = "0.0.0" }
+          $sha = (git rev-parse --short HEAD).Trim()
+          $branch = $env:GITHUB_REF_NAME
+          if (-not $branch) { $branch = (git rev-parse --abbrev-ref HEAD).Trim() }
+          $safeBranch = $branch -replace "[^A-Za-z0-9._-]","-"
+          "version=$v`nsha=$sha`nbranch=$branch`nsafeBranch=$safeBranch" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+
+      - name: Package .pext
+        shell: pwsh
+        run: |
+          $ver = "${{ steps.ver.outputs.version }}-${{ steps.ver.outputs.safeBranch }}-${{ steps.ver.outputs.sha }}"
+          pwsh -File tools/pack.ps1 -Version $ver -OutDir dist
+
+      - name: List dist
+        if: always()
+        shell: pwsh
+        run: |
+          if (Test-Path dist) {
+            Get-ChildItem dist -Recurse | Select-Object FullName, Length
+          } else {
+            Write-Host "No dist directory to list."
+          }
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: |
+            TestResults/**/*.trx
+            TestResults/**/*.xml
+            TestResults/**/coverage.cobertura.xml
+          if-no-files-found: warn
+
+      - name: Upload .pext artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pext-${{ steps.ver.outputs.version }}-${{ steps.ver.outputs.safeBranch }}-${{ steps.ver.outputs.sha }}
+          path: dist/*.pext
+          if-no-files-found: warn

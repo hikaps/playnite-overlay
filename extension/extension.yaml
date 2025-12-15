@@ -1,11 +1,10 @@
 Id: playnite-overlay
 Name: Playnite Overlay
-Author: YourName
-Version: 0.1.0
+Author: hikaps
+Version: 0.2.0
 Module: OverlayPlugin.dll
 Type: GenericPlugin
 Links:
   - Name: GitHub
-    Url: https://github.com/your/repo
+    Url: https://github.com/hikaps/playnite-overlay
 Description: Remap the Guide button to open an overlay to switch games or exit the current app.
-
