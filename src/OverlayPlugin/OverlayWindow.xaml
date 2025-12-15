@@ -18,7 +18,7 @@
                 <StackPanel>
                     <!-- Header -->
                     <TextBlock Text="Playnite Overlay" FontSize="24" FontWeight="SemiBold" 
-                               Foreground="#EEEEEE" Margin="0,0,0,20" LetterSpacing="0.5"/>
+                               Foreground="#EEEEEE" Margin="0,0,0,20"/>
                     
                     <!-- Current Game Section (collapsed when no game running) -->
                     <Border x:Name="CurrentGameSection" Background="#252525" CornerRadius="8" 
@@ -39,7 +39,7 @@
                             <!-- Game Info -->
                             <StackPanel Grid.Column="2" VerticalAlignment="Center">
                                 <TextBlock Text="NOW PLAYING" FontSize="10" FontWeight="Bold" 
-                                           Foreground="#888888" LetterSpacing="1" Margin="0,0,0,10"/>
+                                           Foreground="#888888" Margin="0,0,0,10"/>
                                 <TextBlock x:Name="CurrentGameTitle" FontSize="22" 
                                            FontWeight="SemiBold" Foreground="#FFFFFF" 
                                            TextTrimming="CharacterEllipsis" Margin="0,0,0,6" TextWrapping="NoWrap"/>
@@ -114,7 +114,7 @@
                     <!-- Recent Games Section -->
                     <StackPanel>
                         <TextBlock Text="SWITCH TO" FontSize="10" FontWeight="Bold" 
-                                   Foreground="#888888" LetterSpacing="1" Margin="0,0,0,10"/>
+                                   Foreground="#888888" Margin="0,0,0,10"/>
                         
                         <!-- Empty State (shown when no items) -->
                         <Border x:Name="EmptyState" Background="#252525" CornerRadius="6" 
