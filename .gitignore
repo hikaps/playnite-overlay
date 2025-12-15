@@ -1,17 +1,16 @@
-# Build
+# Build outputs
 bin/
 obj/
-dist/
-build/
+TestResults/
 
-# IDE
+# IDE/editor
+.vs/
 .vscode/
 .idea/
-*.user
-*.suo
-*.userprefs
 
-# OS
+# Local caches
+.dotnet_cli/
+
+# OS files
 .DS_Store
 Thumbs.db
-
