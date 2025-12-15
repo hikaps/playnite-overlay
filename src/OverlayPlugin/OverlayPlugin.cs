@@ -21,6 +21,7 @@ public class OverlayPlugin : GenericPlugin
     private readonly InputListener input;
     private readonly OverlayService overlay;
     private readonly GameSwitcher switcher;
+    private readonly RunningAppsDetector runningAppsDetector;
     private readonly OverlaySettingsViewModel settings;
     private bool isDisposed;
 
@@ -30,6 +31,7 @@ public class OverlayPlugin : GenericPlugin
         input = new InputListener();
         overlay = new OverlayService();
         switcher = new GameSwitcher(api);
+        runningAppsDetector = new RunningAppsDetector(api);
         settings = new OverlaySettingsViewModel(this);
 
         Properties = new GenericPluginProperties
@@ -154,6 +156,12 @@ public class OverlayPlugin : GenericPlugin
             currentGameItem = OverlayItem.FromCurrentGame(switcher.CurrentGame, switcher);
         }
 
+        // Get running apps (excluding current game)
+        var runningApps = runningAppsDetector.GetRunningApps(
+            switcher.CurrentGame?.Id,
+            settings.Settings.ShowGenericApps,
+            settings.Settings.MaxRunningApps);
+
         // Build recent games list (excludes current game)
         var recentGames = switcher.GetRecentGames(5)
             .Select(g => OverlayItem.FromRecentGame(g, switcher))
@@ -163,6 +171,7 @@ public class OverlayPlugin : GenericPlugin
             () => switcher.SwitchToPlaynite(),
             () => switcher.ExitCurrent(),
             currentGameItem,
+            runningApps,
             recentGames,
             settings.Settings.UseControllerToOpen);
     }
