@@ -93,7 +93,7 @@ public sealed class RunningAppsDetector
 
             // Step 2: Get other running processes with visible windows
             var allProcesses = Process.GetProcesses();
-            var playniteGamePids = runningApps.Select(a => a.ProcessId).ToHashSet();
+            var playniteGamePids = new HashSet<int>(runningApps.Select(a => a.ProcessId));
 
             foreach (var process in allProcesses)
             {
@@ -286,7 +286,7 @@ public sealed class RunningAppsDetector
             {
                 // Match by process name
                 if (!string.IsNullOrEmpty(game.Name) &&
-                    processName.Contains(game.Name, StringComparison.OrdinalIgnoreCase))
+                    processName.IndexOf(game.Name, StringComparison.OrdinalIgnoreCase) >= 0)
                 {
                     logger.Debug($"Matched process {processName} to game {game.Name} by process name");
                     return game;
@@ -294,7 +294,7 @@ public sealed class RunningAppsDetector
 
                 // Match by window title
                 if (!string.IsNullOrEmpty(windowTitle) &&
-                    windowTitle.Contains(game.Name, StringComparison.OrdinalIgnoreCase))
+                    windowTitle.IndexOf(game.Name, StringComparison.OrdinalIgnoreCase) >= 0)
                 {
                     logger.Debug($"Matched process {processName} to game {game.Name} by window title");
                     return game;
