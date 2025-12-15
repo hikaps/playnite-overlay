@@ -41,6 +41,10 @@
                         <ComboBoxItem Content="LB+RB" />
                     </ComboBox>
                 </StackPanel>
+                <CheckBox Content="Controller input always active (not just during gameplay)"
+                          Margin="0,8,0,0"
+                          IsChecked="{Binding Settings.ControllerAlwaysActive}"
+                          ToolTip="Warning: May conflict with system Xbox overlay when enabled"/>
                 <TextBlock Margin="0,6,0,0" TextWrapping="Wrap"
                            Foreground="Gray"
                            Text="Note: Controller detection uses XInput and may not work with all devices yet."/>
