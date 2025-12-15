@@ -1,6 +1,7 @@
 param(
   [string]$Version = "0.1.0",
-  [string]$OutDir = "dist"
+  [string]$OutDir = "dist",
+  [string]$Configuration = "Release"
 )
 
 $ErrorActionPreference = 'Stop'
@@ -21,11 +22,11 @@ $icon = Join-Path 'extension' 'icon.png'
 if (Test-Path $icon) { Copy-Item $icon 'build/package/icon.png' -Force }
 
 $dllCandidates = @(
-  'src/OverlayPlugin/bin/Release/net472/OverlayPlugin.dll',
-  'src/OverlayPlugin/bin/Release/net48/OverlayPlugin.dll',
-  'src/OverlayPlugin/bin/Release/net8.0-windows/OverlayPlugin.dll',
-  'src/OverlayPlugin/bin/Release/net7.0-windows/OverlayPlugin.dll',
-  'src/OverlayPlugin/bin/Release/net6.0-windows/OverlayPlugin.dll'
+  "src/OverlayPlugin/bin/$Configuration/net472/OverlayPlugin.dll",
+  "src/OverlayPlugin/bin/$Configuration/net48/OverlayPlugin.dll",
+  "src/OverlayPlugin/bin/$Configuration/net8.0-windows/OverlayPlugin.dll",
+  "src/OverlayPlugin/bin/$Configuration/net7.0-windows/OverlayPlugin.dll",
+  "src/OverlayPlugin/bin/$Configuration/net6.0-windows/OverlayPlugin.dll"
 )
 
 $dll = $dllCandidates | Where-Object { Test-Path $_ } | Select-Object -First 1
