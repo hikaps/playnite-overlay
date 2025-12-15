@@ -55,6 +55,12 @@ public class OverlayPlugin : GenericPlugin
         input.ApplySettings(settings.Settings);
         input.ToggleRequested += HandleToggleRequested;
 
+        // Subscribe to app switch events to update active app tracking
+        runningAppsDetector.AppSwitched += (sender, app) =>
+        {
+            switcher.SetActiveApp(app);
+        };
+
         // Start hotkey immediately (keyboard shortcut should always work)
         input.StartHotkey();
 
@@ -69,7 +75,8 @@ public class OverlayPlugin : GenericPlugin
 
     public override void OnGameStarted(OnGameStartedEventArgs args)
     {
-        switcher.SetCurrent(args.Game);
+        // Set the game as active app
+        switcher.SetActiveFromGame(args.Game);
         
         // Start controller input if not already running (when not always-active)
         if (!settings.Settings.ControllerAlwaysActive)
@@ -80,7 +87,8 @@ public class OverlayPlugin : GenericPlugin
 
     public override void OnGameStopped(OnGameStoppedEventArgs args)
     {
-        switcher.ClearCurrent();
+        // Clear active app when game stops
+        switcher.ClearActiveApp();
         
         // Stop controller input only if not configured to be always-active
         if (!settings.Settings.ControllerAlwaysActive)
@@ -128,9 +136,9 @@ public class OverlayPlugin : GenericPlugin
         {
             input.StartController();
         }
-        else if (switcher.CurrentGame == null)
+        else if (switcher.ActiveApp == null)
         {
-            // Stop controller if no game running and not always-active
+            // Stop controller if no active app and not always-active
             input.StopController();
         }
     }
@@ -149,31 +157,49 @@ public class OverlayPlugin : GenericPlugin
             return;
         }
 
-        // Build current game item (if any)
+        // Build current game item from active app (single source of truth)
         OverlayItem? currentGameItem = null;
-        if (switcher.CurrentGame != null)
+        Guid? excludeFromRunningApps = null;
+
+        if (switcher.ActiveApp != null && switcher.IsActiveAppStillValid())
         {
-            currentGameItem = OverlayItem.FromCurrentGame(switcher.CurrentGame, switcher);
+            // Active app is valid - use it for NOW PLAYING
+            currentGameItem = OverlayItem.FromRunningApp(switcher.ActiveApp, switcher);
+            excludeFromRunningApps = switcher.ActiveApp.GameId;
+            logger.Debug($"Using active app for NOW PLAYING: {switcher.ActiveApp.Title}");
+        }
+        else if (switcher.ActiveApp != null)
+        {
+            // Active app closed - clear it
+            logger.Info($"Active app is no longer valid, clearing: {switcher.ActiveApp.Title}");
+            switcher.ClearActiveApp();
         }
 
-        // Get running apps (excluding current game)
+        // Get running apps (excluding active app)
         var runningApps = runningAppsDetector.GetRunningApps(
-            switcher.CurrentGame?.Id,
+            excludeFromRunningApps,
             settings.Settings.ShowGenericApps,
             settings.Settings.MaxRunningApps);
 
-        // Build recent games list (excludes current game)
+        // Build recent games list (excludes active app if it's a game)
         var recentGames = switcher.GetRecentGames(5)
             .Select(g => OverlayItem.FromRecentGame(g, switcher))
             .ToList();
 
         overlay.Show(
             () => switcher.SwitchToPlaynite(),
-            () => switcher.ExitCurrent(),
+            HandleExitGame,
             currentGameItem,
             runningApps,
             recentGames,
             settings.Settings.UseControllerToOpen);
+    }
+
+    private void HandleExitGame()
+    {
+        // Simply exit the active app (whatever is in NOW PLAYING)
+        switcher.ExitActiveApp();
+        switcher.ClearActiveApp();
     }
 
     public override void Dispose()

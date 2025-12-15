@@ -12,24 +12,6 @@ public sealed class OverlayItem
     public bool IsCurrentGame { get; set; }       // For styling/behavior
     public Action? OnSelect { get; set; }
 
-    public static OverlayItem FromCurrentGame(Playnite.SDK.Models.Game game, Services.GameSwitcher switcher)
-    {
-        var imagePath = GetBestImagePath(game, switcher);
-        var sessionDuration = switcher.GetSessionDuration(switcher.CurrentGameStartTime);
-        var totalPlaytime = switcher.FormatPlaytime(game.Playtime);
-
-        return new OverlayItem
-        {
-            Title = game.Name,
-            GameId = game.Id,
-            ImagePath = imagePath,
-            SecondaryText = $"Playing for {sessionDuration}",
-            TertiaryText = totalPlaytime,
-            IsCurrentGame = true,
-            OnSelect = null  // Can't switch to self
-        };
-    }
-
     public static OverlayItem FromRecentGame(Playnite.SDK.Models.Game game, Services.GameSwitcher switcher)
     {
         var imagePath = GetBestImagePath(game, switcher);
@@ -50,6 +32,46 @@ public sealed class OverlayItem
     {
         // Backwards compatibility - delegates to FromRecentGame
         return FromRecentGame(game, switcher);
+    }
+
+    public static OverlayItem FromRunningApp(RunningApp app, Services.GameSwitcher switcher)
+    {
+        // Calculate session duration
+        var sessionDuration = switcher.GetSessionDuration(app.ActivatedTime);
+        
+        // If it's a Playnite game, we can get metadata from the database
+        if (app.Type == AppType.PlayniteGame && app.GameId.HasValue)
+        {
+            var game = switcher.ResolveGame(app.GameId.Value);
+            if (game != null)
+            {
+                var imagePath = GetBestImagePath(game, switcher);
+                var totalPlaytime = switcher.FormatPlaytime(app.TotalPlaytime);
+                
+                return new OverlayItem
+                {
+                    Title = game.Name,
+                    GameId = game.Id,
+                    ImagePath = imagePath,
+                    SecondaryText = $"Playing for {sessionDuration}",
+                    TertiaryText = totalPlaytime,
+                    IsCurrentGame = true,
+                    OnSelect = null  // Can't switch to self
+                };
+            }
+        }
+
+        // For detected games or generic apps, show minimal info
+        return new OverlayItem
+        {
+            Title = app.Title,
+            GameId = app.GameId ?? Guid.Empty,
+            ImagePath = app.ImagePath,
+            SecondaryText = $"Active for {sessionDuration}",
+            TertiaryText = app.Type == AppType.DetectedGame ? "Detected game" : "Application",
+            IsCurrentGame = true,
+            OnSelect = null  // Can't switch to self
+        };
     }
 
     private static string? GetBestImagePath(Playnite.SDK.Models.Game game, Services.GameSwitcher switcher)
