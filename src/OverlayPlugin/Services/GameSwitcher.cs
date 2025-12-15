@@ -38,6 +38,12 @@ public sealed class GameSwitcher
     [DllImport("user32.dll")]
     private static extern bool IsWindow(IntPtr hWnd);
 
+    [DllImport("user32.dll")]
+    private static extern IntPtr GetForegroundWindow();
+
+    [DllImport("user32.dll")]
+    private static extern uint GetWindowThreadProcessId(IntPtr hWnd, out int processId);
+
     public GameSwitcher(IPlayniteAPI api)
     {
         this.api = api;
@@ -158,6 +164,76 @@ public sealed class GameSwitcher
         {
             logger.Debug(ex, $"Error validating active app: {activeApp.Title}");
             return false;
+        }
+    }
+
+    public RunningApp? DetectForegroundApp(bool includeGenericApps, int maxApps = 10)
+    {
+        try
+        {
+            IntPtr foregroundWindow = GetForegroundWindow();
+            if (foregroundWindow == IntPtr.Zero)
+            {
+                logger.Debug("No foreground window detected");
+                return null;
+            }
+
+            // Get process ID from foreground window
+            GetWindowThreadProcessId(foregroundWindow, out int foregroundProcessId);
+            
+            if (foregroundProcessId == 0)
+            {
+                logger.Debug("Could not get process ID for foreground window");
+                return null;
+            }
+
+            // Check if foreground window is Playnite itself
+            try
+            {
+                var currentProcess = Process.GetCurrentProcess();
+                if (foregroundProcessId == currentProcess.Id)
+                {
+                    logger.Debug("Foreground window is Playnite, ignoring");
+                    currentProcess.Dispose();
+                    return null;
+                }
+                currentProcess.Dispose();
+            }
+            catch { }
+
+            // Get all running apps and find the one that matches foreground window
+            var runningApps = new RunningAppsDetector(api).GetRunningApps(
+                activeApp?.GameId, 
+                includeGenericApps, 
+                maxApps);
+
+            // Try to find exact match by window handle first
+            var matchByWindow = runningApps.FirstOrDefault(app => 
+                app.WindowHandle == foregroundWindow);
+            
+            if (matchByWindow != null)
+            {
+                logger.Debug($"Auto-detected foreground app by window handle: {matchByWindow.Title} (PID: {matchByWindow.ProcessId})");
+                return matchByWindow;
+            }
+
+            // Try to find match by process ID
+            var matchByProcess = runningApps.FirstOrDefault(app => 
+                app.ProcessId == foregroundProcessId);
+            
+            if (matchByProcess != null)
+            {
+                logger.Debug($"Auto-detected foreground app by process ID: {matchByProcess.Title} (PID: {matchByProcess.ProcessId})");
+                return matchByProcess;
+            }
+
+            logger.Debug($"Foreground window (PID: {foregroundProcessId}) not found in running apps list");
+            return null;
+        }
+        catch (Exception ex)
+        {
+            logger.Error(ex, "Error detecting foreground app");
+            return null;
         }
     }
 
