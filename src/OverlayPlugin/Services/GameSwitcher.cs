@@ -14,6 +14,7 @@ public sealed class GameSwitcher
     private static readonly ILogger logger = LogManager.GetLogger();
     private readonly IPlayniteAPI api;
     private Playnite.SDK.Models.Game? currentGame;
+    private DateTime? currentGameStartTime;
 
     // Known launcher process names to exclude from termination
     private static readonly HashSet<string> LauncherProcessNames = new(StringComparer.OrdinalIgnoreCase)
@@ -39,15 +40,19 @@ public sealed class GameSwitcher
     }
 
     public string? CurrentGameTitle => currentGame?.Name;
+    public Playnite.SDK.Models.Game? CurrentGame => currentGame;
+    public DateTime? CurrentGameStartTime => currentGameStartTime;
 
     public void SetCurrent(Playnite.SDK.Models.Game? game)
     {
         currentGame = game;
+        currentGameStartTime = game != null ? DateTime.Now : null;
     }
 
     public void ClearCurrent()
     {
         currentGame = null;
+        currentGameStartTime = null;
     }
 
     public void SwitchToPlaynite()
@@ -419,5 +424,57 @@ public sealed class GameSwitcher
         }
 
         return api.Database.GetFullFilePath(imagePath);
+    }
+
+    public string GetRelativeTime(DateTime? dateTime)
+    {
+        if (!dateTime.HasValue) return "never";
+        
+        var span = DateTime.Now - dateTime.Value;
+        
+        if (span.TotalMinutes < 1) return "just now";
+        if (span.TotalMinutes < 60) return $"{(int)span.TotalMinutes}m ago";
+        if (span.TotalHours < 24) return $"{(int)span.TotalHours}h ago";
+        if (span.TotalDays < 2) return "yesterday";
+        if (span.TotalDays < 7) return $"{(int)span.TotalDays}d ago";
+        if (span.TotalDays < 30) return $"{(int)span.TotalDays / 7}w ago";
+        if (span.TotalDays < 365) return $"{(int)span.TotalDays / 30}mo ago";
+        
+        // For > 1 year, show abbreviated date
+        if (dateTime.Value.Year == DateTime.Now.Year - 1)
+            return "last year";
+        
+        return dateTime.Value.ToString("MMM yyyy");
+    }
+
+    public string GetSessionDuration(DateTime? startTime)
+    {
+        if (!startTime.HasValue) return "0m";
+        
+        var duration = DateTime.Now - startTime.Value;
+        
+        if (duration.TotalMinutes < 1) return "< 1m";
+        if (duration.TotalHours < 1) return $"{(int)duration.TotalMinutes}m";
+        if (duration.TotalHours < 24) 
+        {
+            var hours = duration.Hours;
+            var minutes = duration.Minutes;
+            if (minutes == 0) return $"{hours}h";
+            return $"{hours}h {minutes}m";
+        }
+        
+        return $"{(int)duration.TotalHours}h";
+    }
+
+    public string FormatPlaytime(ulong seconds)
+    {
+        if (seconds == 0) return "Not played";
+        
+        var hours = (double)seconds / 3600.0;
+        
+        if (hours < 1) return "< 1 hour";
+        if (hours < 100) return $"{hours:F1} hours";
+        
+        return $"{hours:N0} hours"; // e.g., "1,234 hours"
     }
 }
