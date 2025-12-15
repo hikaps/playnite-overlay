@@ -139,14 +139,6 @@ The plugin uses a three-tier detection strategy to identify running applications
 
 The overlay runs as a separate WPF window (topmost, click-through background) and never injects into game processes, ensuring maximum compatibility and safety.
 
-## Development
-
-For developers interested in contributing or understanding the codebase, see [AGENTS.md](AGENTS.md) for:
-- Project structure and architecture
-- Build and test commands
-- Coding style guidelines
-- Component documentation
-
 ## Changelog
 
 See [CHANGELOG.md](CHANGELOG.md) for version history and release notes.
