@@ -31,4 +31,25 @@ public class OverlaySettings : MVVM.ObservableObject
         get => customHotkey;
         set => SetProperty(ref customHotkey, value);
     }
+
+    private bool controllerAlwaysActive = false;
+    public bool ControllerAlwaysActive
+    {
+        get => controllerAlwaysActive;
+        set => SetProperty(ref controllerAlwaysActive, value);
+    }
+
+    private bool showGenericApps = true;
+    public bool ShowGenericApps
+    {
+        get => showGenericApps;
+        set => SetProperty(ref showGenericApps, value);
+    }
+
+    private int maxRunningApps = 10;
+    public int MaxRunningApps
+    {
+        get => maxRunningApps;
+        set => SetProperty(ref maxRunningApps, value);
+    }
 }

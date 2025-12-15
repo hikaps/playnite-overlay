@@ -2,10 +2,11 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
-using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices;
 using Playnite.SDK;
 using PlayniteOverlay;
+using PlayniteOverlay.Models;
 
 namespace PlayniteOverlay.Services;
 
@@ -13,7 +14,7 @@ public sealed class GameSwitcher
 {
     private static readonly ILogger logger = LogManager.GetLogger();
     private readonly IPlayniteAPI api;
-    private Playnite.SDK.Models.Game? currentGame;
+    private RunningApp? activeApp;
 
     // Known launcher process names to exclude from termination
     private static readonly HashSet<string> LauncherProcessNames = new(StringComparer.OrdinalIgnoreCase)
@@ -33,21 +34,206 @@ public sealed class GameSwitcher
     private const int GracefulExitTimeoutMs = 3000;
     private const int ForcefulExitTimeoutMs = 1000;
 
+    [DllImport("user32.dll")]
+    private static extern bool IsWindow(IntPtr hWnd);
+
+    [DllImport("user32.dll")]
+    private static extern IntPtr GetForegroundWindow();
+
+    [DllImport("user32.dll")]
+    private static extern uint GetWindowThreadProcessId(IntPtr hWnd, out int processId);
+
     public GameSwitcher(IPlayniteAPI api)
     {
         this.api = api;
     }
 
-    public string? CurrentGameTitle => currentGame?.Name;
+    public RunningApp? ActiveApp => activeApp;
 
-    public void SetCurrent(Playnite.SDK.Models.Game? game)
+    public void SetActiveApp(RunningApp? app)
     {
-        currentGame = game;
+        activeApp = app;
+        if (app != null)
+        {
+            app.ActivatedTime = DateTime.Now;
+        }
+        logger.Info($"Active app changed to: {app?.Title ?? "none"}");
     }
 
-    public void ClearCurrent()
+    public void ClearActiveApp()
     {
-        currentGame = null;
+        logger.Info($"Clearing active app: {activeApp?.Title ?? "none"}");
+        activeApp = null;
+    }
+
+    public void SetActiveFromGame(Playnite.SDK.Models.Game game)
+    {
+        logger.Info($"Setting active app from Playnite game: {game.Name}");
+        
+        // Find running processes for this game
+        var processes = FindGameProcesses(game);
+        
+        if (!processes.Any())
+        {
+            logger.Warn($"No running processes found for game: {game.Name}. Will retry on next overlay open.");
+            // Set a placeholder that will be validated later
+            activeApp = new RunningApp
+            {
+                Title = game.Name,
+                GameId = game.Id,
+                ProcessId = -1,  // Invalid PID, will be detected as invalid
+                WindowHandle = IntPtr.Zero,
+                Type = AppType.PlayniteGame,
+                ImagePath = GetBestImagePath(game),
+                ActivatedTime = DateTime.Now,
+                TotalPlaytime = game.Playtime
+            };
+            return;
+        }
+
+        var mainProcess = processes.First();
+        
+        try
+        {
+            activeApp = new RunningApp
+            {
+                Title = game.Name,
+                GameId = game.Id,
+                ProcessId = mainProcess.Id,
+                WindowHandle = mainProcess.MainWindowHandle,
+                Type = AppType.PlayniteGame,
+                ImagePath = GetBestImagePath(game),
+                ActivatedTime = DateTime.Now,
+                TotalPlaytime = game.Playtime,
+                OnSwitch = null  // Current game, can't switch to self
+            };
+            
+            logger.Debug($"Active app set: {game.Name} (PID: {mainProcess.Id})");
+        }
+        catch (Exception ex)
+        {
+            logger.Error(ex, $"Error setting active app from game: {game.Name}");
+        }
+        finally
+        {
+            // Dispose all processes
+            foreach (var p in processes)
+            {
+                p.Dispose();
+            }
+        }
+    }
+
+    public bool IsActiveAppStillValid()
+    {
+        if (activeApp == null)
+            return false;
+
+        try
+        {
+            // Check if window still exists
+            if (activeApp.WindowHandle != IntPtr.Zero && !IsWindow(activeApp.WindowHandle))
+            {
+                logger.Debug($"Active app window no longer exists: {activeApp.Title}");
+                return false;
+            }
+
+            // Check if process still exists
+            try
+            {
+                var process = Process.GetProcessById(activeApp.ProcessId);
+                bool isValid = !process.HasExited;
+                process.Dispose();
+                
+                if (!isValid)
+                {
+                    logger.Debug($"Active app process has exited: {activeApp.Title}");
+                }
+                
+                return isValid;
+            }
+            catch (ArgumentException)
+            {
+                // Process no longer exists
+                logger.Debug($"Active app process not found: {activeApp.Title} (PID: {activeApp.ProcessId})");
+                return false;
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.Debug(ex, $"Error validating active app: {activeApp.Title}");
+            return false;
+        }
+    }
+
+    public RunningApp? DetectForegroundApp(bool includeGenericApps, int maxApps = 10)
+    {
+        try
+        {
+            IntPtr foregroundWindow = GetForegroundWindow();
+            if (foregroundWindow == IntPtr.Zero)
+            {
+                logger.Debug("No foreground window detected");
+                return null;
+            }
+
+            // Get process ID from foreground window
+            GetWindowThreadProcessId(foregroundWindow, out int foregroundProcessId);
+            
+            if (foregroundProcessId == 0)
+            {
+                logger.Debug("Could not get process ID for foreground window");
+                return null;
+            }
+
+            // Check if foreground window is Playnite itself
+            try
+            {
+                var currentProcess = Process.GetCurrentProcess();
+                if (foregroundProcessId == currentProcess.Id)
+                {
+                    logger.Debug("Foreground window is Playnite, ignoring");
+                    currentProcess.Dispose();
+                    return null;
+                }
+                currentProcess.Dispose();
+            }
+            catch { }
+
+            // Get all running apps and find the one that matches foreground window
+            var runningApps = new RunningAppsDetector(api).GetRunningApps(
+                activeApp?.GameId, 
+                includeGenericApps, 
+                maxApps);
+
+            // Try to find exact match by window handle first
+            var matchByWindow = runningApps.FirstOrDefault(app => 
+                app.WindowHandle == foregroundWindow);
+            
+            if (matchByWindow != null)
+            {
+                logger.Debug($"Auto-detected foreground app by window handle: {matchByWindow.Title} (PID: {matchByWindow.ProcessId})");
+                return matchByWindow;
+            }
+
+            // Try to find match by process ID
+            var matchByProcess = runningApps.FirstOrDefault(app => 
+                app.ProcessId == foregroundProcessId);
+            
+            if (matchByProcess != null)
+            {
+                logger.Debug($"Auto-detected foreground app by process ID: {matchByProcess.Title} (PID: {matchByProcess.ProcessId})");
+                return matchByProcess;
+            }
+
+            logger.Debug($"Foreground window (PID: {foregroundProcessId}) not found in running apps list");
+            return null;
+        }
+        catch (Exception ex)
+        {
+            logger.Error(ex, "Error detecting foreground app");
+            return null;
+        }
     }
 
     public void SwitchToPlaynite()
@@ -85,96 +271,142 @@ public sealed class GameSwitcher
         });
     }
 
-    public void ExitCurrent()
+    public void ExitActiveApp()
     {
-        if (currentGame == null)
+        if (activeApp == null)
         {
-            logger.Warn("ExitCurrent called but no current game is set.");
+            logger.Warn("ExitActiveApp called but no active app is set.");
             api.Notifications?.Add(
-                "exit-game-none",
-                "No game is currently running.",
+                "exit-app-none",
+                "No app is currently active.",
                 NotificationType.Info);
             return;
         }
 
         try
         {
-            logger.Info($"Attempting to exit game: {currentGame.Name}");
+            logger.Info($"Attempting to exit active app: {activeApp.Title}");
 
-            // Find running processes for this game
-            var processes = FindGameProcesses(currentGame).ToList();
-
-            if (!processes.Any())
+            // Strategy depends on AppType
+            if (activeApp.Type == AppType.PlayniteGame && activeApp.GameId.HasValue)
             {
-                logger.Warn($"No running processes found for game: {currentGame.Name}");
-                api.Notifications?.Add(
-                    $"exit-game-notfound-{currentGame.Id}",
-                    $"Could not find running processes for {currentGame.Name}",
-                    NotificationType.Info);
-                return;
-            }
-
-            logger.Info($"Found {processes.Count} process(es) for {currentGame.Name}");
-
-            int successCount = 0;
-            int failCount = 0;
-
-            foreach (var process in processes)
-            {
-                try
+                // Use Playnite's game exit logic (graceful + forceful)
+                var game = api.Database.Games[activeApp.GameId.Value];
+                if (game != null)
                 {
-                    if (TerminateProcess(process))
+                    logger.Debug($"Active app is Playnite game, using game termination logic");
+                    
+                    // Find and terminate game processes
+                    var processes = FindGameProcesses(game).ToList();
+                    
+                    if (!processes.Any())
                     {
-                        successCount++;
+                        logger.Warn($"No running processes found for game: {game.Name}");
+                        api.Notifications?.Add(
+                            $"exit-game-notfound-{game.Id}",
+                            $"Could not find running processes for {game.Name}",
+                            NotificationType.Info);
+                        return;
+                    }
+
+                    logger.Info($"Found {processes.Count} process(es) for {game.Name}");
+
+                    int successCount = 0;
+                    int failCount = 0;
+
+                    foreach (var process in processes)
+                    {
+                        try
+                        {
+                            if (TerminateProcess(process))
+                            {
+                                successCount++;
+                            }
+                            else
+                            {
+                                failCount++;
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            logger.Error(ex, $"Unexpected error terminating process: {process.ProcessName}");
+                            failCount++;
+                        }
+                        finally
+                        {
+                            process.Dispose();
+                        }
+                    }
+
+                    // Show notification based on results
+                    if (successCount > 0 && failCount == 0)
+                    {
+                        logger.Info($"Successfully exited all processes for {game.Name}");
+                        api.Notifications?.Add(
+                            $"exit-game-success-{game.Id}",
+                            $"Successfully exited {game.Name}",
+                            NotificationType.Info);
+                    }
+                    else if (successCount > 0 && failCount > 0)
+                    {
+                        logger.Warn($"Partially exited {game.Name}: {successCount} succeeded, {failCount} failed");
+                        api.Notifications?.Add(
+                            $"exit-game-partial-{game.Id}",
+                            $"Partially exited {game.Name} ({successCount}/{successCount + failCount} processes)",
+                            NotificationType.Info);
                     }
                     else
                     {
-                        failCount++;
+                        logger.Error($"Failed to exit any processes for {game.Name}");
+                        api.Notifications?.Add(
+                            $"exit-game-fail-{game.Id}",
+                            $"Failed to exit {game.Name}. Try running Playnite as administrator.",
+                            NotificationType.Error);
                     }
-                }
-                catch (Exception ex)
-                {
-                    logger.Error(ex, $"Unexpected error terminating process: {process.ProcessName}");
-                    failCount++;
-                }
-                finally
-                {
-                    process.Dispose();
+                    return;
                 }
             }
 
-            // Show notification based on results
-            if (successCount > 0 && failCount == 0)
+            // For non-Playnite games or generic apps, terminate by process ID
+            try
             {
-                logger.Info($"Successfully exited all processes for {currentGame.Name}");
-                api.Notifications?.Add(
-                    $"exit-game-success-{currentGame.Id}",
-                    $"Successfully exited {currentGame.Name}",
-                    NotificationType.Info);
+                var process = Process.GetProcessById(activeApp.ProcessId);
+                
+                if (TerminateProcess(process))
+                {
+                    logger.Info($"Successfully exited active app: {activeApp.Title}");
+                    api.Notifications?.Add(
+                        $"exit-app-success-{activeApp.ProcessId}",
+                        $"Successfully exited {activeApp.Title}",
+                        NotificationType.Info);
+                }
+                else
+                {
+                    logger.Error($"Failed to exit active app: {activeApp.Title}");
+                    api.Notifications?.Add(
+                        $"exit-app-fail-{activeApp.ProcessId}",
+                        $"Failed to exit {activeApp.Title}. Try running Playnite as administrator.",
+                        NotificationType.Error);
+                }
+                
+                process.Dispose();
             }
-            else if (successCount > 0 && failCount > 0)
+            catch (ArgumentException)
             {
-                logger.Warn($"Partially exited {currentGame.Name}: {successCount} succeeded, {failCount} failed");
+                // Process not found - already exited
+                logger.Info($"Active app already exited: {activeApp.Title}");
                 api.Notifications?.Add(
-                    $"exit-game-partial-{currentGame.Id}",
-                    $"Partially exited {currentGame.Name} ({successCount}/{successCount + failCount} processes)",
+                    $"exit-app-gone-{activeApp.ProcessId}",
+                    $"{activeApp.Title} is no longer running",
                     NotificationType.Info);
-            }
-            else
-            {
-                logger.Error($"Failed to exit any processes for {currentGame.Name}");
-                api.Notifications?.Add(
-                    $"exit-game-fail-{currentGame.Id}",
-                    $"Failed to exit {currentGame.Name}. Try running Playnite as administrator.",
-                    NotificationType.Error);
             }
         }
         catch (Exception ex)
         {
-            logger.Error(ex, $"Failed to exit current game: {currentGame.Name}");
+            logger.Error(ex, $"Failed to exit active app: {activeApp.Title}");
             api.Notifications?.Add(
-                $"exit-game-error-{currentGame.Id}",
-                $"Error exiting {currentGame.Name}: {ex.Message}",
+                $"exit-app-error-{activeApp.ProcessId}",
+                $"Error exiting {activeApp.Title}: {ex.Message}",
                 NotificationType.Error);
         }
     }
@@ -390,9 +622,10 @@ public sealed class GameSwitcher
         var games = api.Database.Games.AsQueryable();
         var query = games.Where(g => g.LastActivity != null);
 
-        if (currentGame != null)
+        // Exclude active app if it's a Playnite game
+        if (activeApp?.GameId != null)
         {
-            query = query.Where(g => g.Id != currentGame.Id);
+            query = query.Where(g => g.Id != activeApp.GameId.Value);
         }
 
         return query
@@ -419,5 +652,83 @@ public sealed class GameSwitcher
         }
 
         return api.Database.GetFullFilePath(imagePath);
+    }
+
+    public string GetRelativeTime(DateTime? dateTime)
+    {
+        if (!dateTime.HasValue) return "never";
+        
+        var span = DateTime.Now - dateTime.Value;
+        
+        if (span.TotalMinutes < 1) return "just now";
+        if (span.TotalMinutes < 60) return $"{(int)span.TotalMinutes}m ago";
+        if (span.TotalHours < 24) return $"{(int)span.TotalHours}h ago";
+        if (span.TotalDays < 2) return "yesterday";
+        if (span.TotalDays < 7) return $"{(int)span.TotalDays}d ago";
+        if (span.TotalDays < 30) return $"{(int)span.TotalDays / 7}w ago";
+        if (span.TotalDays < 365) return $"{(int)span.TotalDays / 30}mo ago";
+        
+        // For > 1 year, show abbreviated date
+        if (dateTime.Value.Year == DateTime.Now.Year - 1)
+            return "last year";
+        
+        return dateTime.Value.ToString("MMM yyyy");
+    }
+
+    public string GetSessionDuration(DateTime? startTime)
+    {
+        if (!startTime.HasValue) return "0m";
+        
+        var duration = DateTime.Now - startTime.Value;
+        
+        if (duration.TotalMinutes < 1) return "< 1m";
+        if (duration.TotalHours < 1) return $"{(int)duration.TotalMinutes}m";
+        if (duration.TotalHours < 24) 
+        {
+            var hours = duration.Hours;
+            var minutes = duration.Minutes;
+            if (minutes == 0) return $"{hours}h";
+            return $"{hours}h {minutes}m";
+        }
+        
+        return $"{(int)duration.TotalHours}h";
+    }
+
+    public string FormatPlaytime(ulong seconds)
+    {
+        if (seconds == 0) return "Not played";
+        
+        var hours = (double)seconds / 3600.0;
+        
+        if (hours < 1) return "< 1 hour";
+        if (hours < 100) return $"{hours:F1} hours";
+        
+        return $"{hours:N0} hours"; // e.g., "1,234 hours"
+    }
+
+    public Playnite.SDK.Models.Game? ResolveGame(Guid gameId)
+    {
+        return api.Database.Games[gameId];
+    }
+
+    private string? GetBestImagePath(Playnite.SDK.Models.Game game)
+    {
+        var paths = new[] { game.CoverImage, game.Icon, game.BackgroundImage };
+
+        foreach (var path in paths)
+        {
+            if (string.IsNullOrWhiteSpace(path))
+                continue;
+
+            try
+            {
+                var resolved = api.Database.GetFullFilePath(path);
+                if (!string.IsNullOrWhiteSpace(resolved))
+                    return resolved;
+            }
+            catch { }
+        }
+
+        return null;
     }
 }

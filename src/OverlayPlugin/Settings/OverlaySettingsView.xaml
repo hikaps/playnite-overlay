@@ -41,9 +41,30 @@
                         <ComboBoxItem Content="LB+RB" />
                     </ComboBox>
                 </StackPanel>
+                <CheckBox Content="Controller input always active (not just during gameplay)"
+                          Margin="0,8,0,0"
+                          IsChecked="{Binding Settings.ControllerAlwaysActive}"
+                          ToolTip="Warning: May conflict with system Xbox overlay when enabled"/>
                 <TextBlock Margin="0,6,0,0" TextWrapping="Wrap"
                            Foreground="Gray"
                            Text="Note: Controller detection uses XInput and may not work with all devices yet."/>
+            </StackPanel>
+        </GroupBox>
+
+        <GroupBox Header="Running Apps Detection">
+            <StackPanel Margin="10">
+                <CheckBox Content="Show non-game applications (browsers, editors, etc.)"
+                          IsChecked="{Binding Settings.ShowGenericApps}"
+                          ToolTip="When enabled, shows all running apps with visible windows. When disabled, only shows games."/>
+                <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                    <TextBlock Text="Maximum apps to display:" VerticalAlignment="Center"/>
+                    <TextBox Width="60" Margin="8,0,0,0"
+                             Text="{Binding Settings.MaxRunningApps, UpdateSourceTrigger=PropertyChanged}"
+                             ToolTip="Maximum number of running apps to show in the overlay (1-50)"/>
+                </StackPanel>
+                <TextBlock Margin="0,6,0,0" TextWrapping="Wrap"
+                           Foreground="Gray"
+                           Text="The overlay can detect and switch between multiple running games and applications."/>
             </StackPanel>
         </GroupBox>
     </StackPanel>
