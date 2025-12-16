@@ -100,8 +100,14 @@ public partial class OverlayWindow : Window
             }
         };
 
-        // Initial focus
-        if (this.items.Count > 0)
+        // Initial focus - priority: RunningApps → RecentList → SwitchButton
+        if (this.runningApps.Count > 0)
+        {
+            runningAppSelectedIndex = 0;
+            navigationTarget = NavigationTarget.RunningAppsList;
+            Dispatcher.BeginInvoke(() => FocusRunningAppItem(0), DispatcherPriority.Loaded);
+        }
+        else if (this.items.Count > 0)
         {
             selectedIndex = 0;
             navigationTarget = NavigationTarget.RecentList;
@@ -196,29 +202,70 @@ public partial class OverlayWindow : Window
 
         switch (navigationTarget)
         {
-            case NavigationTarget.RecentList:
-                if (items.Count == 0)
-                {
-                    FocusSwitchButton();
-                    break;
-                }
-                selectedIndex = selectedIndex <= 0 ? items.Count - 1 : selectedIndex - 1;
-                FocusListItem(selectedIndex);
-                break;
             case NavigationTarget.SwitchButton:
+                // Go up to RecentList last item, or RunningApps, or wrap
                 if (items.Count > 0)
                 {
-                    navigationTarget = NavigationTarget.RecentList;
-                    selectedIndex = items.Count - 1;
-                    FocusListItem(selectedIndex);
+                    FocusListItem(items.Count - 1);
+                }
+                else if (runningApps.Count > 0)
+                {
+                    FocusRunningAppItem(runningApps.Count - 1);
                 }
                 else
                 {
-                    FocusExitButton();
+                    FocusExitButton(); // wrap
                 }
                 break;
+
             case NavigationTarget.ExitButton:
                 FocusSwitchButton();
+                break;
+
+            case NavigationTarget.RunningAppsList:
+                if (runningAppSelectedIndex <= 0)
+                {
+                    // Top of running apps → go to CurrentGame buttons or wrap
+                    if (CurrentGameSection.Visibility == Visibility.Visible)
+                    {
+                        FocusExitButton();
+                    }
+                    else if (items.Count > 0)
+                    {
+                        FocusListItem(items.Count - 1); // wrap to bottom
+                    }
+                    else
+                    {
+                        FocusSwitchButton(); // wrap to buttons
+                    }
+                }
+                else
+                {
+                    FocusRunningAppItem(runningAppSelectedIndex - 1);
+                }
+                break;
+
+            case NavigationTarget.RecentList:
+                if (selectedIndex <= 0)
+                {
+                    // Top of recent → go to RunningApps or CurrentGame
+                    if (runningApps.Count > 0)
+                    {
+                        FocusRunningAppItem(runningApps.Count - 1);
+                    }
+                    else if (CurrentGameSection.Visibility == Visibility.Visible)
+                    {
+                        FocusExitButton();
+                    }
+                    else if (items.Count > 0)
+                    {
+                        FocusListItem(items.Count - 1); // wrap
+                    }
+                }
+                else
+                {
+                    FocusListItem(selectedIndex - 1);
+                }
                 break;
         }
     }
@@ -232,6 +279,49 @@ public partial class OverlayWindow : Window
 
         switch (navigationTarget)
         {
+            case NavigationTarget.SwitchButton:
+                FocusExitButton();
+                break;
+
+            case NavigationTarget.ExitButton:
+                // Go to RunningApps first, then RecentList
+                if (runningApps.Count > 0)
+                {
+                    FocusRunningAppItem(0);
+                }
+                else if (items.Count > 0)
+                {
+                    FocusListItem(0);
+                }
+                else
+                {
+                    FocusSwitchButton(); // wrap
+                }
+                break;
+
+            case NavigationTarget.RunningAppsList:
+                if (runningAppSelectedIndex >= runningApps.Count - 1)
+                {
+                    // End of running apps → go to RecentList or buttons
+                    if (items.Count > 0)
+                    {
+                        FocusListItem(0);
+                    }
+                    else if (CurrentGameSection.Visibility == Visibility.Visible)
+                    {
+                        FocusSwitchButton();
+                    }
+                    else
+                    {
+                        FocusRunningAppItem(0); // wrap
+                    }
+                }
+                else
+                {
+                    FocusRunningAppItem(runningAppSelectedIndex + 1);
+                }
+                break;
+
             case NavigationTarget.RecentList:
                 if (items.Count == 0)
                 {
@@ -240,27 +330,23 @@ public partial class OverlayWindow : Window
                 }
                 if (selectedIndex >= items.Count - 1)
                 {
-                    FocusSwitchButton();
+                    // End of list → go to buttons or wrap
+                    if (CurrentGameSection.Visibility == Visibility.Visible)
+                    {
+                        FocusSwitchButton();
+                    }
+                    else if (runningApps.Count > 0)
+                    {
+                        FocusRunningAppItem(0); // wrap to top
+                    }
+                    else
+                    {
+                        FocusListItem(0); // wrap
+                    }
                 }
                 else
                 {
-                    selectedIndex++;
-                    FocusListItem(selectedIndex);
-                }
-                break;
-            case NavigationTarget.SwitchButton:
-                FocusExitButton();
-                break;
-            case NavigationTarget.ExitButton:
-                if (items.Count > 0)
-                {
-                    navigationTarget = NavigationTarget.RecentList;
-                    selectedIndex = 0;
-                    FocusListItem(selectedIndex);
-                }
-                else
-                {
-                    FocusSwitchButton();
+                    FocusListItem(selectedIndex + 1);
                 }
                 break;
         }
@@ -273,14 +359,9 @@ public partial class OverlayWindow : Window
             return;
         }
 
-        if (navigationTarget != NavigationTarget.RecentList && items.Count > 0)
+        if (navigationTarget == NavigationTarget.ExitButton)
         {
-            navigationTarget = NavigationTarget.RecentList;
-            if (selectedIndex < 0)
-            {
-                selectedIndex = 0;
-            }
-            FocusListItem(selectedIndex);
+            FocusSwitchButton();
         }
     }
 
@@ -291,9 +372,9 @@ public partial class OverlayWindow : Window
             return;
         }
 
-        if (navigationTarget == NavigationTarget.RecentList)
+        if (navigationTarget == NavigationTarget.SwitchButton)
         {
-            FocusSwitchButton();
+            FocusExitButton();
         }
     }
 
@@ -306,6 +387,14 @@ public partial class OverlayWindow : Window
 
         switch (navigationTarget)
         {
+            case NavigationTarget.RunningAppsList:
+                if (runningAppSelectedIndex >= 0 && runningAppSelectedIndex < runningApps.Count)
+                {
+                    var app = runningApps[runningAppSelectedIndex];
+                    app.OnSwitch?.Invoke();
+                    Close();
+                }
+                break;
             case NavigationTarget.RecentList:
                 if (selectedIndex >= 0 && selectedIndex < items.Count)
                 {
@@ -391,6 +480,12 @@ public partial class OverlayWindow : Window
         selectedIndex = index;
         RecentList.SelectedIndex = selectedIndex;
 
+        // Scroll the selected item into view
+        if (selectedIndex >= 0 && selectedIndex < RecentList.Items.Count)
+        {
+            RecentList.ScrollIntoView(RecentList.Items[selectedIndex]);
+        }
+
         if (!TryFocusListContainer())
         {
             Dispatcher.BeginInvoke((Action)(() => TryFocusListContainer()), DispatcherPriority.Loaded);
@@ -435,6 +530,62 @@ public partial class OverlayWindow : Window
 
         navigationTarget = NavigationTarget.ExitButton;
         ExitBtn.Focus();
+    }
+
+    private void FocusRunningAppItem(int index)
+    {
+        if (!Dispatcher.CheckAccess())
+        {
+            Dispatcher.Invoke(() => FocusRunningAppItem(index));
+            return;
+        }
+
+        if (runningApps.Count == 0)
+        {
+            // Fall through to next section
+            if (items.Count > 0)
+            {
+                FocusListItem(0);
+            }
+            else
+            {
+                FocusSwitchButton();
+            }
+            return;
+        }
+
+        if (index < 0)
+        {
+            index = 0;
+        }
+        else if (index >= runningApps.Count)
+        {
+            index = runningApps.Count - 1;
+        }
+
+        navigationTarget = NavigationTarget.RunningAppsList;
+        runningAppSelectedIndex = index;
+        RunningAppsList.SelectedIndex = index;
+
+        // Scroll section into view (center the section)
+        RunningAppsSection.BringIntoView();
+
+        if (!TryFocusRunningAppContainer())
+        {
+            Dispatcher.BeginInvoke(() => TryFocusRunningAppContainer(), DispatcherPriority.Loaded);
+        }
+    }
+
+    private bool TryFocusRunningAppContainer()
+    {
+        var container = RunningAppsList.ItemContainerGenerator.ContainerFromIndex(runningAppSelectedIndex) as ListBoxItem;
+        if (container == null)
+        {
+            return false;
+        }
+
+        container.Focus();
+        return true;
     }
 
     private enum NavigationTarget

@@ -99,6 +99,7 @@ internal sealed class InputListener
     {
         if (!enableController)
         {
+            // Controller polling is running but disabled in settings
             return;
         }
 
@@ -140,6 +141,7 @@ internal sealed class InputListener
                 bool prev = (lastButtons[index] & mask) == mask;
                 if (now && !prev)
                 {
+                    logger.Debug($"Controller combo '{controllerCombo}' pressed on controller {index}");
                     TriggerToggle();
                 }
             }
@@ -154,6 +156,7 @@ internal sealed class InputListener
             && (stroke.Flags & XInput.XINPUT_KEYSTROKE_KEYDOWN) != 0
             && stroke.VirtualKey == XInput.VK_PAD_GUIDE_BUTTON)
         {
+            logger.Debug($"Guide button pressed on controller {index}");
             TriggerToggle();
             return true;
         }

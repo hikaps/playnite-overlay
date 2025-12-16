@@ -5,6 +5,35 @@ All notable changes to the Playnite Overlay plugin will be documented in this fi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+- **Controller Toggle Not Working**: Changed `ControllerAlwaysActive` default to `true`
+  - Controller now works out-of-box without requiring a game to be running
+  - Previously defaulted to `false`, requiring game to be active for controller input
+- **Controller Navigation Incomplete**: Complete rewrite of navigation system
+  - Added full support for `RunningAppsList` navigation (was previously ignored)
+  - Implemented Up/Down navigation through all sections (CurrentGame → RunningApps → RecentGames → Buttons)
+  - Added Left/Right navigation between SwitchBtn and ExitBtn
+  - Fixed initial focus priority: RunningApps (if visible) → RecentList → SwitchButton
+  - Added `ScrollIntoView()` calls to ensure selected items/sections are visible
+  - Navigation now flows logically through entire overlay UI
+
+### Added
+- **Diagnostic Logging**: Added debug logging for controller input events
+  - Logs when Guide button is pressed
+  - Logs when controller combos (Start+Back, LB+RB) are detected
+  - Helps troubleshoot controller detection issues
+
+### Changed
+- **Navigation Flow**: Improved controller navigation UX
+  - Down: SwitchBtn → ExitBtn → RunningApps → RecentGames → (wrap to SwitchBtn)
+  - Up: Reverse of Down navigation
+  - Left/Right: Navigate between SwitchBtn ↔ ExitBtn
+  - Section scrolling automatically centers sections when navigating between them
+
+---
+
 ## [0.3.0] - 2025-12-15
 
 ### Added
