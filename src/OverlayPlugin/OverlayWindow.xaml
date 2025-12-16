@@ -73,6 +73,10 @@
                                                                 <Trigger Property="IsPressed" Value="True">
                                                                     <Setter Property="Background" Value="#2A2A2A"/>
                                                                 </Trigger>
+                                                                <Trigger Property="IsFocused" Value="True">
+                                                                    <Setter Property="BorderBrush" Value="#FFFFFF"/>
+                                                                    <Setter Property="BorderThickness" Value="2"/>
+                                                                </Trigger>
                                                             </ControlTemplate.Triggers>
                                                         </ControlTemplate>
                                                     </Setter.Value>
@@ -101,6 +105,10 @@
                                                                 </Trigger>
                                                                 <Trigger Property="IsPressed" Value="True">
                                                                     <Setter Property="Background" Value="#C62828"/>
+                                                                </Trigger>
+                                                                <Trigger Property="IsFocused" Value="True">
+                                                                    <Setter Property="BorderBrush" Value="#FFFFFF"/>
+                                                                    <Setter Property="BorderThickness" Value="2"/>
                                                                 </Trigger>
                                                             </ControlTemplate.Triggers>
                                                         </ControlTemplate>
@@ -204,6 +212,10 @@
                                                                         </Trigger>
                                                                         <Trigger Property="IsPressed" Value="True">
                                                                             <Setter Property="Background" Value="#5A3FB5"/>
+                                                                        </Trigger>
+                                                                        <Trigger Property="IsFocused" Value="True">
+                                                                            <Setter Property="BorderBrush" Value="#FFFFFF"/>
+                                                                            <Setter Property="BorderThickness" Value="2"/>
                                                                         </Trigger>
                                                                     </ControlTemplate.Triggers>
                                                                 </ControlTemplate>
@@ -334,6 +346,10 @@
                                                                     </Trigger>
                                                                     <Trigger Property="IsPressed" Value="True">
                                                                         <Setter Property="Background" Value="#3A7BC8"/>
+                                                                    </Trigger>
+                                                                    <Trigger Property="IsFocused" Value="True">
+                                                                        <Setter Property="BorderBrush" Value="#FFFFFF"/>
+                                                                        <Setter Property="BorderThickness" Value="2"/>
                                                                     </Trigger>
                                                                 </ControlTemplate.Triggers>
                                                             </ControlTemplate>
