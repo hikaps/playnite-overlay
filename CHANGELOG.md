@@ -20,6 +20,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Dual Selection Highlight**: Fixed both lists showing selection simultaneously
   - Now clears selection on other list when navigating between sections
   - Only one item is highlighted at a time across the entire UI
+- **Viewport Scrolling**: Fixed selected items going out of view when navigating
+  - Added hidden scrollbar to overlay content area
+  - Selected items now auto-scroll into view when navigating with keyboard/controller
+- **Nullable Reference Warnings**: Fixed compiler warnings in GameSwitcher and RunningAppsDetector
+  - Used pattern matching to eliminate null dereference warnings
 
 ### Added
 - **Keyboard Arrow Navigation**: Arrow keys now work for overlay navigation
@@ -33,11 +38,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Helps troubleshoot controller detection issues
 
 ### Changed
-- **Scroll-Free UI**: Removed all scrolling for better controller experience
-  - Removed outer ScrollViewer from overlay (no more nested scrolling)
-  - Disabled scrolling on RunningAppsList and RecentList
-  - Changed `MaxRunningApps` default from 10 to 4
-  - All content now fits on screen without scrolling
+- **Hidden Scrollbar UI**: Re-added scrolling with invisible scrollbar
+  - Overlay content now scrolls when needed (for many games/apps)
+  - Scrollbar is hidden for clean controller-friendly appearance
+  - Selected items automatically scroll into view
 - **Navigation Flow**: Improved controller navigation UX
   - Down: SwitchBtn → ExitBtn → RunningApps → RecentGames → (wrap to SwitchBtn)
   - Up: Reverse of Down navigation

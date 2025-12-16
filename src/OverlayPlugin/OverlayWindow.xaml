@@ -14,7 +14,11 @@
         <Border x:Name="RootCard" CornerRadius="10" Background="#EE1A1A1A" 
                 Padding="28" HorizontalAlignment="Center" VerticalAlignment="Center" 
                 Width="920" MaxHeight="620" Opacity="0">
-            <StackPanel>
+            <ScrollViewer x:Name="ContentScroller" 
+                          VerticalScrollBarVisibility="Hidden" 
+                          HorizontalScrollBarVisibility="Disabled"
+                          Focusable="False">
+                <StackPanel>
                     <!-- Header -->
                     <TextBlock Text="Playnite Overlay" FontSize="24" FontWeight="SemiBold" 
                                Foreground="#EEEEEE" Margin="0,0,0,20"/>
@@ -350,6 +354,7 @@
                         </ListBox>
                     </StackPanel>
                 </StackPanel>
+            </ScrollViewer>
         </Border>
     </Grid>
 </Window>

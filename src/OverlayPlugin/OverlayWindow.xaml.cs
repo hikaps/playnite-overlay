@@ -542,6 +542,7 @@ public partial class OverlayWindow : Window
         }
 
         container.Focus();
+        container.BringIntoView();
         return true;
     }
 
@@ -559,6 +560,7 @@ public partial class OverlayWindow : Window
 
         navigationTarget = NavigationTarget.SwitchButton;
         SwitchBtn.Focus();
+        SwitchBtn.BringIntoView();
     }
 
     private void FocusExitButton()
@@ -575,6 +577,7 @@ public partial class OverlayWindow : Window
 
         navigationTarget = NavigationTarget.ExitButton;
         ExitBtn.Focus();
+        ExitBtn.BringIntoView();
     }
 
     private void FocusRunningAppItem(int index)
@@ -630,6 +633,7 @@ public partial class OverlayWindow : Window
         }
 
         container.Focus();
+        container.BringIntoView();
         return true;
     }
 
