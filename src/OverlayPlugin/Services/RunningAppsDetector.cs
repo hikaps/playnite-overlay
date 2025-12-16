@@ -327,8 +327,7 @@ public sealed class RunningAppsDetector
                 {
                     try
                     {
-                        var processPath = process.MainModule?.FileName;
-                        if (!string.IsNullOrEmpty(processPath) &&
+                        if (process.MainModule?.FileName is string processPath &&
                             processPath.StartsWith(game.InstallDirectory, StringComparison.OrdinalIgnoreCase))
                         {
                             logger.Debug($"Matched process {processName} to game {game.Name} by install directory");
@@ -374,8 +373,7 @@ public sealed class RunningAppsDetector
                     {
                         try
                         {
-                            var processPath = process.MainModule?.FileName;
-                            if (!string.IsNullOrEmpty(processPath) &&
+                            if (process.MainModule?.FileName is string processPath &&
                                 processPath.StartsWith(installDir, StringComparison.OrdinalIgnoreCase))
                             {
                                 matchedProcesses.Add(process);
