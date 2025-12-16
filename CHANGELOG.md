@@ -5,6 +5,50 @@ All notable changes to the Playnite Overlay plugin will be documented in this fi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+- **Controller Toggle Not Working**: Changed `ControllerAlwaysActive` default to `true`
+  - Controller now works out-of-box without requiring a game to be running
+  - Previously defaulted to `false`, requiring game to be active for controller input
+- **Controller Navigation Incomplete**: Complete rewrite of navigation system
+  - Added full support for `RunningAppsList` navigation (was previously ignored)
+  - Implemented Up/Down navigation through all sections (CurrentGame → RunningApps → RecentGames → Buttons)
+  - Added Left/Right navigation between SwitchBtn and ExitBtn
+  - Fixed initial focus priority: RunningApps (if visible) → RecentList → SwitchButton
+  - Navigation now flows logically through entire overlay UI
+- **Dual Selection Highlight**: Fixed both lists showing selection simultaneously
+  - Now clears selection on other list when navigating between sections
+  - Only one item is highlighted at a time across the entire UI
+- **Viewport Scrolling**: Fixed selected items going out of view when navigating
+  - Added hidden scrollbar to overlay content area
+  - Selected items now auto-scroll into view when navigating with keyboard/controller
+- **Nullable Reference Warnings**: Fixed compiler warnings in GameSwitcher and RunningAppsDetector
+  - Used pattern matching to eliminate null dereference warnings
+
+### Added
+- **Keyboard Arrow Navigation**: Arrow keys now work for overlay navigation
+  - Up/Down arrows navigate through all sections (same as D-pad)
+  - Left/Right arrows navigate between buttons
+  - Enter key activates the currently selected item
+  - Works regardless of controller settings
+- **Diagnostic Logging**: Added debug logging for controller input events
+  - Logs when Guide button is pressed
+  - Logs when controller combos (Start+Back, LB+RB) are detected
+  - Helps troubleshoot controller detection issues
+
+### Changed
+- **Hidden Scrollbar UI**: Re-added scrolling with invisible scrollbar
+  - Overlay content now scrolls when needed (for many games/apps)
+  - Scrollbar is hidden for clean controller-friendly appearance
+  - Selected items automatically scroll into view
+- **Navigation Flow**: Improved controller navigation UX
+  - Down: SwitchBtn → ExitBtn → RunningApps → RecentGames → (wrap to SwitchBtn)
+  - Up: Reverse of Down navigation
+  - Left/Right: Navigate between SwitchBtn ↔ ExitBtn
+
+---
+
 ## [0.3.0] - 2025-12-15
 
 ### Added

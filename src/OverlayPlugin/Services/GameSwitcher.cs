@@ -442,8 +442,7 @@ public sealed class GameSwitcher
                     {
                         try
                         {
-                            var processPath = process.MainModule?.FileName;
-                            if (!string.IsNullOrEmpty(processPath) &&
+                            if (process.MainModule?.FileName is string processPath &&
                                 processPath.StartsWith(installDir, StringComparison.OrdinalIgnoreCase))
                             {
                                 logger.Debug($"Matched by install dir: {process.ProcessName} (PID: {process.Id})");
@@ -641,17 +640,17 @@ public sealed class GameSwitcher
 
     public string? ResolveImagePath(string? imagePath)
     {
-        if (string.IsNullOrWhiteSpace(imagePath))
+        if (imagePath is not { Length: > 0 } path || string.IsNullOrWhiteSpace(path))
         {
             return null;
         }
 
-        if (imagePath.StartsWith("http", StringComparison.OrdinalIgnoreCase))
+        if (path.StartsWith("http", StringComparison.OrdinalIgnoreCase))
         {
-            return imagePath;
+            return path;
         }
 
-        return api.Database.GetFullFilePath(imagePath);
+        return api.Database.GetFullFilePath(path);
     }
 
     public string GetRelativeTime(DateTime? dateTime)

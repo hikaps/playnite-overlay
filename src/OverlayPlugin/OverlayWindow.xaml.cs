@@ -100,8 +100,14 @@ public partial class OverlayWindow : Window
             }
         };
 
-        // Initial focus
-        if (this.items.Count > 0)
+        // Initial focus - priority: RunningApps → RecentList → SwitchButton
+        if (this.runningApps.Count > 0)
+        {
+            runningAppSelectedIndex = 0;
+            navigationTarget = NavigationTarget.RunningAppsList;
+            Dispatcher.BeginInvoke(() => FocusRunningAppItem(0), DispatcherPriority.Loaded);
+        }
+        else if (this.items.Count > 0)
         {
             selectedIndex = 0;
             navigationTarget = NavigationTarget.RecentList;
@@ -140,7 +146,7 @@ public partial class OverlayWindow : Window
         };
         
         Backdrop.MouseLeftButtonDown += (_, __) => this.Close();
-        KeyDown += (_, e) => { if (e.Key == Key.Escape) this.Close(); };
+        PreviewKeyDown += OnPreviewKeyDown;
         
         Loaded += (_, __) =>
         {
@@ -169,6 +175,40 @@ public partial class OverlayWindow : Window
         Closing += OnClosingWithFade;
     }
 
+    private void OnPreviewKeyDown(object sender, KeyEventArgs e)
+    {
+        switch (e.Key)
+        {
+            case Key.Escape:
+                Close();
+                e.Handled = true;
+                break;
+            case Key.Up:
+                NavigateUp();
+                e.Handled = true;
+                break;
+            case Key.Down:
+                NavigateDown();
+                e.Handled = true;
+                break;
+            case Key.Left:
+                NavigateLeft();
+                e.Handled = true;
+                break;
+            case Key.Right:
+                NavigateRight();
+                e.Handled = true;
+                break;
+            case Key.Enter:
+                PerformAccept();
+                e.Handled = true;
+                break;
+            case Key.Space:
+                // Let default handling work for focused buttons
+                break;
+        }
+    }
+
     private void OnRecentPlayClick(object sender, RoutedEventArgs e)
     {
         if (e.OriginalSource is Button btn && btn.CommandParameter is OverlayItem item)
@@ -187,51 +227,125 @@ public partial class OverlayWindow : Window
         }
     }
 
-    internal void ControllerNavigateUp()
+    private void NavigateUp()
     {
-        if (!enableControllerNavigation)
-        {
-            return;
-        }
-
         switch (navigationTarget)
         {
-            case NavigationTarget.RecentList:
-                if (items.Count == 0)
-                {
-                    FocusSwitchButton();
-                    break;
-                }
-                selectedIndex = selectedIndex <= 0 ? items.Count - 1 : selectedIndex - 1;
-                FocusListItem(selectedIndex);
-                break;
             case NavigationTarget.SwitchButton:
+                // Go up to RecentList last item, or RunningApps, or wrap
                 if (items.Count > 0)
                 {
-                    navigationTarget = NavigationTarget.RecentList;
-                    selectedIndex = items.Count - 1;
-                    FocusListItem(selectedIndex);
+                    FocusListItem(items.Count - 1);
+                }
+                else if (runningApps.Count > 0)
+                {
+                    FocusRunningAppItem(runningApps.Count - 1);
                 }
                 else
                 {
-                    FocusExitButton();
+                    FocusExitButton(); // wrap
                 }
                 break;
+
             case NavigationTarget.ExitButton:
                 FocusSwitchButton();
+                break;
+
+            case NavigationTarget.RunningAppsList:
+                if (runningAppSelectedIndex <= 0)
+                {
+                    // Top of running apps → go to CurrentGame buttons or wrap
+                    if (CurrentGameSection.Visibility == Visibility.Visible)
+                    {
+                        FocusExitButton();
+                    }
+                    else if (items.Count > 0)
+                    {
+                        FocusListItem(items.Count - 1); // wrap to bottom
+                    }
+                    else
+                    {
+                        FocusSwitchButton(); // wrap to buttons
+                    }
+                }
+                else
+                {
+                    FocusRunningAppItem(runningAppSelectedIndex - 1);
+                }
+                break;
+
+            case NavigationTarget.RecentList:
+                if (selectedIndex <= 0)
+                {
+                    // Top of recent → go to RunningApps or CurrentGame
+                    if (runningApps.Count > 0)
+                    {
+                        FocusRunningAppItem(runningApps.Count - 1);
+                    }
+                    else if (CurrentGameSection.Visibility == Visibility.Visible)
+                    {
+                        FocusExitButton();
+                    }
+                    else if (items.Count > 0)
+                    {
+                        FocusListItem(items.Count - 1); // wrap
+                    }
+                }
+                else
+                {
+                    FocusListItem(selectedIndex - 1);
+                }
                 break;
         }
     }
 
-    internal void ControllerNavigateDown()
+    private void NavigateDown()
     {
-        if (!enableControllerNavigation)
-        {
-            return;
-        }
-
         switch (navigationTarget)
         {
+            case NavigationTarget.SwitchButton:
+                FocusExitButton();
+                break;
+
+            case NavigationTarget.ExitButton:
+                // Go to RunningApps first, then RecentList
+                if (runningApps.Count > 0)
+                {
+                    FocusRunningAppItem(0);
+                }
+                else if (items.Count > 0)
+                {
+                    FocusListItem(0);
+                }
+                else
+                {
+                    FocusSwitchButton(); // wrap
+                }
+                break;
+
+            case NavigationTarget.RunningAppsList:
+                if (runningAppSelectedIndex >= runningApps.Count - 1)
+                {
+                    // End of running apps → go to RecentList or buttons
+                    if (items.Count > 0)
+                    {
+                        FocusListItem(0);
+                    }
+                    else if (CurrentGameSection.Visibility == Visibility.Visible)
+                    {
+                        FocusSwitchButton();
+                    }
+                    else
+                    {
+                        FocusRunningAppItem(0); // wrap
+                    }
+                }
+                else
+                {
+                    FocusRunningAppItem(runningAppSelectedIndex + 1);
+                }
+                break;
+
             case NavigationTarget.RecentList:
                 if (items.Count == 0)
                 {
@@ -240,61 +354,67 @@ public partial class OverlayWindow : Window
                 }
                 if (selectedIndex >= items.Count - 1)
                 {
-                    FocusSwitchButton();
+                    // End of list → go to buttons or wrap
+                    if (CurrentGameSection.Visibility == Visibility.Visible)
+                    {
+                        FocusSwitchButton();
+                    }
+                    else if (runningApps.Count > 0)
+                    {
+                        FocusRunningAppItem(0); // wrap to top
+                    }
+                    else
+                    {
+                        FocusListItem(0); // wrap
+                    }
                 }
                 else
                 {
-                    selectedIndex++;
-                    FocusListItem(selectedIndex);
-                }
-                break;
-            case NavigationTarget.SwitchButton:
-                FocusExitButton();
-                break;
-            case NavigationTarget.ExitButton:
-                if (items.Count > 0)
-                {
-                    navigationTarget = NavigationTarget.RecentList;
-                    selectedIndex = 0;
-                    FocusListItem(selectedIndex);
-                }
-                else
-                {
-                    FocusSwitchButton();
+                    FocusListItem(selectedIndex + 1);
                 }
                 break;
         }
+    }
+
+    private void NavigateLeft()
+    {
+        if (navigationTarget == NavigationTarget.ExitButton)
+        {
+            FocusSwitchButton();
+        }
+    }
+
+    private void NavigateRight()
+    {
+        if (navigationTarget == NavigationTarget.SwitchButton)
+        {
+            FocusExitButton();
+        }
+    }
+
+    // Controller navigation wrappers (guard check for controller-specific behavior)
+    internal void ControllerNavigateUp()
+    {
+        if (!enableControllerNavigation) return;
+        NavigateUp();
+    }
+
+    internal void ControllerNavigateDown()
+    {
+        if (!enableControllerNavigation) return;
+        NavigateDown();
     }
 
     internal void ControllerNavigateLeft()
     {
-        if (!enableControllerNavigation)
-        {
-            return;
-        }
-
-        if (navigationTarget != NavigationTarget.RecentList && items.Count > 0)
-        {
-            navigationTarget = NavigationTarget.RecentList;
-            if (selectedIndex < 0)
-            {
-                selectedIndex = 0;
-            }
-            FocusListItem(selectedIndex);
-        }
+        if (!enableControllerNavigation) return;
+        NavigateLeft();
     }
 
     internal void ControllerNavigateRight()
     {
-        if (!enableControllerNavigation)
-        {
-            return;
-        }
-
-        if (navigationTarget == NavigationTarget.RecentList)
-        {
-            FocusSwitchButton();
-        }
+        if (!enableControllerNavigation) return;
+        NavigateRight();
     }
 
     internal void ControllerAccept()
@@ -304,8 +424,21 @@ public partial class OverlayWindow : Window
             return;
         }
 
+        PerformAccept();
+    }
+
+    private void PerformAccept()
+    {
         switch (navigationTarget)
         {
+            case NavigationTarget.RunningAppsList:
+                if (runningAppSelectedIndex >= 0 && runningAppSelectedIndex < runningApps.Count)
+                {
+                    var app = runningApps[runningAppSelectedIndex];
+                    app.OnSwitch?.Invoke();
+                    Close();
+                }
+                break;
             case NavigationTarget.RecentList:
                 if (selectedIndex >= 0 && selectedIndex < items.Count)
                 {
@@ -387,6 +520,9 @@ public partial class OverlayWindow : Window
             index = items.Count - 1;
         }
 
+        // Clear selection on other list to avoid dual highlight
+        RunningAppsList.SelectedIndex = -1;
+
         navigationTarget = NavigationTarget.RecentList;
         selectedIndex = index;
         RecentList.SelectedIndex = selectedIndex;
@@ -406,6 +542,7 @@ public partial class OverlayWindow : Window
         }
 
         container.Focus();
+        container.BringIntoView();
         return true;
     }
 
@@ -417,12 +554,13 @@ public partial class OverlayWindow : Window
             return;
         }
 
+        // Clear list selections when moving to buttons
+        RunningAppsList.SelectedIndex = -1;
+        RecentList.SelectedIndex = -1;
+
         navigationTarget = NavigationTarget.SwitchButton;
-        if (items.Count > 0 && selectedIndex < 0)
-        {
-            selectedIndex = 0;
-        }
         SwitchBtn.Focus();
+        SwitchBtn.BringIntoView();
     }
 
     private void FocusExitButton()
@@ -433,8 +571,70 @@ public partial class OverlayWindow : Window
             return;
         }
 
+        // Clear list selections when moving to buttons
+        RunningAppsList.SelectedIndex = -1;
+        RecentList.SelectedIndex = -1;
+
         navigationTarget = NavigationTarget.ExitButton;
         ExitBtn.Focus();
+        ExitBtn.BringIntoView();
+    }
+
+    private void FocusRunningAppItem(int index)
+    {
+        if (!Dispatcher.CheckAccess())
+        {
+            Dispatcher.Invoke(() => FocusRunningAppItem(index));
+            return;
+        }
+
+        if (runningApps.Count == 0)
+        {
+            // Fall through to next section
+            if (items.Count > 0)
+            {
+                FocusListItem(0);
+            }
+            else
+            {
+                FocusSwitchButton();
+            }
+            return;
+        }
+
+        if (index < 0)
+        {
+            index = 0;
+        }
+        else if (index >= runningApps.Count)
+        {
+            index = runningApps.Count - 1;
+        }
+
+        // Clear selection on other list to avoid dual highlight
+        RecentList.SelectedIndex = -1;
+
+        navigationTarget = NavigationTarget.RunningAppsList;
+        runningAppSelectedIndex = index;
+        RunningAppsList.SelectedIndex = index;
+
+        if (!TryFocusRunningAppContainer())
+        {
+            Dispatcher.BeginInvoke(() => TryFocusRunningAppContainer(), DispatcherPriority.Loaded);
+        }
+    }
+
+    private bool TryFocusRunningAppContainer()
+    {
+        var container = RunningAppsList.ItemContainerGenerator.ContainerFromIndex(runningAppSelectedIndex) as ListBoxItem;
+        if (container == null)
+        {
+            return false;
+        }
+
+        container.Focus();
+        container.BringIntoView();
+        return true;
     }
 
     private enum NavigationTarget
