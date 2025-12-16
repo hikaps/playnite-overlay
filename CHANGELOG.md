@@ -19,6 +19,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Navigation now flows logically through entire overlay UI
 
 ### Added
+- **Keyboard Arrow Navigation**: Arrow keys now work for overlay navigation
+  - Up/Down arrows navigate through all sections (same as D-pad)
+  - Left/Right arrows navigate between buttons
+  - Enter/Space activate focused items (default WPF behavior)
+  - Works regardless of controller settings
 - **Diagnostic Logging**: Added debug logging for controller input events
   - Logs when Guide button is pressed
   - Logs when controller combos (Start+Back, LB+RB) are detected

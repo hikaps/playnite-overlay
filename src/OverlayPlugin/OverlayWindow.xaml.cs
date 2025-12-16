@@ -146,7 +146,7 @@ public partial class OverlayWindow : Window
         };
         
         Backdrop.MouseLeftButtonDown += (_, __) => this.Close();
-        KeyDown += (_, e) => { if (e.Key == Key.Escape) this.Close(); };
+        KeyDown += OnKeyDown;
         
         Loaded += (_, __) =>
         {
@@ -175,6 +175,37 @@ public partial class OverlayWindow : Window
         Closing += OnClosingWithFade;
     }
 
+    private void OnKeyDown(object sender, KeyEventArgs e)
+    {
+        switch (e.Key)
+        {
+            case Key.Escape:
+                Close();
+                e.Handled = true;
+                break;
+            case Key.Up:
+                NavigateUp();
+                e.Handled = true;
+                break;
+            case Key.Down:
+                NavigateDown();
+                e.Handled = true;
+                break;
+            case Key.Left:
+                NavigateLeft();
+                e.Handled = true;
+                break;
+            case Key.Right:
+                NavigateRight();
+                e.Handled = true;
+                break;
+            case Key.Enter:
+            case Key.Space:
+                // Let default handling work for focused buttons
+                break;
+        }
+    }
+
     private void OnRecentPlayClick(object sender, RoutedEventArgs e)
     {
         if (e.OriginalSource is Button btn && btn.CommandParameter is OverlayItem item)
@@ -193,13 +224,8 @@ public partial class OverlayWindow : Window
         }
     }
 
-    internal void ControllerNavigateUp()
+    private void NavigateUp()
     {
-        if (!enableControllerNavigation)
-        {
-            return;
-        }
-
         switch (navigationTarget)
         {
             case NavigationTarget.SwitchButton:
@@ -270,13 +296,8 @@ public partial class OverlayWindow : Window
         }
     }
 
-    internal void ControllerNavigateDown()
+    private void NavigateDown()
     {
-        if (!enableControllerNavigation)
-        {
-            return;
-        }
-
         switch (navigationTarget)
         {
             case NavigationTarget.SwitchButton:
@@ -352,30 +373,45 @@ public partial class OverlayWindow : Window
         }
     }
 
-    internal void ControllerNavigateLeft()
+    private void NavigateLeft()
     {
-        if (!enableControllerNavigation)
-        {
-            return;
-        }
-
         if (navigationTarget == NavigationTarget.ExitButton)
         {
             FocusSwitchButton();
         }
     }
 
-    internal void ControllerNavigateRight()
+    private void NavigateRight()
     {
-        if (!enableControllerNavigation)
-        {
-            return;
-        }
-
         if (navigationTarget == NavigationTarget.SwitchButton)
         {
             FocusExitButton();
         }
+    }
+
+    // Controller navigation wrappers (guard check for controller-specific behavior)
+    internal void ControllerNavigateUp()
+    {
+        if (!enableControllerNavigation) return;
+        NavigateUp();
+    }
+
+    internal void ControllerNavigateDown()
+    {
+        if (!enableControllerNavigation) return;
+        NavigateDown();
+    }
+
+    internal void ControllerNavigateLeft()
+    {
+        if (!enableControllerNavigation) return;
+        NavigateLeft();
+    }
+
+    internal void ControllerNavigateRight()
+    {
+        if (!enableControllerNavigation) return;
+        NavigateRight();
     }
 
     internal void ControllerAccept()
