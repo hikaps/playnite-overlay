@@ -146,7 +146,7 @@ public partial class OverlayWindow : Window
         };
         
         Backdrop.MouseLeftButtonDown += (_, __) => this.Close();
-        KeyDown += OnKeyDown;
+        PreviewKeyDown += OnPreviewKeyDown;
         
         Loaded += (_, __) =>
         {
@@ -175,7 +175,7 @@ public partial class OverlayWindow : Window
         Closing += OnClosingWithFade;
     }
 
-    private void OnKeyDown(object sender, KeyEventArgs e)
+    private void OnPreviewKeyDown(object sender, KeyEventArgs e)
     {
         switch (e.Key)
         {
