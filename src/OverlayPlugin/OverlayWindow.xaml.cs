@@ -480,12 +480,6 @@ public partial class OverlayWindow : Window
         selectedIndex = index;
         RecentList.SelectedIndex = selectedIndex;
 
-        // Scroll the selected item into view
-        if (selectedIndex >= 0 && selectedIndex < RecentList.Items.Count)
-        {
-            RecentList.ScrollIntoView(RecentList.Items[selectedIndex]);
-        }
-
         if (!TryFocusListContainer())
         {
             Dispatcher.BeginInvoke((Action)(() => TryFocusListContainer()), DispatcherPriority.Loaded);
@@ -566,9 +560,6 @@ public partial class OverlayWindow : Window
         navigationTarget = NavigationTarget.RunningAppsList;
         runningAppSelectedIndex = index;
         RunningAppsList.SelectedIndex = index;
-
-        // Scroll section into view (center the section)
-        RunningAppsSection.BringIntoView();
 
         if (!TryFocusRunningAppContainer())
         {

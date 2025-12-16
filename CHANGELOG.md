@@ -16,7 +16,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Implemented Up/Down navigation through all sections (CurrentGame → RunningApps → RecentGames → Buttons)
   - Added Left/Right navigation between SwitchBtn and ExitBtn
   - Fixed initial focus priority: RunningApps (if visible) → RecentList → SwitchButton
-  - Added `ScrollIntoView()` calls to ensure selected items/sections are visible
   - Navigation now flows logically through entire overlay UI
 
 ### Added
@@ -26,11 +25,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Helps troubleshoot controller detection issues
 
 ### Changed
+- **Scroll-Free UI**: Removed all scrolling for better controller experience
+  - Removed outer ScrollViewer from overlay (no more nested scrolling)
+  - Disabled scrolling on RunningAppsList and RecentList
+  - Changed `MaxRunningApps` default from 10 to 4
+  - All content now fits on screen without scrolling
 - **Navigation Flow**: Improved controller navigation UX
   - Down: SwitchBtn → ExitBtn → RunningApps → RecentGames → (wrap to SwitchBtn)
   - Up: Reverse of Down navigation
   - Left/Right: Navigate between SwitchBtn ↔ ExitBtn
-  - Section scrolling automatically centers sections when navigating between them
 
 ---
 

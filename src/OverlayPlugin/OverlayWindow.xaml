@@ -14,8 +14,7 @@
         <Border x:Name="RootCard" CornerRadius="10" Background="#EE1A1A1A" 
                 Padding="28" HorizontalAlignment="Center" VerticalAlignment="Center" 
                 Width="920" MaxHeight="620" Opacity="0">
-            <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-                <StackPanel>
+            <StackPanel>
                     <!-- Header -->
                     <TextBlock Text="Playnite Overlay" FontSize="24" FontWeight="SemiBold" 
                                Foreground="#EEEEEE" Margin="0,0,0,20"/>
@@ -120,7 +119,7 @@
                             
                             <ListBox x:Name="RunningAppsList" Background="Transparent" 
                                      BorderThickness="0" HorizontalContentAlignment="Stretch"
-                                     MaxHeight="250" ScrollViewer.VerticalScrollBarVisibility="Auto"
+                                     ScrollViewer.VerticalScrollBarVisibility="Disabled"
                                      ScrollViewer.HorizontalScrollBarVisibility="Disabled">
                                 <ListBox.ItemContainerStyle>
                                     <Style TargetType="ListBoxItem">
@@ -245,7 +244,9 @@
                         <!-- Recent Games List -->
                         <ListBox x:Name="RecentList" Background="Transparent" 
                                  BorderThickness="0" HorizontalContentAlignment="Stretch" 
-                                 Focusable="False" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                                 Focusable="False"
+                                 ScrollViewer.VerticalScrollBarVisibility="Disabled"
+                                 ScrollViewer.HorizontalScrollBarVisibility="Disabled">
                             <ListBox.ItemContainerStyle>
                                 <Style TargetType="ListBoxItem">
                                     <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
@@ -349,7 +350,6 @@
                         </ListBox>
                     </StackPanel>
                 </StackPanel>
-            </ScrollViewer>
         </Border>
     </Grid>
 </Window>
