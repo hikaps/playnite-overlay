@@ -17,12 +17,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Added Left/Right navigation between SwitchBtn and ExitBtn
   - Fixed initial focus priority: RunningApps (if visible) → RecentList → SwitchButton
   - Navigation now flows logically through entire overlay UI
+- **Dual Selection Highlight**: Fixed both lists showing selection simultaneously
+  - Now clears selection on other list when navigating between sections
+  - Only one item is highlighted at a time across the entire UI
 
 ### Added
 - **Keyboard Arrow Navigation**: Arrow keys now work for overlay navigation
   - Up/Down arrows navigate through all sections (same as D-pad)
   - Left/Right arrows navigate between buttons
-  - Enter/Space activate focused items (default WPF behavior)
+  - Enter key activates the currently selected item
   - Works regardless of controller settings
 - **Diagnostic Logging**: Added debug logging for controller input events
   - Logs when Guide button is pressed

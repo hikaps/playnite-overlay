@@ -200,6 +200,9 @@ public partial class OverlayWindow : Window
                 e.Handled = true;
                 break;
             case Key.Enter:
+                PerformAccept();
+                e.Handled = true;
+                break;
             case Key.Space:
                 // Let default handling work for focused buttons
                 break;
@@ -421,6 +424,11 @@ public partial class OverlayWindow : Window
             return;
         }
 
+        PerformAccept();
+    }
+
+    private void PerformAccept()
+    {
         switch (navigationTarget)
         {
             case NavigationTarget.RunningAppsList:
@@ -512,6 +520,9 @@ public partial class OverlayWindow : Window
             index = items.Count - 1;
         }
 
+        // Clear selection on other list to avoid dual highlight
+        RunningAppsList.SelectedIndex = -1;
+
         navigationTarget = NavigationTarget.RecentList;
         selectedIndex = index;
         RecentList.SelectedIndex = selectedIndex;
@@ -542,11 +553,11 @@ public partial class OverlayWindow : Window
             return;
         }
 
+        // Clear list selections when moving to buttons
+        RunningAppsList.SelectedIndex = -1;
+        RecentList.SelectedIndex = -1;
+
         navigationTarget = NavigationTarget.SwitchButton;
-        if (items.Count > 0 && selectedIndex < 0)
-        {
-            selectedIndex = 0;
-        }
         SwitchBtn.Focus();
     }
 
@@ -557,6 +568,10 @@ public partial class OverlayWindow : Window
             Dispatcher.Invoke(FocusExitButton);
             return;
         }
+
+        // Clear list selections when moving to buttons
+        RunningAppsList.SelectedIndex = -1;
+        RecentList.SelectedIndex = -1;
 
         navigationTarget = NavigationTarget.ExitButton;
         ExitBtn.Focus();
@@ -592,6 +607,9 @@ public partial class OverlayWindow : Window
         {
             index = runningApps.Count - 1;
         }
+
+        // Clear selection on other list to avoid dual highlight
+        RecentList.SelectedIndex = -1;
 
         navigationTarget = NavigationTarget.RunningAppsList;
         runningAppSelectedIndex = index;
