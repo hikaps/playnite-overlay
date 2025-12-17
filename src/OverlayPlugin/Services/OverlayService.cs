@@ -33,7 +33,8 @@ internal sealed class OverlayService
 
                 window.Loaded += (_, _) =>
                 {
-                    var pixelBounds = Monitors.GetActiveMonitorBoundsInPixels();
+                    // Get the monitor where the foreground window (game) is displayed
+                    var pixelBounds = Monitors.GetForegroundWindowMonitorBounds();
                     var dipBounds = Monitors.PixelsToDips(window, pixelBounds);
                     window.Left = dipBounds.Left;
                     window.Top = dipBounds.Top;
