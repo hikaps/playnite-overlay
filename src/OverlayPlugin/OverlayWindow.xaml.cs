@@ -15,16 +15,25 @@ namespace PlayniteOverlay;
 
 public partial class OverlayWindow : Window
 {
-    // P/Invoke for extended window styles
+    // P/Invoke for extended window styles and positioning
     [DllImport("user32.dll")]
     private static extern int GetWindowLong(IntPtr hWnd, int nIndex);
 
     [DllImport("user32.dll")]
     private static extern int SetWindowLong(IntPtr hWnd, int nIndex, int dwNewLong);
 
+    [DllImport("user32.dll")]
+    private static extern bool SetWindowPos(IntPtr hWnd, IntPtr hWndInsertAfter,
+        int X, int Y, int cx, int cy, uint uFlags);
+
     private const int GWL_EXSTYLE = -20;
     private const int WS_EX_NOACTIVATE = 0x08000000;
     private const int WS_EX_TOOLWINDOW = 0x00000080;
+
+    private static readonly IntPtr HWND_TOPMOST = new IntPtr(-1);
+    private const uint SWP_NOSIZE = 0x0001;
+    private const uint SWP_NOMOVE = 0x0002;
+    private const uint SWP_NOACTIVATE = 0x0010;
 
     private readonly Action onSwitch;
     private readonly Action onExit;
@@ -720,10 +729,14 @@ public partial class OverlayWindow : Window
     {
         base.OnSourceInitialized(e);
 
-        // Apply extended window styles to prevent activation/focus stealing
         var hwnd = new WindowInteropHelper(this).Handle;
+
+        // Apply extended window styles to prevent activation/focus stealing
         var exStyle = GetWindowLong(hwnd, GWL_EXSTYLE);
         SetWindowLong(hwnd, GWL_EXSTYLE, exStyle | WS_EX_NOACTIVATE | WS_EX_TOOLWINDOW);
+
+        // Set TOPMOST without activating the window
+        SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE | SWP_NOACTIVATE);
     }
 
     private void OnClosingWithFade(object? sender, System.ComponentModel.CancelEventArgs e)

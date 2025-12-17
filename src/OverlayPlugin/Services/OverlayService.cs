@@ -29,10 +29,7 @@ internal sealed class OverlayService
 
             Application.Current?.Dispatcher.Invoke(() =>
             {
-                window = new OverlayWindow(onSwitch, onExit, currentGame, runningApps, recentGames, enableControllerNavigation)
-                {
-                    Topmost = true
-                };
+                window = new OverlayWindow(onSwitch, onExit, currentGame, runningApps, recentGames, enableControllerNavigation);
 
                 window.Loaded += (_, _) =>
                 {

@@ -4,7 +4,6 @@
         WindowStyle="None"
         AllowsTransparency="True"
         Background="#B3000000"
-        Topmost="True"
         ShowInTaskbar="False"
         ShowActivated="False"
         WindowStartupLocation="Manual"
