@@ -25,7 +25,8 @@
                     
                     <!-- Current Game Section (collapsed when no game running) -->
                     <Border x:Name="CurrentGameSection" Background="#252525" CornerRadius="8" 
-                            Padding="20" Margin="0,0,0,20" Visibility="Collapsed">
+                            Padding="20" Margin="0,0,0,20" Visibility="Collapsed"
+                            BorderThickness="2" BorderBrush="Transparent">
                         <Grid>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="140"/>
@@ -124,7 +125,8 @@
                     
                     <!-- Running Apps Section (shown when other apps detected) -->
                     <Border x:Name="RunningAppsSection" Background="#252525" CornerRadius="8" 
-                            Padding="16" Margin="0,0,0,20" Visibility="Collapsed">
+                            Padding="16" Margin="0,0,0,20" Visibility="Collapsed"
+                            BorderThickness="2" BorderBrush="Transparent">
                         <StackPanel>
                             <TextBlock Text="RUNNING APPS" FontSize="10" FontWeight="Bold" 
                                        Foreground="#888888" Margin="0,0,0,10"/>
@@ -238,13 +240,15 @@
                     </Border>
                     
                     <!-- Recent Games Section -->
-                    <StackPanel>
-                        <TextBlock Text="RECENT GAMES" FontSize="10" FontWeight="Bold" 
-                                   Foreground="#888888" Margin="0,0,0,10"/>
+                    <Border x:Name="RecentGamesSection" Background="#252525" CornerRadius="8"
+                            Padding="16" BorderThickness="2" BorderBrush="Transparent">
+                        <StackPanel>
+                            <TextBlock Text="RECENT GAMES" FontSize="10" FontWeight="Bold" 
+                                       Foreground="#888888" Margin="0,0,0,10"/>
                         
-                        <!-- Empty State (shown when no items) -->
-                        <Border x:Name="EmptyState" Background="#252525" CornerRadius="6" 
-                                Padding="40,32" Visibility="Collapsed">
+                            <!-- Empty State (shown when no items) -->
+                            <Border x:Name="EmptyState" Background="#1A1A1A" CornerRadius="6" 
+                                    Padding="40,32" Visibility="Collapsed">
                             <StackPanel HorizontalAlignment="Center">
                                 <TextBlock Text="📚" FontSize="32" HorizontalAlignment="Center" 
                                            Margin="0,0,0,12" Opacity="0.5"/>
@@ -368,7 +372,8 @@
                                 </DataTemplate>
                             </ListBox.ItemTemplate>
                         </ListBox>
-                    </StackPanel>
+                        </StackPanel>
+                    </Border>
                 </StackPanel>
             </ScrollViewer>
         </Border>
