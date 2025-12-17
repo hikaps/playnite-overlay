@@ -6,6 +6,7 @@
         Background="#B3000000"
         Topmost="True"
         ShowInTaskbar="False"
+        ShowActivated="False"
         WindowStartupLocation="Manual"
         WindowState="Maximized"
         ResizeMode="NoResize"
