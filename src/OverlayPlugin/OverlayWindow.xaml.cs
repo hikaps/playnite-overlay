@@ -252,26 +252,27 @@ public partial class OverlayWindow : Window
         RunningAppsList.SelectedIndex = -1;
         RecentList.SelectedIndex = -1;
         
-        // Remove focus from any button to hide its focus border
-        Keyboard.Focus(this);
-        
         // Clear all section highlights
         ClearSectionHighlights();
         
-        // Highlight the target section
+        // Highlight the target section and move keyboard focus to it
+        // This removes focus from buttons (hiding their borders) while keeping keyboard input working
         switch (section)
         {
             case NavigationTarget.CurrentGameSection:
                 CurrentGameSection.BorderBrush = HighlightBrush;
                 CurrentGameSection.BringIntoView();
+                Keyboard.Focus(CurrentGameSection);
                 break;
             case NavigationTarget.RunningAppsSection:
                 RunningAppsSection.BorderBrush = HighlightBrush;
                 RunningAppsSection.BringIntoView();
+                Keyboard.Focus(RunningAppsSection);
                 break;
             case NavigationTarget.RecentGamesSection:
                 RecentGamesSection.BorderBrush = HighlightBrush;
                 RecentGamesSection.BringIntoView();
+                Keyboard.Focus(RecentGamesSection);
                 break;
         }
     }
