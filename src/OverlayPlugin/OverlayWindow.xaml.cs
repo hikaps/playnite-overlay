@@ -560,7 +560,7 @@ public partial class OverlayWindow : Window
 
         navigationTarget = NavigationTarget.SwitchButton;
         SwitchBtn.Focus();
-        SwitchBtn.BringIntoView();
+        CurrentGameSection.BringIntoView();
     }
 
     private void FocusExitButton()
@@ -577,7 +577,7 @@ public partial class OverlayWindow : Window
 
         navigationTarget = NavigationTarget.ExitButton;
         ExitBtn.Focus();
-        ExitBtn.BringIntoView();
+        CurrentGameSection.BringIntoView();
     }
 
     private void FocusRunningAppItem(int index)

@@ -60,22 +60,22 @@
                                                 <Setter Property="Template">
                                                     <Setter.Value>
                                                         <ControlTemplate TargetType="Button">
-                                                            <Border Background="{TemplateBinding Background}" 
-                                                                    BorderBrush="{TemplateBinding BorderBrush}"
-                                                                    BorderThickness="{TemplateBinding BorderThickness}"
+                                                            <Border x:Name="ButtonBorder"
+                                                                    Background="{TemplateBinding Background}" 
+                                                                    BorderBrush="Transparent"
+                                                                    BorderThickness="2"
                                                                     CornerRadius="5" Padding="{TemplateBinding Padding}">
                                                                 <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                                             </Border>
                                                             <ControlTemplate.Triggers>
                                                                 <Trigger Property="IsMouseOver" Value="True">
-                                                                    <Setter Property="Background" Value="#4A4A4A"/>
+                                                                    <Setter TargetName="ButtonBorder" Property="Background" Value="#4A4A4A"/>
                                                                 </Trigger>
                                                                 <Trigger Property="IsPressed" Value="True">
-                                                                    <Setter Property="Background" Value="#2A2A2A"/>
+                                                                    <Setter TargetName="ButtonBorder" Property="Background" Value="#2A2A2A"/>
                                                                 </Trigger>
                                                                 <Trigger Property="IsFocused" Value="True">
-                                                                    <Setter Property="BorderBrush" Value="#FFFFFF"/>
-                                                                    <Setter Property="BorderThickness" Value="2"/>
+                                                                    <Setter TargetName="ButtonBorder" Property="BorderBrush" Value="#FFFFFF"/>
                                                                 </Trigger>
                                                             </ControlTemplate.Triggers>
                                                         </ControlTemplate>
@@ -93,22 +93,22 @@
                                                 <Setter Property="Template">
                                                     <Setter.Value>
                                                         <ControlTemplate TargetType="Button">
-                                                            <Border Background="{TemplateBinding Background}" 
-                                                                    BorderBrush="{TemplateBinding BorderBrush}"
-                                                                    BorderThickness="{TemplateBinding BorderThickness}"
+                                                            <Border x:Name="ButtonBorder"
+                                                                    Background="{TemplateBinding Background}" 
+                                                                    BorderBrush="Transparent"
+                                                                    BorderThickness="2"
                                                                     CornerRadius="5" Padding="{TemplateBinding Padding}">
                                                                 <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                                             </Border>
                                                             <ControlTemplate.Triggers>
                                                                 <Trigger Property="IsMouseOver" Value="True">
-                                                                    <Setter Property="Background" Value="#E53935"/>
+                                                                    <Setter TargetName="ButtonBorder" Property="Background" Value="#E53935"/>
                                                                 </Trigger>
                                                                 <Trigger Property="IsPressed" Value="True">
-                                                                    <Setter Property="Background" Value="#C62828"/>
+                                                                    <Setter TargetName="ButtonBorder" Property="Background" Value="#C62828"/>
                                                                 </Trigger>
                                                                 <Trigger Property="IsFocused" Value="True">
-                                                                    <Setter Property="BorderBrush" Value="#FFFFFF"/>
-                                                                    <Setter Property="BorderThickness" Value="2"/>
+                                                                    <Setter TargetName="ButtonBorder" Property="BorderBrush" Value="#FFFFFF"/>
                                                                 </Trigger>
                                                             </ControlTemplate.Triggers>
                                                         </ControlTemplate>
@@ -200,22 +200,22 @@
                                                         <Setter Property="Template">
                                                             <Setter.Value>
                                                                 <ControlTemplate TargetType="Button">
-                                                                    <Border Background="{TemplateBinding Background}" 
-                                                                            BorderBrush="{TemplateBinding BorderBrush}"
-                                                                            BorderThickness="{TemplateBinding BorderThickness}"
+                                                                    <Border x:Name="ButtonBorder"
+                                                                            Background="{TemplateBinding Background}" 
+                                                                            BorderBrush="Transparent"
+                                                                            BorderThickness="2"
                                                                             CornerRadius="5" Padding="{TemplateBinding Padding}">
                                                                         <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                                                     </Border>
                                                                     <ControlTemplate.Triggers>
                                                                         <Trigger Property="IsMouseOver" Value="True">
-                                                                            <Setter Property="Background" Value="#7D5FDB"/>
+                                                                            <Setter TargetName="ButtonBorder" Property="Background" Value="#7D5FDB"/>
                                                                         </Trigger>
                                                                         <Trigger Property="IsPressed" Value="True">
-                                                                            <Setter Property="Background" Value="#5A3FB5"/>
+                                                                            <Setter TargetName="ButtonBorder" Property="Background" Value="#5A3FB5"/>
                                                                         </Trigger>
                                                                         <Trigger Property="IsFocused" Value="True">
-                                                                            <Setter Property="BorderBrush" Value="#FFFFFF"/>
-                                                                            <Setter Property="BorderThickness" Value="2"/>
+                                                                            <Setter TargetName="ButtonBorder" Property="BorderBrush" Value="#FFFFFF"/>
                                                                         </Trigger>
                                                                     </ControlTemplate.Triggers>
                                                                 </ControlTemplate>
@@ -334,22 +334,22 @@
                                                     <Setter Property="Template">
                                                         <Setter.Value>
                                                             <ControlTemplate TargetType="Button">
-                                                                <Border Background="{TemplateBinding Background}" 
-                                                                        BorderBrush="{TemplateBinding BorderBrush}"
-                                                                        BorderThickness="{TemplateBinding BorderThickness}"
+                                                                <Border x:Name="ButtonBorder"
+                                                                        Background="{TemplateBinding Background}" 
+                                                                        BorderBrush="Transparent"
+                                                                        BorderThickness="2"
                                                                         CornerRadius="5" Padding="{TemplateBinding Padding}">
                                                                     <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                                                 </Border>
                                                                 <ControlTemplate.Triggers>
                                                                     <Trigger Property="IsMouseOver" Value="True">
-                                                                        <Setter Property="Background" Value="#5BA3F5"/>
+                                                                        <Setter TargetName="ButtonBorder" Property="Background" Value="#5BA3F5"/>
                                                                     </Trigger>
                                                                     <Trigger Property="IsPressed" Value="True">
-                                                                        <Setter Property="Background" Value="#3A7BC8"/>
+                                                                        <Setter TargetName="ButtonBorder" Property="Background" Value="#3A7BC8"/>
                                                                     </Trigger>
                                                                     <Trigger Property="IsFocused" Value="True">
-                                                                        <Setter Property="BorderBrush" Value="#FFFFFF"/>
-                                                                        <Setter Property="BorderThickness" Value="2"/>
+                                                                        <Setter TargetName="ButtonBorder" Property="BorderBrush" Value="#FFFFFF"/>
                                                                     </Trigger>
                                                                 </ControlTemplate.Triggers>
                                                             </ControlTemplate>
