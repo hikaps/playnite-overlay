@@ -252,6 +252,9 @@ public partial class OverlayWindow : Window
         RunningAppsList.SelectedIndex = -1;
         RecentList.SelectedIndex = -1;
         
+        // Remove focus from any button to hide its focus border
+        Keyboard.Focus(this);
+        
         // Clear all section highlights
         ClearSectionHighlights();
         
