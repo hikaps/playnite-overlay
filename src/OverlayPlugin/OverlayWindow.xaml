@@ -26,7 +26,7 @@
                     <!-- Current Game Section (collapsed when no game running) -->
                     <Border x:Name="CurrentGameSection" Background="#252525" CornerRadius="8" 
                             Padding="20" Margin="0,0,0,20" Visibility="Collapsed"
-                            BorderThickness="2" BorderBrush="Transparent">
+                            BorderThickness="2" BorderBrush="Transparent" Focusable="True">
                         <Grid>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="140"/>
@@ -75,7 +75,7 @@
                                                                 <Trigger Property="IsPressed" Value="True">
                                                                     <Setter TargetName="ButtonBorder" Property="Background" Value="#2A2A2A"/>
                                                                 </Trigger>
-                                                                <Trigger Property="IsFocused" Value="True">
+                                                                <Trigger Property="IsKeyboardFocused" Value="True">
                                                                     <Setter TargetName="ButtonBorder" Property="BorderBrush" Value="#FFFFFF"/>
                                                                 </Trigger>
                                                             </ControlTemplate.Triggers>
@@ -108,7 +108,7 @@
                                                                 <Trigger Property="IsPressed" Value="True">
                                                                     <Setter TargetName="ButtonBorder" Property="Background" Value="#C62828"/>
                                                                 </Trigger>
-                                                                <Trigger Property="IsFocused" Value="True">
+                                                                <Trigger Property="IsKeyboardFocused" Value="True">
                                                                     <Setter TargetName="ButtonBorder" Property="BorderBrush" Value="#FFFFFF"/>
                                                                 </Trigger>
                                                             </ControlTemplate.Triggers>
@@ -126,7 +126,7 @@
                     <!-- Running Apps Section (shown when other apps detected) -->
                     <Border x:Name="RunningAppsSection" Background="#252525" CornerRadius="8" 
                             Padding="16" Margin="0,0,0,20" Visibility="Collapsed"
-                            BorderThickness="2" BorderBrush="Transparent">
+                            BorderThickness="2" BorderBrush="Transparent" Focusable="True">
                         <StackPanel>
                             <TextBlock Text="RUNNING APPS" FontSize="10" FontWeight="Bold" 
                                        Foreground="#888888" Margin="0,0,0,10"/>
@@ -216,7 +216,7 @@
                                                                         <Trigger Property="IsPressed" Value="True">
                                                                             <Setter TargetName="ButtonBorder" Property="Background" Value="#5A3FB5"/>
                                                                         </Trigger>
-                                                                        <Trigger Property="IsFocused" Value="True">
+                                                                        <Trigger Property="IsKeyboardFocused" Value="True">
                                                                             <Setter TargetName="ButtonBorder" Property="BorderBrush" Value="#FFFFFF"/>
                                                                         </Trigger>
                                                                     </ControlTemplate.Triggers>
@@ -241,7 +241,7 @@
                     
                     <!-- Recent Games Section -->
                     <Border x:Name="RecentGamesSection" Background="#252525" CornerRadius="8"
-                            Padding="16" BorderThickness="2" BorderBrush="Transparent">
+                            Padding="16" BorderThickness="2" BorderBrush="Transparent" Focusable="True">
                         <StackPanel>
                             <TextBlock Text="RECENT GAMES" FontSize="10" FontWeight="Bold" 
                                        Foreground="#888888" Margin="0,0,0,10"/>
@@ -352,7 +352,7 @@
                                                                     <Trigger Property="IsPressed" Value="True">
                                                                         <Setter TargetName="ButtonBorder" Property="Background" Value="#3A7BC8"/>
                                                                     </Trigger>
-                                                                    <Trigger Property="IsFocused" Value="True">
+                                                                    <Trigger Property="IsKeyboardFocused" Value="True">
                                                                         <Setter TargetName="ButtonBorder" Property="BorderBrush" Value="#FFFFFF"/>
                                                                     </Trigger>
                                                                 </ControlTemplate.Triggers>
