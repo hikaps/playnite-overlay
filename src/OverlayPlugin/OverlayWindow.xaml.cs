@@ -425,7 +425,7 @@ public partial class OverlayWindow : Window
 
         if (runningApps.Count == 0) return;
 
-        index = Math.Clamp(index, 0, runningApps.Count - 1);
+        index = Math.Max(0, Math.Min(index, runningApps.Count - 1));
 
         RecentList.SelectedIndex = -1;
         
@@ -459,7 +459,7 @@ public partial class OverlayWindow : Window
 
         if (items.Count == 0) return;
 
-        index = Math.Clamp(index, 0, items.Count - 1);
+        index = Math.Max(0, Math.Min(index, items.Count - 1));
 
         RunningAppsList.SelectedIndex = -1;
         
