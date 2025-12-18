@@ -1,7 +1,7 @@
 Id: playnite-overlay
 Name: Playnite Overlay
 Author: hikaps
-Version: 0.3.0
+Version: 0.4.0
 Module: OverlayPlugin.dll
 Type: GenericPlugin
 Links:
