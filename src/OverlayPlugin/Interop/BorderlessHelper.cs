@@ -1,7 +1,6 @@
 using System;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
-using System.Windows.Forms;
 
 namespace PlayniteOverlay;
 
@@ -112,11 +111,11 @@ internal static class BorderlessHelper
         if (!GetWindowRect(hwnd, out var rect))
             return false;
 
-        var screen = Screen.FromHandle(hwnd);
-        return rect.Left == screen.Bounds.Left &&
-               rect.Top == screen.Bounds.Top &&
-               rect.Right - rect.Left == screen.Bounds.Width &&
-               rect.Bottom - rect.Top == screen.Bounds.Height;
+        var monitor = Monitors.GetMonitorBoundsForWindow(hwnd);
+        return rect.Left == (int)monitor.Left &&
+               rect.Top == (int)monitor.Top &&
+               rect.Right - rect.Left == (int)monitor.Width &&
+               rect.Bottom - rect.Top == (int)monitor.Height;
     }
 
     /// <summary>
@@ -157,15 +156,15 @@ internal static class BorderlessHelper
         SetWindowLong(hwnd, GWL_EXSTYLE, newExStyle);
 
         // Get the screen the window is on and resize to cover it
-        var screen = Screen.FromHandle(hwnd);
+        var monitor = Monitors.GetMonitorBoundsForWindow(hwnd);
 
         SetWindowPos(
             hwnd,
             IntPtr.Zero,
-            screen.Bounds.X,
-            screen.Bounds.Y,
-            screen.Bounds.Width,
-            screen.Bounds.Height,
+            (int)monitor.Left,
+            (int)monitor.Top,
+            (int)monitor.Width,
+            (int)monitor.Height,
             SWP_FRAMECHANGED | SWP_SHOWWINDOW | SWP_NOOWNERZORDER | SWP_NOSENDCHANGING | SWP_NOZORDER
         );
 
