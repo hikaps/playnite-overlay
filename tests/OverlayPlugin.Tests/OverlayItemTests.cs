@@ -14,7 +14,7 @@ public class OverlayItemTests
     {
         // Arrange
         var mockApi = new Mock<IPlayniteAPI>();
-        var mockDatabase = new Mock<IGameDatabase>();
+        var mockDatabase = new Mock<IGameDatabaseAPI>();
         mockApi.Setup(a => a.Database).Returns(mockDatabase.Object);
         mockDatabase.Setup(d => d.GetFullFilePath(It.IsAny<string>())).Returns((string path) => path);
         
@@ -34,7 +34,7 @@ public class OverlayItemTests
     {
         // Arrange
         var mockApi = new Mock<IPlayniteAPI>();
-        var mockDatabase = new Mock<IGameDatabase>();
+        var mockDatabase = new Mock<IGameDatabaseAPI>();
         mockApi.Setup(a => a.Database).Returns(mockDatabase.Object);
         mockDatabase.Setup(d => d.GetFullFilePath("cover.jpg")).Returns("/path/to/cover.jpg");
         
@@ -57,7 +57,7 @@ public class OverlayItemTests
     {
         // Arrange
         var mockApi = new Mock<IPlayniteAPI>();
-        var mockDatabase = new Mock<IGameDatabase>();
+        var mockDatabase = new Mock<IGameDatabaseAPI>();
         mockApi.Setup(a => a.Database).Returns(mockDatabase.Object);
         mockDatabase.Setup(d => d.GetFullFilePath("icon.png")).Returns("/path/to/icon.png");
         
@@ -79,7 +79,7 @@ public class OverlayItemTests
     {
         // Arrange
         var mockApi = new Mock<IPlayniteAPI>();
-        var mockDatabase = new Mock<IGameDatabase>();
+        var mockDatabase = new Mock<IGameDatabaseAPI>();
         mockApi.Setup(a => a.Database).Returns(mockDatabase.Object);
         
         var switcher = new GameSwitcher(mockApi.Object);
