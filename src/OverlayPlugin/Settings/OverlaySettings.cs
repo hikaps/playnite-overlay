@@ -52,4 +52,26 @@ public class OverlaySettings : MVVM.ObservableObject
         get => maxRunningApps;
         set => SetProperty(ref maxRunningApps, value);
     }
+
+    private bool forceBorderlessMode = false;
+    /// <summary>
+    /// When enabled, automatically converts windowed games to borderless fullscreen mode.
+    /// This helps the overlay appear over games that don't natively support borderless.
+    /// </summary>
+    public bool ForceBorderlessMode
+    {
+        get => forceBorderlessMode;
+        set => SetProperty(ref forceBorderlessMode, value);
+    }
+
+    private int borderlessDelayMs = 3000;
+    /// <summary>
+    /// Delay in milliseconds after game starts before applying borderless mode.
+    /// Allows the game window to fully initialize.
+    /// </summary>
+    public int BorderlessDelayMs
+    {
+        get => borderlessDelayMs;
+        set => SetProperty(ref borderlessDelayMs, value);
+    }
 }
