@@ -421,7 +421,7 @@ public class GameSwitcherTests
 
         mockApi.Setup(a => a.Database).Returns(mockDatabase.Object);
         mockDatabase.Setup(d => d.Games).Returns(mockGames.Object);
-        mockGames.Setup(g => g[gameId]).Returns((Game?)null);
+        mockGames.Setup(g => g[gameId]).Returns(default(Game));
 
         var switcher = new GameSwitcher(mockApi.Object);
 
