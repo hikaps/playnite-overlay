@@ -60,7 +60,15 @@ internal static class Monitors
     public static Rect GetForegroundWindowMonitorBounds()
     {
         var foreground = GetForegroundWindow();
-        var hMonitor = MonitorFromWindow(foreground, MONITOR_DEFAULTTONEAREST);
+        return GetMonitorBoundsForWindow(foreground);
+    }
+
+    /// <summary>
+    /// Gets the monitor bounds (in pixels) for a specific window handle.
+    /// </summary>
+    public static Rect GetMonitorBoundsForWindow(IntPtr hwnd)
+    {
+        var hMonitor = MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST);
 
         var mi = new MONITORINFOEX { cbSize = Marshal.SizeOf<MONITORINFOEX>() };
         if (!GetMonitorInfo(hMonitor, ref mi))
