@@ -7,45 +7,48 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+---
+
+## [0.4.0] - 2025-12-18
+
 ### Fixed
-- **Controller Toggle Not Working**: Changed `ControllerAlwaysActive` default to `true`
-  - Controller now works out-of-box without requiring a game to be running
-  - Previously defaulted to `false`, requiring game to be active for controller input
-- **Controller Navigation Incomplete**: Complete rewrite of navigation system
-  - Added full support for `RunningAppsList` navigation (was previously ignored)
-  - Implemented Up/Down navigation through all sections (CurrentGame → RunningApps → RecentGames → Buttons)
-  - Added Left/Right navigation between SwitchBtn and ExitBtn
-  - Fixed initial focus priority: RunningApps (if visible) → RecentList → SwitchButton
+- **Fullscreen Games Minimizing**: Overlay no longer steals focus from games
+  - Added `WS_EX_NOACTIVATE` and `WS_EX_TOOLWINDOW` extended window styles
+  - Use `SetWindowPos` with `SWP_NOACTIVATE` for topmost positioning
+  - Overlay now appears on same monitor as the foreground game
+- **Button Focus Visibility**: Focus border now appears reliably on all buttons
+  - Changed from `IsFocused` to `IsKeyboardFocused` triggers
+  - Use `Keyboard.ClearFocus()` when exiting to section level
+- **Controller Navigation**: Complete navigation system rewrite
+  - Full support for `RunningAppsList` navigation (was previously ignored)
+  - Fixed initial focus priority: RunningApps → RecentList → SwitchButton
   - Navigation now flows logically through entire overlay UI
-- **Dual Selection Highlight**: Fixed both lists showing selection simultaneously
-  - Now clears selection on other list when navigating between sections
-  - Only one item is highlighted at a time across the entire UI
-- **Viewport Scrolling**: Fixed selected items going out of view when navigating
-  - Added hidden scrollbar to overlay content area
-  - Selected items now auto-scroll into view when navigating with keyboard/controller
+- **Dual Selection Highlight**: Only one item highlighted at a time across lists
 - **Nullable Reference Warnings**: Fixed compiler warnings in GameSwitcher and RunningAppsDetector
-  - Used pattern matching to eliminate null dereference warnings
 
 ### Added
+- **Force Borderless Mode**: Optional feature for games that still minimize
+  - Automatically converts windowed games to borderless fullscreen
+  - Configurable delay before applying (default: 3 seconds)
+  - Restores original window state when game exits
+  - New settings: `ForceBorderlessMode`, `BorderlessDelayMs`
+- **Two-Level Navigation System**: Section-first navigation for controller/keyboard
+  - Level 1: Navigate between sections (CurrentGame, RunningApps, RecentGames) with Up/Down
+  - Level 2: Press Enter/A to drill into section, navigate items with Up/Down
+  - Press Escape/B to exit back to section level
 - **Keyboard Arrow Navigation**: Arrow keys now work for overlay navigation
-  - Up/Down arrows navigate through all sections (same as D-pad)
+  - Up/Down arrows navigate through sections and items
   - Left/Right arrows navigate between buttons
   - Enter key activates the currently selected item
-  - Works regardless of controller settings
-- **Diagnostic Logging**: Added debug logging for controller input events
-  - Logs when Guide button is pressed
-  - Logs when controller combos (Start+Back, LB+RB) are detected
-  - Helps troubleshoot controller detection issues
+- **Button Focus Visual Feedback**: White border on all focused buttons
+- **Diagnostic Logging**: Debug logging for controller input events
 
 ### Changed
-- **Hidden Scrollbar UI**: Re-added scrolling with invisible scrollbar
-  - Overlay content now scrolls when needed (for many games/apps)
-  - Scrollbar is hidden for clean controller-friendly appearance
-  - Selected items automatically scroll into view
-- **Navigation Flow**: Improved controller navigation UX
-  - Down: SwitchBtn → ExitBtn → RunningApps → RecentGames → (wrap to SwitchBtn)
-  - Up: Reverse of Down navigation
-  - Left/Right: Navigate between SwitchBtn ↔ ExitBtn
+- **Controller Always Active**: Now defaults to `true` (works without game running)
+- **Navigation Flow**: Improved controller/keyboard navigation UX
+  - Section-level navigation with visual border feedback
+  - Item-level navigation within sections
+  - Automatic scroll-into-view for selected items
 
 ---
 
