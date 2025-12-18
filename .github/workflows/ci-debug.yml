@@ -4,9 +4,6 @@ on:
   push:
     branches:
       - 'debug/**'
-  pull_request:
-    branches: [ develop, main ]
-    types: [ opened, synchronize, reopened ]
 
 jobs:
   build:
@@ -81,32 +78,3 @@ jobs:
           name: pext-${{ steps.ver.outputs.version }}-${{ steps.ver.outputs.safeBranch }}-${{ steps.ver.outputs.sha }}-DEBUG
           path: dist/*.pext
           if-no-files-found: warn
-
-      - name: Comment on PR with artifact link
-        if: github.event_name == 'pull_request'
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const artifactName = `pext-${{ steps.ver.outputs.version }}-${{ steps.ver.outputs.safeBranch }}-${{ steps.ver.outputs.sha }}-DEBUG`;
-            const runUrl = `https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}`;
-            const comment = `## 🐛 Debug Build Available
-            
-            A debug build has been created for this branch.
-            
-            **Artifact:** \`${artifactName}\`
-            **Build:** [View workflow run](${runUrl})
-            
-            To test:
-            1. Download the artifact from the workflow run
-            2. Extract the \`.pext\` file
-            3. Install in Playnite
-            4. Check \`%AppData%\\Playnite\\playnite.log\` for diagnostic output
-            
-            > ⚠️ This is a DEBUG build with enhanced logging. Do not use in production.`;
-            
-            github.rest.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: comment
-            });

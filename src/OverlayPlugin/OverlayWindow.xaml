@@ -4,17 +4,20 @@
         WindowStyle="None"
         AllowsTransparency="True"
         Background="#B3000000"
-        Topmost="True"
         ShowInTaskbar="False"
+        ShowActivated="False"
         WindowStartupLocation="Manual"
-        WindowState="Maximized"
+        WindowState="Normal"
         ResizeMode="NoResize"
         Focusable="True">
     <Grid x:Name="Backdrop" Background="Transparent">
         <Border x:Name="RootCard" CornerRadius="10" Background="#EE1A1A1A" 
                 Padding="28" HorizontalAlignment="Center" VerticalAlignment="Center" 
                 Width="920" MaxHeight="620" Opacity="0">
-            <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+            <ScrollViewer x:Name="ContentScroller" 
+                          VerticalScrollBarVisibility="Hidden" 
+                          HorizontalScrollBarVisibility="Disabled"
+                          Focusable="False">
                 <StackPanel>
                     <!-- Header -->
                     <TextBlock Text="Playnite Overlay" FontSize="24" FontWeight="SemiBold" 
@@ -22,7 +25,8 @@
                     
                     <!-- Current Game Section (collapsed when no game running) -->
                     <Border x:Name="CurrentGameSection" Background="#252525" CornerRadius="8" 
-                            Padding="20" Margin="0,0,0,20" Visibility="Collapsed">
+                            Padding="20" Margin="0,0,0,20" Visibility="Collapsed"
+                            BorderThickness="2" BorderBrush="Transparent" Focusable="True">
                         <Grid>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="140"/>
@@ -57,18 +61,22 @@
                                                 <Setter Property="Template">
                                                     <Setter.Value>
                                                         <ControlTemplate TargetType="Button">
-                                                            <Border Background="{TemplateBinding Background}" 
-                                                                    BorderBrush="{TemplateBinding BorderBrush}"
-                                                                    BorderThickness="{TemplateBinding BorderThickness}"
+                                                            <Border x:Name="ButtonBorder"
+                                                                    Background="{TemplateBinding Background}" 
+                                                                    BorderBrush="Transparent"
+                                                                    BorderThickness="2"
                                                                     CornerRadius="5" Padding="{TemplateBinding Padding}">
                                                                 <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                                             </Border>
                                                             <ControlTemplate.Triggers>
                                                                 <Trigger Property="IsMouseOver" Value="True">
-                                                                    <Setter Property="Background" Value="#4A4A4A"/>
+                                                                    <Setter TargetName="ButtonBorder" Property="Background" Value="#4A4A4A"/>
                                                                 </Trigger>
                                                                 <Trigger Property="IsPressed" Value="True">
-                                                                    <Setter Property="Background" Value="#2A2A2A"/>
+                                                                    <Setter TargetName="ButtonBorder" Property="Background" Value="#2A2A2A"/>
+                                                                </Trigger>
+                                                                <Trigger Property="IsKeyboardFocused" Value="True">
+                                                                    <Setter TargetName="ButtonBorder" Property="BorderBrush" Value="#FFFFFF"/>
                                                                 </Trigger>
                                                             </ControlTemplate.Triggers>
                                                         </ControlTemplate>
@@ -86,18 +94,22 @@
                                                 <Setter Property="Template">
                                                     <Setter.Value>
                                                         <ControlTemplate TargetType="Button">
-                                                            <Border Background="{TemplateBinding Background}" 
-                                                                    BorderBrush="{TemplateBinding BorderBrush}"
-                                                                    BorderThickness="{TemplateBinding BorderThickness}"
+                                                            <Border x:Name="ButtonBorder"
+                                                                    Background="{TemplateBinding Background}" 
+                                                                    BorderBrush="Transparent"
+                                                                    BorderThickness="2"
                                                                     CornerRadius="5" Padding="{TemplateBinding Padding}">
                                                                 <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                                             </Border>
                                                             <ControlTemplate.Triggers>
                                                                 <Trigger Property="IsMouseOver" Value="True">
-                                                                    <Setter Property="Background" Value="#E53935"/>
+                                                                    <Setter TargetName="ButtonBorder" Property="Background" Value="#E53935"/>
                                                                 </Trigger>
                                                                 <Trigger Property="IsPressed" Value="True">
-                                                                    <Setter Property="Background" Value="#C62828"/>
+                                                                    <Setter TargetName="ButtonBorder" Property="Background" Value="#C62828"/>
+                                                                </Trigger>
+                                                                <Trigger Property="IsKeyboardFocused" Value="True">
+                                                                    <Setter TargetName="ButtonBorder" Property="BorderBrush" Value="#FFFFFF"/>
                                                                 </Trigger>
                                                             </ControlTemplate.Triggers>
                                                         </ControlTemplate>
@@ -113,14 +125,15 @@
                     
                     <!-- Running Apps Section (shown when other apps detected) -->
                     <Border x:Name="RunningAppsSection" Background="#252525" CornerRadius="8" 
-                            Padding="16" Margin="0,0,0,20" Visibility="Collapsed">
+                            Padding="16" Margin="0,0,0,20" Visibility="Collapsed"
+                            BorderThickness="2" BorderBrush="Transparent" Focusable="True">
                         <StackPanel>
                             <TextBlock Text="RUNNING APPS" FontSize="10" FontWeight="Bold" 
                                        Foreground="#888888" Margin="0,0,0,10"/>
                             
                             <ListBox x:Name="RunningAppsList" Background="Transparent" 
                                      BorderThickness="0" HorizontalContentAlignment="Stretch"
-                                     MaxHeight="250" ScrollViewer.VerticalScrollBarVisibility="Auto"
+                                     ScrollViewer.VerticalScrollBarVisibility="Disabled"
                                      ScrollViewer.HorizontalScrollBarVisibility="Disabled">
                                 <ListBox.ItemContainerStyle>
                                     <Style TargetType="ListBoxItem">
@@ -189,18 +202,22 @@
                                                         <Setter Property="Template">
                                                             <Setter.Value>
                                                                 <ControlTemplate TargetType="Button">
-                                                                    <Border Background="{TemplateBinding Background}" 
-                                                                            BorderBrush="{TemplateBinding BorderBrush}"
-                                                                            BorderThickness="{TemplateBinding BorderThickness}"
+                                                                    <Border x:Name="ButtonBorder"
+                                                                            Background="{TemplateBinding Background}" 
+                                                                            BorderBrush="Transparent"
+                                                                            BorderThickness="2"
                                                                             CornerRadius="5" Padding="{TemplateBinding Padding}">
                                                                         <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                                                     </Border>
                                                                     <ControlTemplate.Triggers>
                                                                         <Trigger Property="IsMouseOver" Value="True">
-                                                                            <Setter Property="Background" Value="#7D5FDB"/>
+                                                                            <Setter TargetName="ButtonBorder" Property="Background" Value="#7D5FDB"/>
                                                                         </Trigger>
                                                                         <Trigger Property="IsPressed" Value="True">
-                                                                            <Setter Property="Background" Value="#5A3FB5"/>
+                                                                            <Setter TargetName="ButtonBorder" Property="Background" Value="#5A3FB5"/>
+                                                                        </Trigger>
+                                                                        <Trigger Property="IsKeyboardFocused" Value="True">
+                                                                            <Setter TargetName="ButtonBorder" Property="BorderBrush" Value="#FFFFFF"/>
                                                                         </Trigger>
                                                                     </ControlTemplate.Triggers>
                                                                 </ControlTemplate>
@@ -223,13 +240,15 @@
                     </Border>
                     
                     <!-- Recent Games Section -->
-                    <StackPanel>
-                        <TextBlock Text="RECENT GAMES" FontSize="10" FontWeight="Bold" 
-                                   Foreground="#888888" Margin="0,0,0,10"/>
+                    <Border x:Name="RecentGamesSection" Background="#252525" CornerRadius="8"
+                            Padding="16" BorderThickness="2" BorderBrush="Transparent" Focusable="True">
+                        <StackPanel>
+                            <TextBlock Text="RECENT GAMES" FontSize="10" FontWeight="Bold" 
+                                       Foreground="#888888" Margin="0,0,0,10"/>
                         
-                        <!-- Empty State (shown when no items) -->
-                        <Border x:Name="EmptyState" Background="#252525" CornerRadius="6" 
-                                Padding="40,32" Visibility="Collapsed">
+                            <!-- Empty State (shown when no items) -->
+                            <Border x:Name="EmptyState" Background="#1A1A1A" CornerRadius="6" 
+                                    Padding="40,32" Visibility="Collapsed">
                             <StackPanel HorizontalAlignment="Center">
                                 <TextBlock Text="📚" FontSize="32" HorizontalAlignment="Center" 
                                            Margin="0,0,0,12" Opacity="0.5"/>
@@ -245,7 +264,9 @@
                         <!-- Recent Games List -->
                         <ListBox x:Name="RecentList" Background="Transparent" 
                                  BorderThickness="0" HorizontalContentAlignment="Stretch" 
-                                 Focusable="False" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                                 Focusable="False"
+                                 ScrollViewer.VerticalScrollBarVisibility="Disabled"
+                                 ScrollViewer.HorizontalScrollBarVisibility="Disabled">
                             <ListBox.ItemContainerStyle>
                                 <Style TargetType="ListBoxItem">
                                     <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
@@ -317,18 +338,22 @@
                                                     <Setter Property="Template">
                                                         <Setter.Value>
                                                             <ControlTemplate TargetType="Button">
-                                                                <Border Background="{TemplateBinding Background}" 
-                                                                        BorderBrush="{TemplateBinding BorderBrush}"
-                                                                        BorderThickness="{TemplateBinding BorderThickness}"
+                                                                <Border x:Name="ButtonBorder"
+                                                                        Background="{TemplateBinding Background}" 
+                                                                        BorderBrush="Transparent"
+                                                                        BorderThickness="2"
                                                                         CornerRadius="5" Padding="{TemplateBinding Padding}">
                                                                     <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                                                 </Border>
                                                                 <ControlTemplate.Triggers>
                                                                     <Trigger Property="IsMouseOver" Value="True">
-                                                                        <Setter Property="Background" Value="#5BA3F5"/>
+                                                                        <Setter TargetName="ButtonBorder" Property="Background" Value="#5BA3F5"/>
                                                                     </Trigger>
                                                                     <Trigger Property="IsPressed" Value="True">
-                                                                        <Setter Property="Background" Value="#3A7BC8"/>
+                                                                        <Setter TargetName="ButtonBorder" Property="Background" Value="#3A7BC8"/>
+                                                                    </Trigger>
+                                                                    <Trigger Property="IsKeyboardFocused" Value="True">
+                                                                        <Setter TargetName="ButtonBorder" Property="BorderBrush" Value="#FFFFFF"/>
                                                                     </Trigger>
                                                                 </ControlTemplate.Triggers>
                                                             </ControlTemplate>
@@ -347,7 +372,8 @@
                                 </DataTemplate>
                             </ListBox.ItemTemplate>
                         </ListBox>
-                    </StackPanel>
+                        </StackPanel>
+                    </Border>
                 </StackPanel>
             </ScrollViewer>
         </Border>

@@ -1,8 +1,11 @@
 using System;
 using System.Collections.Generic;
+using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using System.Windows.Interop;
+using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
 using PlayniteOverlay.Models;
@@ -12,16 +15,43 @@ namespace PlayniteOverlay;
 
 public partial class OverlayWindow : Window
 {
+    // P/Invoke for extended window styles and positioning
+    [DllImport("user32.dll")]
+    private static extern int GetWindowLong(IntPtr hWnd, int nIndex);
+
+    [DllImport("user32.dll")]
+    private static extern int SetWindowLong(IntPtr hWnd, int nIndex, int dwNewLong);
+
+    [DllImport("user32.dll")]
+    private static extern bool SetWindowPos(IntPtr hWnd, IntPtr hWndInsertAfter,
+        int X, int Y, int cx, int cy, uint uFlags);
+
+    private const int GWL_EXSTYLE = -20;
+    private const int WS_EX_NOACTIVATE = 0x08000000;
+    private const int WS_EX_TOOLWINDOW = 0x00000080;
+
+    private static readonly IntPtr HWND_TOPMOST = new IntPtr(-1);
+    private const uint SWP_NOSIZE = 0x0001;
+    private const uint SWP_NOMOVE = 0x0002;
+    private const uint SWP_NOACTIVATE = 0x0010;
+
     private readonly Action onSwitch;
     private readonly Action onExit;
     private readonly List<OverlayItem> items;
     private readonly List<RunningApp> runningApps;
     private readonly bool enableControllerNavigation;
     private OverlayControllerNavigator? controllerNavigator;
-    private NavigationTarget navigationTarget = NavigationTarget.RecentList;
+    
+    // Two-level navigation state
+    private NavigationTarget navigationTarget = NavigationTarget.CurrentGameSection;
+    private bool isInsideSection = false;
     private int selectedIndex = -1;
     private int runningAppSelectedIndex = -1;
     private bool isClosing;
+    
+    // Section highlight color
+    private static readonly SolidColorBrush HighlightBrush = new(Color.FromRgb(0xFF, 0xFF, 0xFF));
+    private static readonly SolidColorBrush TransparentBrush = new(Colors.Transparent);
 
     public OverlayWindow(Action onSwitch, Action onExit, OverlayItem? currentGame, IEnumerable<RunningApp> runningApps, IEnumerable<OverlayItem> recentGames, bool enableControllerNavigation)
     {
@@ -100,18 +130,8 @@ public partial class OverlayWindow : Window
             }
         };
 
-        // Initial focus
-        if (this.items.Count > 0)
-        {
-            selectedIndex = 0;
-            navigationTarget = NavigationTarget.RecentList;
-            Dispatcher.BeginInvoke(() => FocusListItem(selectedIndex), DispatcherPriority.Loaded);
-        }
-        else if (currentGame != null)
-        {
-            navigationTarget = NavigationTarget.SwitchButton;
-            Dispatcher.BeginInvoke(FocusSwitchButton, DispatcherPriority.Loaded);
-        }
+        // Initial focus - section level on first visible section
+        Dispatcher.BeginInvoke(() => FocusFirstVisibleSection(), DispatcherPriority.Loaded);
 
         SwitchBtn.Click += (_, __) =>
         {
@@ -140,7 +160,7 @@ public partial class OverlayWindow : Window
         };
         
         Backdrop.MouseLeftButtonDown += (_, __) => this.Close();
-        KeyDown += (_, e) => { if (e.Key == Key.Escape) this.Close(); };
+        PreviewKeyDown += OnPreviewKeyDown;
         
         Loaded += (_, __) =>
         {
@@ -169,6 +189,56 @@ public partial class OverlayWindow : Window
         Closing += OnClosingWithFade;
     }
 
+    private void FocusFirstVisibleSection()
+    {
+        if (CurrentGameSection.Visibility == Visibility.Visible)
+        {
+            FocusSection(NavigationTarget.CurrentGameSection);
+        }
+        else if (RunningAppsSection.Visibility == Visibility.Visible)
+        {
+            FocusSection(NavigationTarget.RunningAppsSection);
+        }
+        else
+        {
+            FocusSection(NavigationTarget.RecentGamesSection);
+        }
+    }
+
+    private void OnPreviewKeyDown(object sender, KeyEventArgs e)
+    {
+        switch (e.Key)
+        {
+            case Key.Escape:
+                PerformCancel();
+                e.Handled = true;
+                break;
+            case Key.Up:
+                NavigateUp();
+                e.Handled = true;
+                break;
+            case Key.Down:
+                NavigateDown();
+                e.Handled = true;
+                break;
+            case Key.Left:
+                NavigateLeft();
+                e.Handled = true;
+                break;
+            case Key.Right:
+                NavigateRight();
+                e.Handled = true;
+                break;
+            case Key.Enter:
+                PerformAccept();
+                e.Handled = true;
+                break;
+            case Key.Space:
+                // Let default handling work for focused buttons
+                break;
+        }
+    }
+
     private void OnRecentPlayClick(object sender, RoutedEventArgs e)
     {
         if (e.OriginalSource is Button btn && btn.CommandParameter is OverlayItem item)
@@ -187,150 +257,486 @@ public partial class OverlayWindow : Window
         }
     }
 
-    internal void ControllerNavigateUp()
+    #region Section-Level Navigation
+
+    private void FocusSection(NavigationTarget section)
     {
-        if (!enableControllerNavigation)
+        if (!Dispatcher.CheckAccess())
         {
+            Dispatcher.Invoke(() => FocusSection(section));
             return;
         }
 
-        switch (navigationTarget)
+        isInsideSection = false;
+        navigationTarget = section;
+        
+        // Clear all item selections
+        RunningAppsList.SelectedIndex = -1;
+        RecentList.SelectedIndex = -1;
+        
+        // Clear all section highlights
+        ClearSectionHighlights();
+        
+        // Highlight the target section and move keyboard focus to it
+        // This removes focus from buttons (hiding their borders) while keeping keyboard input working
+        switch (section)
         {
-            case NavigationTarget.RecentList:
-                if (items.Count == 0)
-                {
-                    FocusSwitchButton();
-                    break;
-                }
-                selectedIndex = selectedIndex <= 0 ? items.Count - 1 : selectedIndex - 1;
-                FocusListItem(selectedIndex);
+            case NavigationTarget.CurrentGameSection:
+                CurrentGameSection.BorderBrush = HighlightBrush;
+                CurrentGameSection.BringIntoView();
+                Keyboard.Focus(CurrentGameSection);
                 break;
-            case NavigationTarget.SwitchButton:
-                if (items.Count > 0)
-                {
-                    navigationTarget = NavigationTarget.RecentList;
-                    selectedIndex = items.Count - 1;
-                    FocusListItem(selectedIndex);
-                }
-                else
-                {
-                    FocusExitButton();
-                }
+            case NavigationTarget.RunningAppsSection:
+                RunningAppsSection.BorderBrush = HighlightBrush;
+                RunningAppsSection.BringIntoView();
+                Keyboard.Focus(RunningAppsSection);
                 break;
-            case NavigationTarget.ExitButton:
+            case NavigationTarget.RecentGamesSection:
+                RecentGamesSection.BorderBrush = HighlightBrush;
+                RecentGamesSection.BringIntoView();
+                Keyboard.Focus(RecentGamesSection);
+                break;
+        }
+    }
+
+    private void ClearSectionHighlights()
+    {
+        CurrentGameSection.BorderBrush = TransparentBrush;
+        RunningAppsSection.BorderBrush = TransparentBrush;
+        RecentGamesSection.BorderBrush = TransparentBrush;
+    }
+
+    private NavigationTarget? GetPreviousVisibleSection(NavigationTarget current)
+    {
+        switch (current)
+        {
+            case NavigationTarget.CurrentGameSection:
+                // Wrap to last visible section
+                if (items.Count > 0) return NavigationTarget.RecentGamesSection;
+                if (runningApps.Count > 0) return NavigationTarget.RunningAppsSection;
+                return null; // Only one section visible
+                
+            case NavigationTarget.RunningAppsSection:
+                if (CurrentGameSection.Visibility == Visibility.Visible) return NavigationTarget.CurrentGameSection;
+                // Wrap
+                if (items.Count > 0) return NavigationTarget.RecentGamesSection;
+                return null;
+                
+            case NavigationTarget.RecentGamesSection:
+                if (runningApps.Count > 0) return NavigationTarget.RunningAppsSection;
+                if (CurrentGameSection.Visibility == Visibility.Visible) return NavigationTarget.CurrentGameSection;
+                return null;
+                
+            default:
+                return null;
+        }
+    }
+
+    private NavigationTarget? GetNextVisibleSection(NavigationTarget current)
+    {
+        switch (current)
+        {
+            case NavigationTarget.CurrentGameSection:
+                if (runningApps.Count > 0) return NavigationTarget.RunningAppsSection;
+                if (items.Count > 0) return NavigationTarget.RecentGamesSection;
+                return null; // Only one section visible
+                
+            case NavigationTarget.RunningAppsSection:
+                if (items.Count > 0) return NavigationTarget.RecentGamesSection;
+                // Wrap
+                if (CurrentGameSection.Visibility == Visibility.Visible) return NavigationTarget.CurrentGameSection;
+                return null;
+                
+            case NavigationTarget.RecentGamesSection:
+                // Wrap to first visible section
+                if (CurrentGameSection.Visibility == Visibility.Visible) return NavigationTarget.CurrentGameSection;
+                if (runningApps.Count > 0) return NavigationTarget.RunningAppsSection;
+                return null;
+                
+            default:
+                return null;
+        }
+    }
+
+    #endregion
+
+    #region Item-Level Navigation
+
+    private void EnterSection(NavigationTarget section)
+    {
+        isInsideSection = true;
+        ClearSectionHighlights();
+        
+        switch (section)
+        {
+            case NavigationTarget.CurrentGameSection:
+                navigationTarget = NavigationTarget.SwitchButton;
                 FocusSwitchButton();
                 break;
+            case NavigationTarget.RunningAppsSection:
+                navigationTarget = NavigationTarget.RunningAppItem;
+                runningAppSelectedIndex = 0;
+                FocusRunningAppItem(0);
+                break;
+            case NavigationTarget.RecentGamesSection:
+                navigationTarget = NavigationTarget.RecentGameItem;
+                selectedIndex = 0;
+                FocusRecentGameItem(0);
+                break;
         }
     }
 
-    internal void ControllerNavigateDown()
+    private void ExitToSectionLevel()
     {
-        if (!enableControllerNavigation)
-        {
-            return;
-        }
-
+        // Determine which section we're in based on current navigation target
+        NavigationTarget section;
         switch (navigationTarget)
         {
-            case NavigationTarget.RecentList:
-                if (items.Count == 0)
-                {
+            case NavigationTarget.SwitchButton:
+            case NavigationTarget.ExitButton:
+                section = NavigationTarget.CurrentGameSection;
+                break;
+            case NavigationTarget.RunningAppItem:
+                section = NavigationTarget.RunningAppsSection;
+                break;
+            case NavigationTarget.RecentGameItem:
+                section = NavigationTarget.RecentGamesSection;
+                break;
+            default:
+                return;
+        }
+        
+        FocusSection(section);
+    }
+
+    private void FocusSwitchButton()
+    {
+        if (!Dispatcher.CheckAccess())
+        {
+            Dispatcher.Invoke(FocusSwitchButton);
+            return;
+        }
+
+        RunningAppsList.SelectedIndex = -1;
+        RecentList.SelectedIndex = -1;
+        
+        navigationTarget = NavigationTarget.SwitchButton;
+        SwitchBtn.Focus();
+        CurrentGameSection.BringIntoView();
+    }
+
+    private void FocusExitButton()
+    {
+        if (!Dispatcher.CheckAccess())
+        {
+            Dispatcher.Invoke(FocusExitButton);
+            return;
+        }
+
+        RunningAppsList.SelectedIndex = -1;
+        RecentList.SelectedIndex = -1;
+        
+        navigationTarget = NavigationTarget.ExitButton;
+        ExitBtn.Focus();
+        CurrentGameSection.BringIntoView();
+    }
+
+    private void FocusRunningAppItem(int index)
+    {
+        if (!Dispatcher.CheckAccess())
+        {
+            Dispatcher.Invoke(() => FocusRunningAppItem(index));
+            return;
+        }
+
+        if (runningApps.Count == 0) return;
+
+        index = Math.Max(0, Math.Min(index, runningApps.Count - 1));
+
+        RecentList.SelectedIndex = -1;
+        
+        navigationTarget = NavigationTarget.RunningAppItem;
+        runningAppSelectedIndex = index;
+        RunningAppsList.SelectedIndex = index;
+
+        if (!TryFocusRunningAppContainer())
+        {
+            Dispatcher.BeginInvoke(() => TryFocusRunningAppContainer(), DispatcherPriority.Loaded);
+        }
+    }
+
+    private bool TryFocusRunningAppContainer()
+    {
+        var container = RunningAppsList.ItemContainerGenerator.ContainerFromIndex(runningAppSelectedIndex) as ListBoxItem;
+        if (container == null) return false;
+
+        container.Focus();
+        container.BringIntoView();
+        return true;
+    }
+
+    private void FocusRecentGameItem(int index)
+    {
+        if (!Dispatcher.CheckAccess())
+        {
+            Dispatcher.Invoke(() => FocusRecentGameItem(index));
+            return;
+        }
+
+        if (items.Count == 0) return;
+
+        index = Math.Max(0, Math.Min(index, items.Count - 1));
+
+        RunningAppsList.SelectedIndex = -1;
+        
+        navigationTarget = NavigationTarget.RecentGameItem;
+        selectedIndex = index;
+        RecentList.SelectedIndex = index;
+
+        if (!TryFocusRecentGameContainer())
+        {
+            Dispatcher.BeginInvoke(() => TryFocusRecentGameContainer(), DispatcherPriority.Loaded);
+        }
+    }
+
+    private bool TryFocusRecentGameContainer()
+    {
+        var container = RecentList.ItemContainerGenerator.ContainerFromIndex(selectedIndex) as ListBoxItem;
+        if (container == null) return false;
+
+        container.Focus();
+        container.BringIntoView();
+        return true;
+    }
+
+    #endregion
+
+    #region Navigation Commands
+
+    private void NavigateUp()
+    {
+        if (!isInsideSection)
+        {
+            // Section-level: move to previous section
+            var prev = GetPreviousVisibleSection(navigationTarget);
+            if (prev.HasValue)
+            {
+                FocusSection(prev.Value);
+            }
+        }
+        else
+        {
+            // Item-level navigation
+            switch (navigationTarget)
+            {
+                case NavigationTarget.SwitchButton:
+                    // Already at top of CurrentGameSection, exit to section level
+                    ExitToSectionLevel();
+                    break;
+                    
+                case NavigationTarget.ExitButton:
                     FocusSwitchButton();
                     break;
-                }
-                if (selectedIndex >= items.Count - 1)
-                {
-                    FocusSwitchButton();
-                }
-                else
-                {
-                    selectedIndex++;
-                    FocusListItem(selectedIndex);
-                }
-                break;
-            case NavigationTarget.SwitchButton:
-                FocusExitButton();
-                break;
-            case NavigationTarget.ExitButton:
-                if (items.Count > 0)
-                {
-                    navigationTarget = NavigationTarget.RecentList;
-                    selectedIndex = 0;
-                    FocusListItem(selectedIndex);
-                }
-                else
-                {
-                    FocusSwitchButton();
-                }
-                break;
-        }
-    }
-
-    internal void ControllerNavigateLeft()
-    {
-        if (!enableControllerNavigation)
-        {
-            return;
-        }
-
-        if (navigationTarget != NavigationTarget.RecentList && items.Count > 0)
-        {
-            navigationTarget = NavigationTarget.RecentList;
-            if (selectedIndex < 0)
-            {
-                selectedIndex = 0;
+                    
+                case NavigationTarget.RunningAppItem:
+                    if (runningAppSelectedIndex <= 0)
+                    {
+                        ExitToSectionLevel();
+                    }
+                    else
+                    {
+                        FocusRunningAppItem(runningAppSelectedIndex - 1);
+                    }
+                    break;
+                    
+                case NavigationTarget.RecentGameItem:
+                    if (selectedIndex <= 0)
+                    {
+                        ExitToSectionLevel();
+                    }
+                    else
+                    {
+                        FocusRecentGameItem(selectedIndex - 1);
+                    }
+                    break;
             }
-            FocusListItem(selectedIndex);
         }
     }
 
-    internal void ControllerNavigateRight()
+    private void NavigateDown()
     {
-        if (!enableControllerNavigation)
+        if (!isInsideSection)
         {
-            return;
+            // Section-level: move to next section
+            var next = GetNextVisibleSection(navigationTarget);
+            if (next.HasValue)
+            {
+                FocusSection(next.Value);
+            }
         }
+        else
+        {
+            // Item-level navigation
+            switch (navigationTarget)
+            {
+                case NavigationTarget.SwitchButton:
+                    FocusExitButton();
+                    break;
+                    
+                case NavigationTarget.ExitButton:
+                    // At bottom of CurrentGameSection, exit to section level
+                    ExitToSectionLevel();
+                    break;
+                    
+                case NavigationTarget.RunningAppItem:
+                    if (runningAppSelectedIndex >= runningApps.Count - 1)
+                    {
+                        ExitToSectionLevel();
+                    }
+                    else
+                    {
+                        FocusRunningAppItem(runningAppSelectedIndex + 1);
+                    }
+                    break;
+                    
+                case NavigationTarget.RecentGameItem:
+                    if (selectedIndex >= items.Count - 1)
+                    {
+                        ExitToSectionLevel();
+                    }
+                    else
+                    {
+                        FocusRecentGameItem(selectedIndex + 1);
+                    }
+                    break;
+            }
+        }
+    }
 
-        if (navigationTarget == NavigationTarget.RecentList)
+    private void NavigateLeft()
+    {
+        if (isInsideSection && navigationTarget == NavigationTarget.ExitButton)
         {
             FocusSwitchButton();
         }
     }
 
+    private void NavigateRight()
+    {
+        if (isInsideSection && navigationTarget == NavigationTarget.SwitchButton)
+        {
+            FocusExitButton();
+        }
+    }
+
+    private void PerformAccept()
+    {
+        if (!isInsideSection)
+        {
+            // Section-level: drill into the section
+            EnterSection(navigationTarget);
+        }
+        else
+        {
+            // Item-level: perform action
+            switch (navigationTarget)
+            {
+                case NavigationTarget.SwitchButton:
+                    SwitchBtn.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                    break;
+                case NavigationTarget.ExitButton:
+                    ExitBtn.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                    break;
+                case NavigationTarget.RunningAppItem:
+                    if (runningAppSelectedIndex >= 0 && runningAppSelectedIndex < runningApps.Count)
+                    {
+                        var app = runningApps[runningAppSelectedIndex];
+                        app.OnSwitch?.Invoke();
+                        Close();
+                    }
+                    break;
+                case NavigationTarget.RecentGameItem:
+                    if (selectedIndex >= 0 && selectedIndex < items.Count)
+                    {
+                        var item = items[selectedIndex];
+                        item.OnSelect?.Invoke();
+                        Close();
+                    }
+                    break;
+            }
+        }
+    }
+
+    private void PerformCancel()
+    {
+        if (isInsideSection)
+        {
+            // Exit to section level
+            ExitToSectionLevel();
+        }
+        else
+        {
+            // Close overlay
+            Close();
+        }
+    }
+
+    #endregion
+
+    #region Controller Navigation Wrappers
+
+    internal void ControllerNavigateUp()
+    {
+        if (!enableControllerNavigation) return;
+        NavigateUp();
+    }
+
+    internal void ControllerNavigateDown()
+    {
+        if (!enableControllerNavigation) return;
+        NavigateDown();
+    }
+
+    internal void ControllerNavigateLeft()
+    {
+        if (!enableControllerNavigation) return;
+        NavigateLeft();
+    }
+
+    internal void ControllerNavigateRight()
+    {
+        if (!enableControllerNavigation) return;
+        NavigateRight();
+    }
+
     internal void ControllerAccept()
     {
-        if (!enableControllerNavigation)
-        {
-            return;
-        }
-
-        switch (navigationTarget)
-        {
-            case NavigationTarget.RecentList:
-                if (selectedIndex >= 0 && selectedIndex < items.Count)
-                {
-                    var item = items[selectedIndex];
-                    item.OnSelect?.Invoke();
-                    Close();
-                }
-                break;
-            case NavigationTarget.SwitchButton:
-                SwitchBtn.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
-                break;
-            case NavigationTarget.ExitButton:
-                ExitBtn.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
-                break;
-        }
+        if (!enableControllerNavigation) return;
+        PerformAccept();
     }
 
     internal void ControllerCancel()
     {
-        if (!enableControllerNavigation)
-        {
-            return;
-        }
+        if (!enableControllerNavigation) return;
+        PerformCancel();
+    }
 
-        Close();
+    #endregion
+
+    #region Window Lifecycle
+
+    protected override void OnSourceInitialized(EventArgs e)
+    {
+        base.OnSourceInitialized(e);
+
+        var hwnd = new WindowInteropHelper(this).Handle;
+
+        // Apply extended window styles to prevent activation/focus stealing
+        var exStyle = GetWindowLong(hwnd, GWL_EXSTYLE);
+        SetWindowLong(hwnd, GWL_EXSTYLE, exStyle | WS_EX_NOACTIVATE | WS_EX_TOOLWINDOW);
+
+        // Set TOPMOST without activating the window
+        SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE | SWP_NOACTIVATE);
     }
 
     private void OnClosingWithFade(object? sender, System.ComponentModel.CancelEventArgs e)
@@ -364,84 +770,21 @@ public partial class OverlayWindow : Window
         }
     }
 
-    private void FocusListItem(int index)
-    {
-        if (!Dispatcher.CheckAccess())
-        {
-            Dispatcher.Invoke(() => FocusListItem(index));
-            return;
-        }
-
-        if (items.Count == 0)
-        {
-            FocusSwitchButton();
-            return;
-        }
-
-        if (index < 0)
-        {
-            index = 0;
-        }
-        else if (index >= items.Count)
-        {
-            index = items.Count - 1;
-        }
-
-        navigationTarget = NavigationTarget.RecentList;
-        selectedIndex = index;
-        RecentList.SelectedIndex = selectedIndex;
-
-        if (!TryFocusListContainer())
-        {
-            Dispatcher.BeginInvoke((Action)(() => TryFocusListContainer()), DispatcherPriority.Loaded);
-        }
-    }
-
-    private bool TryFocusListContainer()
-    {
-        var container = RecentList.ItemContainerGenerator.ContainerFromIndex(selectedIndex) as ListBoxItem;
-        if (container == null)
-        {
-            return false;
-        }
-
-        container.Focus();
-        return true;
-    }
-
-    private void FocusSwitchButton()
-    {
-        if (!Dispatcher.CheckAccess())
-        {
-            Dispatcher.Invoke(FocusSwitchButton);
-            return;
-        }
-
-        navigationTarget = NavigationTarget.SwitchButton;
-        if (items.Count > 0 && selectedIndex < 0)
-        {
-            selectedIndex = 0;
-        }
-        SwitchBtn.Focus();
-    }
-
-    private void FocusExitButton()
-    {
-        if (!Dispatcher.CheckAccess())
-        {
-            Dispatcher.Invoke(FocusExitButton);
-            return;
-        }
-
-        navigationTarget = NavigationTarget.ExitButton;
-        ExitBtn.Focus();
-    }
+    #endregion
 
     private enum NavigationTarget
     {
-        RecentList,
-        RunningAppsList,
+        // Section-level (Level 1)
+        CurrentGameSection,
+        RunningAppsSection,
+        RecentGamesSection,
+        
+        // Item-level (Level 2) - inside CurrentGameSection
         SwitchButton,
-        ExitButton
+        ExitButton,
+        
+        // Item-level (Level 2) - inside list sections
+        RunningAppItem,
+        RecentGameItem,
     }
 }

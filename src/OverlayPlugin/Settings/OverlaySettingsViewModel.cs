@@ -62,6 +62,11 @@ public class OverlaySettingsViewModel : MVVM.ObservableObject, ISettings
             errors.Add("Maximum running apps must be between 1 and 50.");
         }
 
+        if (Settings.ForceBorderlessMode && (Settings.BorderlessDelayMs < 1000 || Settings.BorderlessDelayMs > 30000))
+        {
+            errors.Add("Borderless delay must be between 1000 and 30000 ms.");
+        }
+
         return errors.Count == 0;
     }
 }
