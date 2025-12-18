@@ -10,6 +10,12 @@ internal static class Monitors
     private static extern IntPtr MonitorFromPoint(POINT pt, uint dwFlags);
 
     [DllImport("user32.dll")]
+    private static extern IntPtr MonitorFromWindow(IntPtr hwnd, uint dwFlags);
+
+    [DllImport("user32.dll")]
+    private static extern IntPtr GetForegroundWindow();
+
+    [DllImport("user32.dll")]
     private static extern bool GetCursorPos(out POINT lpPoint);
 
     [DllImport("user32.dll", CharSet = CharSet.Auto)]
@@ -43,6 +49,33 @@ internal static class Monitors
         {
             return new Rect(0, 0, SystemParameters.VirtualScreenWidth, SystemParameters.VirtualScreenHeight);
         }
+        var width = mi.rcMonitor.Right - mi.rcMonitor.Left;
+        var height = mi.rcMonitor.Bottom - mi.rcMonitor.Top;
+        return new Rect(mi.rcMonitor.Left, mi.rcMonitor.Top, width, height);
+    }
+
+    /// <summary>
+    /// Gets the monitor bounds for the current foreground window (typically the game).
+    /// </summary>
+    public static Rect GetForegroundWindowMonitorBounds()
+    {
+        var foreground = GetForegroundWindow();
+        return GetMonitorBoundsForWindow(foreground);
+    }
+
+    /// <summary>
+    /// Gets the monitor bounds (in pixels) for a specific window handle.
+    /// </summary>
+    public static Rect GetMonitorBoundsForWindow(IntPtr hwnd)
+    {
+        var hMonitor = MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST);
+
+        var mi = new MONITORINFOEX { cbSize = Marshal.SizeOf<MONITORINFOEX>() };
+        if (!GetMonitorInfo(hMonitor, ref mi))
+        {
+            return new Rect(0, 0, SystemParameters.VirtualScreenWidth, SystemParameters.VirtualScreenHeight);
+        }
+
         var width = mi.rcMonitor.Right - mi.rcMonitor.Left;
         var height = mi.rcMonitor.Bottom - mi.rcMonitor.Top;
         return new Rect(mi.rcMonitor.Left, mi.rcMonitor.Top, width, height);

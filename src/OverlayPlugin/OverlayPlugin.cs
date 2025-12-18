@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using System.Windows.Controls;
 using Playnite.SDK;
 using Playnite.SDK.Events;
@@ -23,6 +24,7 @@ public class OverlayPlugin : GenericPlugin
     private readonly GameSwitcher switcher;
     private readonly RunningAppsDetector runningAppsDetector;
     private readonly OverlaySettingsViewModel settings;
+    private readonly Dictionary<Guid, BorderlessHelper.WindowState> borderlessStates = new Dictionary<Guid, BorderlessHelper.WindowState>();
     private bool isDisposed;
 
     public OverlayPlugin(IPlayniteAPI api) : base(api)
@@ -83,10 +85,19 @@ public class OverlayPlugin : GenericPlugin
         {
             input.StartController();
         }
+
+        // Apply borderless mode if enabled and we have a process ID
+        if (settings.Settings.ForceBorderlessMode && args.StartedProcessId > 0)
+        {
+            ApplyBorderlessAsync(args.Game.Id, args.StartedProcessId, args.Game.Name);
+        }
     }
 
     public override void OnGameStopped(OnGameStoppedEventArgs args)
     {
+        // Restore borderless window state if we modified it
+        RestoreBorderlessWindow(args.Game.Id, args.Game.Name);
+
         // Clear active app when game stops
         switcher.ClearActiveApp();
         
@@ -224,6 +235,62 @@ public class OverlayPlugin : GenericPlugin
         {
             switcher.SetActiveApp(foregroundApp);
             logger.Info($"Auto-detected foreground app after exit: {foregroundApp.Title}");
+        }
+    }
+
+    private async void ApplyBorderlessAsync(Guid gameId, int processId, string gameName)
+    {
+        try
+        {
+            await Task.Delay(settings.Settings.BorderlessDelayMs);
+
+            // Check if game is still running
+            var hwnd = BorderlessHelper.GetMainWindowHandle(processId);
+            if (hwnd == IntPtr.Zero)
+            {
+                logger.Debug($"Game window not found for {gameName}, skipping borderless mode");
+                return;
+            }
+
+            // Skip if window is already borderless or in exclusive fullscreen
+            if (!BorderlessHelper.HasWindowBorders(hwnd))
+            {
+                logger.Debug($"{gameName} already borderless or fullscreen, skipping");
+                return;
+            }
+
+            if (BorderlessHelper.IsLikelyExclusiveFullscreen(hwnd))
+            {
+                logger.Debug($"{gameName} appears to be in exclusive fullscreen, skipping");
+                return;
+            }
+
+            var state = BorderlessHelper.MakeBorderless(hwnd);
+            if (state != null)
+            {
+                borderlessStates[gameId] = state;
+                logger.Info($"Applied borderless mode to {gameName}");
+            }
+            else
+            {
+                logger.Debug($"Failed to apply borderless mode to {gameName}");
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.Error(ex, $"Error applying borderless mode to {gameName}");
+        }
+    }
+
+    private void RestoreBorderlessWindow(Guid gameId, string gameName)
+    {
+        if (borderlessStates.TryGetValue(gameId, out var state))
+        {
+            if (BorderlessHelper.RestoreWindow(state))
+            {
+                logger.Info($"Restored window state for {gameName}");
+            }
+            borderlessStates.Remove(gameId);
         }
     }
 

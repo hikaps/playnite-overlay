@@ -29,14 +29,12 @@ internal sealed class OverlayService
 
             Application.Current?.Dispatcher.Invoke(() =>
             {
-                window = new OverlayWindow(onSwitch, onExit, currentGame, runningApps, recentGames, enableControllerNavigation)
-                {
-                    Topmost = true
-                };
+                window = new OverlayWindow(onSwitch, onExit, currentGame, runningApps, recentGames, enableControllerNavigation);
 
                 window.Loaded += (_, _) =>
                 {
-                    var pixelBounds = Monitors.GetActiveMonitorBoundsInPixels();
+                    // Get the monitor where the foreground window (game) is displayed
+                    var pixelBounds = Monitors.GetForegroundWindowMonitorBounds();
                     var dipBounds = Monitors.PixelsToDips(window, pixelBounds);
                     window.Left = dipBounds.Left;
                     window.Top = dipBounds.Top;
