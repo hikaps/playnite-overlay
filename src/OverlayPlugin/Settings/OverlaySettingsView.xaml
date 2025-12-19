@@ -10,7 +10,7 @@
 
         <GroupBox Header="Keyboard Shortcut">
             <StackPanel Margin="10">
-                <TextBlock Text="You can bind a Playnite shortcut to the 'Toggle Overlay' menu action in Settings → Shortcuts. Optionally set an additional custom global hotkey below." TextWrapping="Wrap"/>
+                <TextBlock Text="Set a custom global hotkey to toggle the overlay from anywhere." TextWrapping="Wrap"/>
                 <CheckBox Content="Enable custom global hotkey"
                           Margin="0,8,0,0"
                           IsChecked="{Binding Settings.EnableCustomHotkey}"/>
