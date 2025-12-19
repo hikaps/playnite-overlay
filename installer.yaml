@@ -1,5 +1,14 @@
 AddonId: 'playnite-overlay'
 Packages:
+  - Version: 0.4.2
+    RequiredApiVersion: 6.0.0
+    ReleaseDate: 2025-12-19
+    PackageUrl: https://github.com/hikaps/playnite-overlay/releases/download/v0.4.2/playnite-overlay-0.4.2.pext
+    Changelog:
+      - Fix keyboard input blocking in fullscreen games
+      - Fix Xbox Guide button detection
+      - Remove Toggle Overlay menu item (use hotkey or controller)
+      - Code cleanup and refactoring
   - Version: 0.4.1
     RequiredApiVersion: 6.0.0
     ReleaseDate: 2025-12-18
