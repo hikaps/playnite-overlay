@@ -8,7 +8,6 @@ public sealed class OverlayItem
     public Guid GameId { get; set; }
     public string? ImagePath { get; set; }
     public string? SecondaryText { get; set; }    // "2h ago" or "Playing for 45m"
-    public string? TertiaryText { get; set; }     // "12.5 hours total"
     public bool IsCurrentGame { get; set; }       // For styling/behavior
     public Action? OnSelect { get; set; }
 
@@ -28,12 +27,6 @@ public sealed class OverlayItem
         };
     }
 
-    public static OverlayItem FromGame(Playnite.SDK.Models.Game game, Services.GameSwitcher switcher)
-    {
-        // Backwards compatibility - delegates to FromRecentGame
-        return FromRecentGame(game, switcher);
-    }
-
     public static OverlayItem FromRunningApp(RunningApp app, Services.GameSwitcher switcher)
     {
         // Calculate session duration
@@ -46,7 +39,6 @@ public sealed class OverlayItem
             if (game != null)
             {
                 var imagePath = GetBestImagePath(game, switcher);
-                var totalPlaytime = switcher.FormatPlaytime(app.TotalPlaytime);
                 
                 return new OverlayItem
                 {
@@ -54,7 +46,6 @@ public sealed class OverlayItem
                     GameId = game.Id,
                     ImagePath = imagePath,
                     SecondaryText = $"Playing for {sessionDuration}",
-                    TertiaryText = totalPlaytime,
                     IsCurrentGame = true,
                     OnSelect = null  // Can't switch to self
                 };
@@ -68,7 +59,6 @@ public sealed class OverlayItem
             GameId = app.GameId ?? Guid.Empty,
             ImagePath = app.ImagePath,
             SecondaryText = $"Active for {sessionDuration}",
-            TertiaryText = app.Type == AppType.DetectedGame ? "Detected game" : "Application",
             IsCurrentGame = true,
             OnSelect = null  // Can't switch to self
         };
