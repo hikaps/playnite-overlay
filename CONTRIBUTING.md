@@ -28,10 +28,11 @@ playnite-overlay/
 │   │   │   ├── OverlaySettingsView.xaml
 │   │   │   ├── OverlaySettingsView.xaml.cs
 │   │   │   └── OverlaySettingsViewModel.cs
+│   │   ├── Utils/               # Shared utilities
+│   │   │   └── ProcessMatchingUtils.cs
 │   │   ├── OverlayPlugin.cs     # Plugin entry point
 │   │   ├── OverlayWindow.xaml   # Overlay UI
 │   │   └── OverlayWindow.xaml.cs
-│   └── OverlayUI/               # Standalone UI project (legacy)
 ├── tests/
 │   └── OverlayPlugin.Tests/     # Unit tests
 │       ├── ComboMaskTests.cs

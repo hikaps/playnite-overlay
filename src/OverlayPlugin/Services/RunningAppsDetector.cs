@@ -5,6 +5,7 @@ using System.Linq;
 using System.Runtime.InteropServices;
 using Playnite.SDK;
 using PlayniteOverlay.Models;
+using PlayniteOverlay.Utils;
 
 namespace PlayniteOverlay.Services;
 
@@ -30,26 +31,8 @@ public sealed class RunningAppsDetector
         "taskhostw", "unsecapp", "wmiprvse", "securityhealthsystray"
     };
 
-    // Known launcher process names (same as GameSwitcher)
-    private static readonly HashSet<string> LauncherProcessNames = new(StringComparer.OrdinalIgnoreCase)
-    {
-        "steam", "steamservice", "steamwebhelper",
-        "epicgameslauncher", "epicwebhelper", "eossdk-win64-shipping",
-        "upc", "uplay", "ubisoftconnect",
-        "origin", "originwebhelperservice",
-        "battlenet", "battle.net", "blizzard",
-        "bethesdanetlauncher", "bethesda.net",
-        "amazongames", "amazongameslauncher",
-        "gog", "galaxyclient", "galaxyclientservice",
-        "rockstargameslauncher", "socialclub",
-        "playnite", "playnite.desktopapp", "playnite.fullscreenapp"
-    };
-
     [DllImport("user32.dll")]
     private static extern bool IsWindowVisible(IntPtr hWnd);
-
-    [DllImport("user32.dll")]
-    private static extern int GetWindowTextLength(IntPtr hWnd);
 
     [DllImport("user32.dll")]
     private static extern bool IsWindow(IntPtr hWnd);
@@ -267,7 +250,7 @@ public sealed class RunningAppsDetector
 
     private bool IsLauncherProcess(string processName)
     {
-        return LauncherProcessNames.Contains(processName);
+        return ProcessMatchingUtils.IsLauncherProcess(processName);
     }
 
     private bool LooksLikeGame(Process process)
@@ -358,7 +341,7 @@ public sealed class RunningAppsDetector
         try
         {
             var allProcesses = Process.GetProcesses();
-            var gameNameWords = GetGameNameWords(game.Name);
+            var gameNameWords = ProcessMatchingUtils.GetGameNameWords(game.Name);
             var installDir = game.InstallDirectory;
 
             foreach (var process in allProcesses)
@@ -384,7 +367,7 @@ public sealed class RunningAppsDetector
                     }
 
                     // Strategy 2: Fuzzy match process name
-                    if (IsProcessNameMatch(process.ProcessName, gameNameWords))
+                    if (ProcessMatchingUtils.IsProcessNameMatch(process.ProcessName, gameNameWords))
                     {
                         matchedProcesses.Add(process);
                         continue;
@@ -392,7 +375,7 @@ public sealed class RunningAppsDetector
 
                     // Strategy 3: Window title match
                     if (!string.IsNullOrEmpty(process.MainWindowTitle) &&
-                        IsWindowTitleMatch(process.MainWindowTitle, gameNameWords))
+                        ProcessMatchingUtils.IsWindowTitleMatch(process.MainWindowTitle, gameNameWords))
                     {
                         matchedProcesses.Add(process);
                         continue;
@@ -409,32 +392,11 @@ public sealed class RunningAppsDetector
         return matchedProcesses;
     }
 
-    private static string[] GetGameNameWords(string gameName)
-    {
-        return gameName
-            .Split(new[] { ' ', ':', '-', '_', '.' }, StringSplitOptions.RemoveEmptyEntries)
-            .Where(w => w.Length > 2)
-            .Select(w => w.ToLowerInvariant())
-            .ToArray();
-    }
-
-    private static bool IsProcessNameMatch(string processName, string[] gameNameWords)
-    {
-        var procLower = processName.ToLowerInvariant();
-        return gameNameWords.Any(word => procLower.Contains(word));
-    }
-
-    private static bool IsWindowTitleMatch(string windowTitle, string[] gameNameWords)
-    {
-        var titleLower = windowTitle.ToLowerInvariant();
-        return gameNameWords.Count(word => titleLower.Contains(word)) >= 2;
-    }
-
     private RunningApp? CreatePlayniteGameApp(Playnite.SDK.Models.Game game, Process process)
     {
         try
         {
-            var imagePath = GetBestImagePath(game);
+            var imagePath = ProcessMatchingUtils.GetBestImagePath(game, api);
             var windowHandle = process.MainWindowHandle;
             var processId = process.Id;
             var title = game.Name;
@@ -514,24 +476,4 @@ public sealed class RunningAppsDetector
         }
     }
 
-    private string? GetBestImagePath(Playnite.SDK.Models.Game game)
-    {
-        var paths = new[] { game.CoverImage, game.Icon, game.BackgroundImage };
-
-        foreach (var path in paths)
-        {
-            if (string.IsNullOrWhiteSpace(path))
-                continue;
-
-            try
-            {
-                var resolved = api.Database.GetFullFilePath(path);
-                if (!string.IsNullOrWhiteSpace(resolved))
-                    return resolved;
-            }
-            catch { }
-        }
-
-        return null;
-    }
 }
