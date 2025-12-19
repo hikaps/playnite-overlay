@@ -6,6 +6,9 @@ namespace OverlayPlugin.Tests;
 public class ComboMaskTests
 {
     [Theory]
+    [InlineData("Guide", 0x0400)] // XINPUT_GAMEPAD_GUIDE
+    [InlineData("guide", 0x0400)] // Case insensitive
+    [InlineData("GUIDE", 0x0400)]
     [InlineData("START+BACK", 0x0030)] // START (0x10) | BACK (0x20)
     [InlineData("BACK+START", 0x0030)]
     [InlineData("start+back", 0x0030)] // Case insensitive
@@ -22,7 +25,6 @@ public class ComboMaskTests
     [InlineData("")]
     [InlineData("Invalid")]
     [InlineData("A+B")]
-    [InlineData("Guide")]
     [InlineData(null)]
     public void ResolveComboMask_InvalidCombos_ReturnsZero(string? combo)
     {
@@ -39,6 +41,7 @@ internal static class TestHelper
         var upper = combo.ToUpperInvariant();
         return upper switch
         {
+            "GUIDE" => 0x0400, // XINPUT_GAMEPAD_GUIDE
             "START+BACK" or "BACK+START" => (ushort)(0x0010 | 0x0020),
             "LB+RB" or "RB+LB" => (ushort)(0x0100 | 0x0200),
             _ => 0
