@@ -26,8 +26,13 @@ public partial class OverlayWindow : Window
     private static extern bool SetWindowPos(IntPtr hWnd, IntPtr hWndInsertAfter,
         int X, int Y, int cx, int cy, uint uFlags);
 
+    [DllImport("user32.dll")]
+    private static extern IntPtr GetForegroundWindow();
+
+    [DllImport("user32.dll")]
+    private static extern bool SetForegroundWindow(IntPtr hWnd);
+
     private const int GWL_EXSTYLE = -20;
-    private const int WS_EX_NOACTIVATE = 0x08000000;
     private const int WS_EX_TOOLWINDOW = 0x00000080;
 
     private static readonly IntPtr HWND_TOPMOST = new IntPtr(-1);
@@ -52,9 +57,15 @@ public partial class OverlayWindow : Window
     // Section highlight color
     private static readonly SolidColorBrush HighlightBrush = new(Color.FromRgb(0xFF, 0xFF, 0xFF));
     private static readonly SolidColorBrush TransparentBrush = new(Colors.Transparent);
+    
+    // Window to restore focus to when overlay closes
+    private readonly IntPtr previousForegroundWindow;
 
     public OverlayWindow(Action onSwitch, Action onExit, OverlayItem? currentGame, IEnumerable<RunningApp> runningApps, IEnumerable<OverlayItem> recentGames, bool enableControllerNavigation)
     {
+        // Capture the foreground window before we take focus
+        previousForegroundWindow = GetForegroundWindow();
+        
         InitializeComponent();
         this.onSwitch = onSwitch;
         this.onExit = onExit;
@@ -184,6 +195,12 @@ public partial class OverlayWindow : Window
         {
             controllerNavigator?.Dispose();
             controllerNavigator = null;
+            
+            // Restore focus to the previous foreground window (the game)
+            if (previousForegroundWindow != IntPtr.Zero)
+            {
+                SetForegroundWindow(previousForegroundWindow);
+            }
         };
         
         Closing += OnClosingWithFade;
@@ -211,32 +228,30 @@ public partial class OverlayWindow : Window
         {
             case Key.Escape:
                 PerformCancel();
-                e.Handled = true;
                 break;
             case Key.Up:
                 NavigateUp();
-                e.Handled = true;
                 break;
             case Key.Down:
                 NavigateDown();
-                e.Handled = true;
                 break;
             case Key.Left:
                 NavigateLeft();
-                e.Handled = true;
                 break;
             case Key.Right:
                 NavigateRight();
-                e.Handled = true;
                 break;
             case Key.Enter:
                 PerformAccept();
-                e.Handled = true;
                 break;
             case Key.Space:
-                // Let default handling work for focused buttons
-                break;
+                // Let WPF handle Space for button activation, don't mark as handled
+                // The key still won't pass to the game because the overlay has focus
+                return;
         }
+        
+        // Consume all other keystrokes - don't pass any input to underlying applications
+        e.Handled = true;
     }
 
     private void OnRecentPlayClick(object sender, RoutedEventArgs e)
@@ -731,9 +746,9 @@ public partial class OverlayWindow : Window
 
         var hwnd = new WindowInteropHelper(this).Handle;
 
-        // Apply extended window styles to prevent activation/focus stealing
+        // Apply extended window styles (TOOLWINDOW hides from Alt+Tab)
         var exStyle = GetWindowLong(hwnd, GWL_EXSTYLE);
-        SetWindowLong(hwnd, GWL_EXSTYLE, exStyle | WS_EX_NOACTIVATE | WS_EX_TOOLWINDOW);
+        SetWindowLong(hwnd, GWL_EXSTYLE, exStyle | WS_EX_TOOLWINDOW);
 
         // Set TOPMOST without activating the window
         SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE | SWP_NOACTIVATE);
