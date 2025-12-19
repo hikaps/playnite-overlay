@@ -199,7 +199,8 @@ public sealed class RunningAppsDetector
             logger.Info($"Switched to app: {app.Title} (PID: {app.ProcessId})");
             
             // Notify subscribers that app was switched to
-            AppSwitched?.Invoke(this, app);
+            var handler = AppSwitched;
+            handler?.Invoke(this, app);
         }
         catch (Exception ex)
         {
