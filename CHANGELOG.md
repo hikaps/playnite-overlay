@@ -9,6 +9,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.4.2] - 2025-12-19
+
+### Fixed
+- **Input Blocking in Fullscreen Games**: Keyboard input now properly blocked when overlay is active
+  - Use low-level keyboard hook (`WH_KEYBOARD_LL`) to intercept input before it reaches games
+  - Added mouse click blocking support
+- **Xbox Guide Button Detection**: Fixed Guide button not being detected
+  - Use `XInputGetStateEx` (ordinal 100) which includes the Guide button
+  - Falls back to standard API on older systems
+
+### Changed
+- **Removed Toggle Overlay Menu Item**: The "Overlay → Toggle Overlay" menu item has been removed
+  - Overlay can still be toggled via keyboard hotkey (default: Ctrl+Shift+O)
+  - Overlay can still be toggled via controller (Guide button or configured combo)
+
+### Removed
+- **Dead Code Cleanup**: Removed ~200 lines of unused/duplicate code
+  - Removed unused XInput keystroke API
+  - Removed legacy OverlayUI project
+  - Consolidated duplicate code into `ProcessMatchingUtils`
+  - Removed unused `TertiaryText` property from OverlayItem
+
+---
+
 ## [0.4.0] - 2025-12-18
 
 ### Fixed
