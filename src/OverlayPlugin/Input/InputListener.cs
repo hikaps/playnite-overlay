@@ -103,20 +103,17 @@ internal sealed class InputListener
             return;
         }
 
+        bool useGuide = controllerCombo.Equals("Guide", StringComparison.OrdinalIgnoreCase);
+
         for (int index = 0; index < lastButtons.Length; index++)
         {
-            if (controllerCombo.Equals("Guide", StringComparison.OrdinalIgnoreCase) && TryHandleGuideButton(index))
-            {
-                // Guide button handled, but still update connection state
-                if (!controllerConnected[index])
-                {
-                    logger.Debug($"Controller {index} connected");
-                    controllerConnected[index] = true;
-                }
-                continue;
-            }
+            // Use TryGetStateEx when checking for Guide button (includes Guide in wButtons)
+            // Use TryGetState for other combos (standard API)
+            bool connected = useGuide
+                ? XInput.TryGetStateEx(index, out var state)
+                : XInput.TryGetState(index, out state);
 
-            if (!XInput.TryGetState(index, out var state))
+            if (!connected)
             {
                 if (controllerConnected[index])
                 {
@@ -135,6 +132,7 @@ internal sealed class InputListener
 
             var buttons = state.Gamepad.wButtons;
             var mask = ResolveComboMask(controllerCombo);
+
             if (mask != 0)
             {
                 bool now = (buttons & mask) == mask;
@@ -150,25 +148,12 @@ internal sealed class InputListener
         }
     }
 
-    private bool TryHandleGuideButton(int index)
-    {
-        if (XInput.TryGetKeystroke(index, out var stroke)
-            && (stroke.Flags & XInput.XINPUT_KEYSTROKE_KEYDOWN) != 0
-            && stroke.VirtualKey == XInput.VK_PAD_GUIDE_BUTTON)
-        {
-            logger.Debug($"Guide button pressed on controller {index}");
-            TriggerToggle();
-            return true;
-        }
-
-        return false;
-    }
-
     private static ushort ResolveComboMask(string combo)
     {
         var upper = combo.ToUpperInvariant();
         return upper switch
         {
+            "GUIDE" => XInput.XINPUT_GAMEPAD_GUIDE,
             "START+BACK" or "BACK+START" => (ushort)(XInput.XINPUT_GAMEPAD_START | XInput.XINPUT_GAMEPAD_BACK),
             "LB+RB" or "RB+LB" => (ushort)(XInput.XINPUT_GAMEPAD_LEFT_SHOULDER | XInput.XINPUT_GAMEPAD_RIGHT_SHOULDER),
             _ => 0
