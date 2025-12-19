@@ -163,4 +163,10 @@ If you encounter issues:
 
 ---
 
+## AI Disclosure
+
+This project was developed with assistance from AI tools for code generation, documentation, and debugging.
+
+---
+
 **Built with ❤️ for the Playnite community**
