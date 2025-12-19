@@ -26,12 +26,6 @@ public partial class OverlayWindow : Window
     private static extern bool SetWindowPos(IntPtr hWnd, IntPtr hWndInsertAfter,
         int X, int Y, int cx, int cy, uint uFlags);
 
-    [DllImport("user32.dll")]
-    private static extern IntPtr GetForegroundWindow();
-
-    [DllImport("user32.dll")]
-    private static extern bool SetForegroundWindow(IntPtr hWnd);
-
     private const int GWL_EXSTYLE = -20;
     private const int WS_EX_TOOLWINDOW = 0x00000080;
 
@@ -67,15 +61,9 @@ public partial class OverlayWindow : Window
     // Section highlight color
     private static readonly SolidColorBrush HighlightBrush = new(Color.FromRgb(0xFF, 0xFF, 0xFF));
     private static readonly SolidColorBrush TransparentBrush = new(Colors.Transparent);
-    
-    // Window to restore focus to when overlay closes
-    private readonly IntPtr previousForegroundWindow;
 
     public OverlayWindow(Action onSwitch, Action onExit, OverlayItem? currentGame, IEnumerable<RunningApp> runningApps, IEnumerable<OverlayItem> recentGames, bool enableControllerNavigation)
     {
-        // Capture the foreground window before we take focus
-        previousForegroundWindow = GetForegroundWindow();
-        
         InitializeComponent();
         this.onSwitch = onSwitch;
         this.onExit = onExit;
@@ -212,18 +200,12 @@ public partial class OverlayWindow : Window
         
         Closed += (_, __) =>
         {
-            // Dispose input blocker first to restore keyboard input
+            // Dispose input blocker to restore keyboard/mouse input
             inputBlocker?.Dispose();
             inputBlocker = null;
             
             controllerNavigator?.Dispose();
             controllerNavigator = null;
-            
-            // Restore focus to the previous foreground window (the game)
-            if (previousForegroundWindow != IntPtr.Zero)
-            {
-                SetForegroundWindow(previousForegroundWindow);
-            }
         };
         
         Closing += OnClosingWithFade;
