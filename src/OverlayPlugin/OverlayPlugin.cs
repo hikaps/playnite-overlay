@@ -14,8 +14,6 @@ namespace PlayniteOverlay;
 
 public class OverlayPlugin : GenericPlugin
 {
-    private const string MenuSection = "&Overlay";
-    private const string ToggleOverlayDescription = "Toggle Overlay";
     public static readonly Guid PluginId = new("11111111-2222-3333-4444-555555555555");
 
     private readonly ILogger logger;
@@ -108,16 +106,6 @@ public class OverlayPlugin : GenericPlugin
         }
         
         overlay.Hide();
-    }
-
-    public override IEnumerable<MainMenuItem> GetMainMenuItems(GetMainMenuItemsArgs args)
-    {
-        yield return new MainMenuItem
-        {
-            Description = ToggleOverlayDescription,
-            MenuSection = MenuSection,
-            Action = _ => ToggleOverlay()
-        };
     }
 
     public override ISettings GetSettings(bool firstRunSettings) => settings;

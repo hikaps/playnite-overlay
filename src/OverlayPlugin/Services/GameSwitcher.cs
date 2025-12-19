@@ -7,6 +7,7 @@ using System.Runtime.InteropServices;
 using Playnite.SDK;
 using PlayniteOverlay;
 using PlayniteOverlay.Models;
+using PlayniteOverlay.Utils;
 
 namespace PlayniteOverlay.Services;
 
@@ -15,21 +16,6 @@ public sealed class GameSwitcher
     private static readonly ILogger logger = LogManager.GetLogger();
     private readonly IPlayniteAPI api;
     private RunningApp? activeApp;
-
-    // Known launcher process names to exclude from termination
-    private static readonly HashSet<string> LauncherProcessNames = new(StringComparer.OrdinalIgnoreCase)
-    {
-        "steam", "steamservice", "steamwebhelper",
-        "epicgameslauncher", "epicwebhelper", "eossdk-win64-shipping",
-        "upc", "uplay", "ubisoftconnect",
-        "origin", "originwebhelperservice",
-        "battlenet", "battle.net", "blizzard",
-        "bethesdanetlauncher", "bethesda.net",
-        "amazongames", "amazongameslauncher",
-        "gog", "galaxyclient", "galaxyclientservice",
-        "rockstargameslauncher", "socialclub",
-        "playnite", "playnite.desktopapp", "playnite.fullscreenapp"
-    };
 
     private const int GracefulExitTimeoutMs = 3000;
     private const int ForcefulExitTimeoutMs = 1000;
@@ -84,7 +70,7 @@ public sealed class GameSwitcher
                 ProcessId = -1,  // Invalid PID, will be detected as invalid
                 WindowHandle = IntPtr.Zero,
                 Type = AppType.PlayniteGame,
-                ImagePath = GetBestImagePath(game),
+                ImagePath = ProcessMatchingUtils.GetBestImagePath(game, api),
                 ActivatedTime = DateTime.Now,
                 TotalPlaytime = game.Playtime
             };
@@ -102,7 +88,7 @@ public sealed class GameSwitcher
                 ProcessId = mainProcess.Id,
                 WindowHandle = mainProcess.MainWindowHandle,
                 Type = AppType.PlayniteGame,
-                ImagePath = GetBestImagePath(game),
+                ImagePath = ProcessMatchingUtils.GetBestImagePath(game, api),
                 ActivatedTime = DateTime.Now,
                 TotalPlaytime = game.Playtime,
                 OnSwitch = null  // Current game, can't switch to self
@@ -418,7 +404,7 @@ public sealed class GameSwitcher
         try
         {
             var allProcesses = Process.GetProcesses();
-            var gameNameWords = GetGameNameWords(game.Name);
+            var gameNameWords = ProcessMatchingUtils.GetGameNameWords(game.Name);
             var installDir = game.InstallDirectory;
 
             logger.Debug($"Searching for processes matching game: {game.Name}");
@@ -432,7 +418,7 @@ public sealed class GameSwitcher
                 try
                 {
                     // Skip system processes and launchers
-                    if (IsLauncherProcess(process.ProcessName))
+                    if (ProcessMatchingUtils.IsLauncherProcess(process.ProcessName))
                     {
                         continue;
                     }
@@ -457,7 +443,7 @@ public sealed class GameSwitcher
                     }
 
                     // Strategy 2: Fuzzy match process name against game name
-                    if (IsProcessNameMatch(process.ProcessName, gameNameWords))
+                    if (ProcessMatchingUtils.IsProcessNameMatch(process.ProcessName, gameNameWords))
                     {
                         logger.Debug($"Matched by name: {process.ProcessName} (PID: {process.Id})");
                         matchedProcesses.Add(process);
@@ -467,7 +453,7 @@ public sealed class GameSwitcher
                     // Strategy 3: Check main window title
                     if (!string.IsNullOrEmpty(process.MainWindowTitle))
                     {
-                        if (IsWindowTitleMatch(process.MainWindowTitle, gameNameWords))
+                        if (ProcessMatchingUtils.IsWindowTitleMatch(process.MainWindowTitle, gameNameWords))
                         {
                             logger.Debug($"Matched by window title: {process.ProcessName} '{process.MainWindowTitle}' (PID: {process.Id})");
                             matchedProcesses.Add(process);
@@ -564,58 +550,6 @@ public sealed class GameSwitcher
         }
     }
 
-    private bool IsLauncherProcess(string processName)
-    {
-        return LauncherProcessNames.Contains(processName);
-    }
-
-    private string[] GetGameNameWords(string gameName)
-    {
-        // Extract significant words from game name
-        return gameName
-            .Split(new[] { ' ', '-', '_', ':', '.', '\'', '"' }, StringSplitOptions.RemoveEmptyEntries)
-            .Where(w => w.Length >= 3) // Ignore very short words
-            .Select(w => w.ToLowerInvariant())
-            .ToArray();
-    }
-
-    private bool IsProcessNameMatch(string processName, string[] gameNameWords)
-    {
-        var processLower = processName.ToLowerInvariant();
-
-        // Check if process name contains any significant game name words
-        foreach (var word in gameNameWords)
-        {
-            if (processLower.Contains(word))
-            {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    private bool IsWindowTitleMatch(string windowTitle, string[] gameNameWords)
-    {
-        var titleLower = windowTitle.ToLowerInvariant();
-
-        // Need at least 2 matching words or 1 long word (6+ chars)
-        int matchCount = 0;
-        foreach (var word in gameNameWords)
-        {
-            if (titleLower.Contains(word))
-            {
-                if (word.Length >= 6)
-                {
-                    return true; // Single distinctive word match
-                }
-                matchCount++;
-            }
-        }
-
-        return matchCount >= 2;
-    }
-
     public IEnumerable<Playnite.SDK.Models.Game> GetRecentGames(int count)
     {
         var games = api.Database.Games.AsQueryable();
@@ -710,24 +644,4 @@ public sealed class GameSwitcher
         return api.Database.Games[gameId];
     }
 
-    private string? GetBestImagePath(Playnite.SDK.Models.Game game)
-    {
-        var paths = new[] { game.CoverImage, game.Icon, game.BackgroundImage };
-
-        foreach (var path in paths)
-        {
-            if (string.IsNullOrWhiteSpace(path))
-                continue;
-
-            try
-            {
-                var resolved = api.Database.GetFullFilePath(path);
-                if (!string.IsNullOrWhiteSpace(resolved))
-                    return resolved;
-            }
-            catch { }
-        }
-
-        return null;
-    }
 }

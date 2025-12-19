@@ -10,7 +10,7 @@ namespace OverlayPlugin.Tests;
 public class OverlayItemTests
 {
     [Fact]
-    public void FromGame_WithValidGame_CreatesItemWithCorrectTitle()
+    public void FromRecentGame_WithValidGame_CreatesItemWithCorrectTitle()
     {
         // Arrange
         var mockApi = new Mock<IPlayniteAPI>();
@@ -22,7 +22,7 @@ public class OverlayItemTests
         var game = new Playnite.SDK.Models.Game("Test Game");
 
         // Act
-        var item = OverlayItem.FromGame(game, switcher);
+        var item = OverlayItem.FromRecentGame(game, switcher);
 
         // Assert
         Assert.Equal("Test Game", item.Title);
@@ -30,7 +30,7 @@ public class OverlayItemTests
     }
 
     [Fact]
-    public void FromGame_WithCoverImage_UsesCoverImageOverIcon()
+    public void FromRecentGame_WithCoverImage_UsesCoverImageOverIcon()
     {
         // Arrange
         var mockApi = new Mock<IPlayniteAPI>();
@@ -46,14 +46,14 @@ public class OverlayItemTests
         };
 
         // Act
-        var item = OverlayItem.FromGame(game, switcher);
+        var item = OverlayItem.FromRecentGame(game, switcher);
 
         // Assert
         Assert.Equal("/path/to/cover.jpg", item.ImagePath);
     }
 
     [Fact]
-    public void FromGame_WithoutCoverImage_UsesIcon()
+    public void FromRecentGame_WithoutCoverImage_UsesIcon()
     {
         // Arrange
         var mockApi = new Mock<IPlayniteAPI>();
@@ -68,14 +68,14 @@ public class OverlayItemTests
         };
 
         // Act
-        var item = OverlayItem.FromGame(game, switcher);
+        var item = OverlayItem.FromRecentGame(game, switcher);
 
         // Assert
         Assert.Equal("/path/to/icon.png", item.ImagePath);
     }
 
     [Fact]
-    public void FromGame_OnSelectAction_CallsStartGame()
+    public void FromRecentGame_OnSelectAction_CallsStartGame()
     {
         // Arrange
         var mockApi = new Mock<IPlayniteAPI>();
@@ -84,7 +84,7 @@ public class OverlayItemTests
         
         var switcher = new GameSwitcher(mockApi.Object);
         var game = new Playnite.SDK.Models.Game("Test Game");
-        var item = OverlayItem.FromGame(game, switcher);
+        var item = OverlayItem.FromRecentGame(game, switcher);
 
         // Act
         item.OnSelect?.Invoke();

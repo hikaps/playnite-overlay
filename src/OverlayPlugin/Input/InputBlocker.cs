@@ -40,15 +40,6 @@ internal sealed class InputBlocker : IDisposable
 
     // Mouse messages
     private const int WM_MOUSEMOVE = 0x0200;
-    private const int WM_LBUTTONDOWN = 0x0201;
-    private const int WM_LBUTTONUP = 0x0202;
-    private const int WM_RBUTTONDOWN = 0x0204;
-    private const int WM_RBUTTONUP = 0x0205;
-    private const int WM_MBUTTONDOWN = 0x0207;
-    private const int WM_MBUTTONUP = 0x0208;
-    private const int WM_MOUSEWHEEL = 0x020A;
-    private const int WM_XBUTTONDOWN = 0x020B;
-    private const int WM_XBUTTONUP = 0x020C;
 
     [StructLayout(LayoutKind.Sequential)]
     private struct KBDLLHOOKSTRUCT
