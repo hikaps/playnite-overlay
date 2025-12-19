@@ -66,7 +66,9 @@ internal sealed class InputBlocker : IDisposable
     private IntPtr mouseHookHandle = IntPtr.Zero;
     private LowLevelProc? keyboardProc;
     private LowLevelProc? mouseProc;
-    private bool disposed;
+    private volatile bool disposed;
+    private volatile bool blockAllKeyboard = true;
+    private volatile bool blockMouse;
 
     /// <summary>
     /// Called when a key event is intercepted.
@@ -84,12 +86,21 @@ internal sealed class InputBlocker : IDisposable
     /// When true, blocks all keyboard input (default behavior when overlay is active).
     /// When false, uses OnKeyEvent to decide which keys to block.
     /// </summary>
-    public bool BlockAllKeyboard { get; set; } = true;
+    public bool BlockAllKeyboard
+    {
+        get => blockAllKeyboard;
+        set => blockAllKeyboard = value;
+    }
 
     /// <summary>
-    /// When true, blocks mouse input outside the overlay area.
+    /// When true, blocks mouse clicks from reaching other applications.
+    /// Mouse movement is not blocked.
     /// </summary>
-    public bool BlockMouse { get; set; } = false;
+    public bool BlockMouse
+    {
+        get => blockMouse;
+        set => blockMouse = value;
+    }
 
     public void Install()
     {

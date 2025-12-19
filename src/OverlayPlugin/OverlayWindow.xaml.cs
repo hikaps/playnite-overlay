@@ -191,10 +191,12 @@ public partial class OverlayWindow : Window
                 controllerNavigator = new OverlayControllerNavigator(this);
             }
             
-            // Install low-level keyboard hook to block input from reaching fullscreen games
+            // Install low-level hooks to block keyboard and mouse input from reaching games
             inputBlocker = new InputBlocker();
             inputBlocker.OnKeyEvent = HandleLowLevelKeyEvent;
             inputBlocker.BlockAllKeyboard = false; // We'll selectively handle keys
+            inputBlocker.BlockMouse = true;
+            inputBlocker.OnMouseEvent = _ => true; // Block all mouse clicks
             inputBlocker.Install();
             
             try
