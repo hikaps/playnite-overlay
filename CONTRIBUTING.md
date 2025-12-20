@@ -9,8 +9,7 @@ playnite-overlay/
 ├── src/
 │   ├── OverlayPlugin/           # Main plugin project
 │   │   ├── Input/               # Input handling (hotkeys, controllers)
-│   │   │   ├── InputListener.cs
-│   │   │   └── OverlayControllerNavigator.cs
+│   │   │   └── InputListener.cs
 │   │   ├── Interop/             # Win32 API interop
 │   │   │   ├── HotkeyManager.cs
 │   │   │   ├── Monitors.cs

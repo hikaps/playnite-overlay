@@ -12,9 +12,11 @@ internal sealed class InputListener
     private const int PollIntervalMs = 100;
     private const int HotkeyRetryLimit = 10;
     private const int ToggleCooldownMs = 300;
+    private const int NavigationCooldownMs = 150;
 
     private static readonly ILogger logger = LogManager.GetLogger();
     private DateTime lastToggleTime = DateTime.MinValue;
+    private DateTime lastNavigationTime = DateTime.MinValue;
     private readonly ushort[] lastButtons = new ushort[4];
     private readonly bool[] controllerConnected = new bool[4];
 
@@ -25,7 +27,37 @@ internal sealed class InputListener
     private string? customHotkeyGesture;
     private bool enableController = true;
 
+    // Reference to overlay window for navigation (set when overlay opens, cleared when it closes)
+    private OverlayWindow? overlayWindow;
+    private readonly object overlayWindowLock = new object();
+
     public event EventHandler? ToggleRequested;
+
+    /// <summary>
+    /// Sets the overlay window reference for navigation input handling.
+    /// Call this when the overlay opens. Pass null when the overlay closes.
+    /// </summary>
+    public void SetOverlayWindow(OverlayWindow? window)
+    {
+        lock (overlayWindowLock)
+        {
+            overlayWindow = window;
+
+            if (window != null)
+            {
+                // Capture current button state to prevent ghost inputs
+                // Any buttons pressed when overlay opens won't trigger navigation
+                for (int i = 0; i < lastButtons.Length; i++)
+                {
+                    if (XInput.TryGetState(i, out var state))
+                    {
+                        lastButtons[i] = state.Gamepad.wButtons;
+                    }
+                }
+                lastNavigationTime = DateTime.Now;
+            }
+        }
+    }
 
     /// <summary>
     /// Starts both hotkey and controller input listening.
@@ -107,6 +139,13 @@ internal sealed class InputListener
 
         bool useGuide = controllerCombo.Equals("Guide", StringComparison.OrdinalIgnoreCase);
 
+        // Check if overlay is currently open
+        OverlayWindow? currentOverlay;
+        lock (overlayWindowLock)
+        {
+            currentOverlay = overlayWindow;
+        }
+
         for (int index = 0; index < lastButtons.Length; index++)
         {
             // Use TryGetStateEx when checking for Guide button (includes Guide in wButtons)
@@ -133,27 +172,121 @@ internal sealed class InputListener
             }
 
             var buttons = state.Gamepad.wButtons;
-            var mask = ResolveComboMask(controllerCombo);
+            var previous = lastButtons[index];
 
-            if (mask != 0)
+            // Always handle toggle combo (works whether overlay is open or closed)
+            HandleToggleCombo(index, previous, buttons);
+
+            // Handle navigation only when overlay is open
+            if (currentOverlay != null)
             {
-                bool now = (buttons & mask) == mask;
-                bool prev = (lastButtons[index] & mask) == mask;
-                if (now && !prev)
-                {
-                    // Apply cooldown to prevent double-triggers from button bounce
-                    if ((DateTime.Now - lastToggleTime).TotalMilliseconds < ToggleCooldownMs)
-                    {
-                        continue;
-                    }
-                    lastToggleTime = DateTime.Now;
-                    logger.Debug($"Controller combo '{controllerCombo}' pressed on controller {index}");
-                    TriggerToggle();
-                }
+                HandleNavigation(currentOverlay, previous, buttons);
             }
 
             lastButtons[index] = buttons;
         }
+    }
+
+    private void HandleToggleCombo(int playerIndex, ushort previous, ushort buttons)
+    {
+        var mask = ResolveComboMask(controllerCombo);
+
+        if (mask != 0)
+        {
+            bool now = (buttons & mask) == mask;
+            bool prev = (previous & mask) == mask;
+            if (now && !prev)
+            {
+                // Apply cooldown to prevent double-triggers from button bounce
+                if ((DateTime.Now - lastToggleTime).TotalMilliseconds < ToggleCooldownMs)
+                {
+                    return;
+                }
+                lastToggleTime = DateTime.Now;
+                logger.Debug($"Controller combo '{controllerCombo}' pressed on controller {playerIndex}");
+                TriggerToggle();
+            }
+        }
+    }
+
+    private void HandleNavigation(OverlayWindow window, ushort previous, ushort buttons)
+    {
+        // D-pad navigation
+        if (IsPressed(previous, buttons, XInput.XINPUT_GAMEPAD_DPAD_UP))
+        {
+            DispatchNavigationWithCooldown(() => window.ControllerNavigateUp());
+        }
+
+        if (IsPressed(previous, buttons, XInput.XINPUT_GAMEPAD_DPAD_DOWN))
+        {
+            DispatchNavigationWithCooldown(() => window.ControllerNavigateDown());
+        }
+
+        if (IsPressed(previous, buttons, XInput.XINPUT_GAMEPAD_DPAD_LEFT))
+        {
+            DispatchNavigationWithCooldown(() => window.ControllerNavigateLeft());
+        }
+
+        if (IsPressed(previous, buttons, XInput.XINPUT_GAMEPAD_DPAD_RIGHT))
+        {
+            DispatchNavigationWithCooldown(() => window.ControllerNavigateRight());
+        }
+
+        // Action buttons
+        if (IsPressed(previous, buttons, XInput.XINPUT_GAMEPAD_A))
+        {
+            DispatchNavigationWithCooldown(() => window.ControllerAccept());
+        }
+
+        if (IsPressed(previous, buttons, XInput.XINPUT_GAMEPAD_B)
+            || IsPressed(previous, buttons, XInput.XINPUT_GAMEPAD_BACK))
+        {
+            DispatchNavigationWithCooldown(() => window.ControllerCancel());
+        }
+    }
+
+    private void DispatchNavigationWithCooldown(Action action)
+    {
+        if ((DateTime.Now - lastNavigationTime).TotalMilliseconds < NavigationCooldownMs)
+        {
+            return;
+        }
+        lastNavigationTime = DateTime.Now;
+        DispatchToWindow(action);
+    }
+
+    private void DispatchToWindow(Action action)
+    {
+        OverlayWindow? window;
+        lock (overlayWindowLock)
+        {
+            window = overlayWindow;
+        }
+
+        if (window == null)
+        {
+            return;
+        }
+
+        var dispatcher = window.Dispatcher;
+        if (dispatcher.HasShutdownStarted || dispatcher.HasShutdownFinished)
+        {
+            return;
+        }
+
+        if (dispatcher.CheckAccess())
+        {
+            action();
+        }
+        else
+        {
+            dispatcher.BeginInvoke(action, DispatcherPriority.Send);
+        }
+    }
+
+    private static bool IsPressed(ushort previous, ushort current, ushort mask)
+    {
+        return (current & mask) != 0 && (previous & mask) == 0;
     }
 
     private static ushort ResolveComboMask(string combo)

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Windows;
 using Playnite.SDK;
 using PlayniteOverlay;
+using PlayniteOverlay.Input;
 using PlayniteOverlay.Models;
 
 namespace PlayniteOverlay.Services;
@@ -11,7 +12,13 @@ internal sealed class OverlayService
 {
     private static readonly ILogger logger = LogManager.GetLogger();
     private readonly object windowLock = new object();
+    private readonly InputListener inputListener;
     private OverlayWindow? window;
+
+    public OverlayService(InputListener inputListener)
+    {
+        this.inputListener = inputListener ?? throw new ArgumentNullException(nameof(inputListener));
+    }
 
     public bool IsVisible
     {
@@ -24,7 +31,6 @@ internal sealed class OverlayService
         OverlayItem? currentGame,
         IEnumerable<RunningApp> runningApps,
         IEnumerable<OverlayItem> recentGames,
-        bool enableControllerNavigation,
         int? processIdToSuspend,
         bool suspendProcess)
     {
@@ -43,7 +49,6 @@ internal sealed class OverlayService
                     currentGame,
                     runningApps,
                     recentGames,
-                    enableControllerNavigation,
                     processIdToSuspend,
                     suspendProcess);
 
@@ -56,10 +61,16 @@ internal sealed class OverlayService
                     window.Top = dipBounds.Top;
                     window.Width = dipBounds.Width;
                     window.Height = dipBounds.Height;
+                    
+                    // Connect InputListener to the overlay window for controller navigation
+                    inputListener.SetOverlayWindow(window);
                 };
 
                 window.Closed += (_, _) =>
                 {
+                    // Disconnect InputListener from the overlay window
+                    inputListener.SetOverlayWindow(null);
+                    
                     lock (windowLock)
                     {
                         window = null;

@@ -8,7 +8,6 @@ using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
-using PlayniteOverlay.Input;
 using PlayniteOverlay.Models;
 
 namespace PlayniteOverlay;
@@ -29,10 +28,8 @@ public partial class OverlayWindow : Window
     private readonly Action onExit;
     private readonly List<OverlayItem> items;
     private readonly List<RunningApp> runningApps;
-    private readonly bool enableControllerNavigation;
     private readonly int? processIdToSuspend;
     private readonly bool suspendProcess;
-    private OverlayControllerNavigator? controllerNavigator;
     private bool processWasSuspended;
     
     // Two-level navigation state
@@ -52,7 +49,6 @@ public partial class OverlayWindow : Window
         OverlayItem? currentGame,
         IEnumerable<RunningApp> runningApps,
         IEnumerable<OverlayItem> recentGames,
-        bool enableControllerNavigation,
         int? processIdToSuspend,
         bool suspendProcess)
     {
@@ -61,7 +57,6 @@ public partial class OverlayWindow : Window
         this.onExit = onExit;
         this.items = new List<OverlayItem>(recentGames);
         this.runningApps = new List<RunningApp>(runningApps);
-        this.enableControllerNavigation = enableControllerNavigation;
         this.processIdToSuspend = processIdToSuspend;
         this.suspendProcess = suspendProcess;
 
@@ -168,10 +163,6 @@ public partial class OverlayWindow : Window
         Loaded += (_, __) =>
         {
             Activate(); Focus(); Keyboard.Focus(this);
-            if (this.enableControllerNavigation)
-            {
-                controllerNavigator = new OverlayControllerNavigator(this);
-            }
             
             // Suspend the game process if enabled
             if (suspendProcess && processIdToSuspend.HasValue && processIdToSuspend.Value > 0)
@@ -192,9 +183,6 @@ public partial class OverlayWindow : Window
         
         Closed += (_, __) =>
         {
-            controllerNavigator?.Dispose();
-            controllerNavigator = null;
-            
             // Resume the game process if we suspended it
             if (processWasSuspended && processIdToSuspend.HasValue)
             {
@@ -701,37 +689,31 @@ public partial class OverlayWindow : Window
 
     internal void ControllerNavigateUp()
     {
-        if (!enableControllerNavigation) return;
         NavigateUp();
     }
 
     internal void ControllerNavigateDown()
     {
-        if (!enableControllerNavigation) return;
         NavigateDown();
     }
 
     internal void ControllerNavigateLeft()
     {
-        if (!enableControllerNavigation) return;
         NavigateLeft();
     }
 
     internal void ControllerNavigateRight()
     {
-        if (!enableControllerNavigation) return;
         NavigateRight();
     }
 
     internal void ControllerAccept()
     {
-        if (!enableControllerNavigation) return;
         PerformAccept();
     }
 
     internal void ControllerCancel()
     {
-        if (!enableControllerNavigation) return;
         PerformCancel();
     }
 
