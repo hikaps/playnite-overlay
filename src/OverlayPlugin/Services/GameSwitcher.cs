@@ -224,7 +224,8 @@ public sealed class GameSwitcher
 
     public void SwitchToPlaynite()
     {
-        System.Windows.Application.Current?.Dispatcher.Invoke(() =>
+        // Use BeginInvoke to avoid blocking if UI thread is busy
+        System.Windows.Application.Current?.Dispatcher.BeginInvoke(new Action(() =>
         {
             var mainWindow = System.Windows.Application.Current?.MainWindow;
             if (mainWindow == null)
@@ -241,7 +242,7 @@ public sealed class GameSwitcher
             // Show and activate (handles hidden/tray windows properly)
             mainWindow.Show();
             mainWindow.Activate();
-        });
+        }));
     }
 
     public void ExitActiveApp()
