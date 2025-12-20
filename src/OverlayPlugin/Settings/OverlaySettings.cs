@@ -74,4 +74,15 @@ public class OverlaySettings : MVVM.ObservableObject
         get => borderlessDelayMs;
         set => SetProperty(ref borderlessDelayMs, value);
     }
+
+    private bool suspendGameWhileOverlayOpen = false;
+    /// <summary>
+    /// When enabled, suspends the active game process while the overlay is open.
+    /// This prevents input from bleeding through to the game.
+    /// </summary>
+    public bool SuspendGameWhileOverlayOpen
+    {
+        get => suspendGameWhileOverlayOpen;
+        set => SetProperty(ref suspendGameWhileOverlayOpen, value);
+    }
 }

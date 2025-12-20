@@ -85,6 +85,13 @@
                 <TextBlock Margin="0,8,0,0" TextWrapping="Wrap"
                            Foreground="Orange"
                            Text="Note: This only works for games running in windowed mode. For games in true exclusive fullscreen, you'll need to change the game's display settings to Windowed or Borderless."/>
+                <CheckBox Content="Suspend game while overlay is open"
+                          Margin="0,12,0,0"
+                          IsChecked="{Binding Settings.SuspendGameWhileOverlayOpen}"
+                          ToolTip="Pauses the game process while the overlay is visible to prevent input from bleeding through. Some games may not handle this well."/>
+                <TextBlock Margin="0,6,0,0" TextWrapping="Wrap"
+                           Foreground="Gray"
+                           Text="When enabled, the game will be paused while the overlay is open. This prevents controller/keyboard input from reaching the game. Disable if you experience issues with specific games."/>
             </StackPanel>
         </GroupBox>
     </StackPanel>

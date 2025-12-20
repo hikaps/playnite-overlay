@@ -11,8 +11,10 @@ internal sealed class InputListener
 {
     private const int PollIntervalMs = 100;
     private const int HotkeyRetryLimit = 10;
+    private const int ToggleCooldownMs = 300;
 
     private static readonly ILogger logger = LogManager.GetLogger();
+    private DateTime lastToggleTime = DateTime.MinValue;
     private readonly ushort[] lastButtons = new ushort[4];
     private readonly bool[] controllerConnected = new bool[4];
 
@@ -139,6 +141,12 @@ internal sealed class InputListener
                 bool prev = (lastButtons[index] & mask) == mask;
                 if (now && !prev)
                 {
+                    // Apply cooldown to prevent double-triggers from button bounce
+                    if ((DateTime.Now - lastToggleTime).TotalMilliseconds < ToggleCooldownMs)
+                    {
+                        continue;
+                    }
+                    lastToggleTime = DateTime.Now;
                     logger.Debug($"Controller combo '{controllerCombo}' pressed on controller {index}");
                     TriggerToggle();
                 }

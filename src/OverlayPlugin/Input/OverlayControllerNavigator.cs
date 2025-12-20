@@ -7,10 +7,12 @@ namespace PlayniteOverlay.Input;
 internal sealed class OverlayControllerNavigator : IDisposable
 {
     private const int PollIntervalMs = 100;
+    private const int InputCooldownMs = 150;
 
     private readonly OverlayWindow window;
     private readonly Timer pollTimer;
     private readonly ushort[] lastButtons = new ushort[4];
+    private DateTime lastInputTime = DateTime.MinValue;
     private bool isDisposed;
 
     public OverlayControllerNavigator(OverlayWindow window)
@@ -80,24 +82,25 @@ internal sealed class OverlayControllerNavigator : IDisposable
     private void HandleDirection(int playerIndex, ushort buttons)
     {
         var previous = lastButtons[playerIndex];
+        
         if (IsPressed(previous, buttons, XInput.XINPUT_GAMEPAD_DPAD_UP))
         {
-            Dispatch(() => window.ControllerNavigateUp());
+            DispatchWithCooldown(() => window.ControllerNavigateUp());
         }
 
         if (IsPressed(previous, buttons, XInput.XINPUT_GAMEPAD_DPAD_DOWN))
         {
-            Dispatch(() => window.ControllerNavigateDown());
+            DispatchWithCooldown(() => window.ControllerNavigateDown());
         }
 
         if (IsPressed(previous, buttons, XInput.XINPUT_GAMEPAD_DPAD_LEFT))
         {
-            Dispatch(() => window.ControllerNavigateLeft());
+            DispatchWithCooldown(() => window.ControllerNavigateLeft());
         }
 
         if (IsPressed(previous, buttons, XInput.XINPUT_GAMEPAD_DPAD_RIGHT))
         {
-            Dispatch(() => window.ControllerNavigateRight());
+            DispatchWithCooldown(() => window.ControllerNavigateRight());
         }
     }
 
@@ -107,14 +110,24 @@ internal sealed class OverlayControllerNavigator : IDisposable
 
         if (IsPressed(previous, buttons, XInput.XINPUT_GAMEPAD_A))
         {
-            Dispatch(() => window.ControllerAccept());
+            DispatchWithCooldown(() => window.ControllerAccept());
         }
 
         if (IsPressed(previous, buttons, XInput.XINPUT_GAMEPAD_B)
             || IsPressed(previous, buttons, XInput.XINPUT_GAMEPAD_BACK))
         {
-            Dispatch(() => window.ControllerCancel());
+            DispatchWithCooldown(() => window.ControllerCancel());
         }
+    }
+
+    private void DispatchWithCooldown(Action action)
+    {
+        if ((DateTime.Now - lastInputTime).TotalMilliseconds < InputCooldownMs)
+        {
+            return;
+        }
+        lastInputTime = DateTime.Now;
+        Dispatch(action);
     }
 
     private void Dispatch(Action action)

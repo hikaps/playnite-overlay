@@ -18,7 +18,15 @@ internal sealed class OverlayService
         get { lock (windowLock) return window != null; }
     }
 
-    public void Show(Action onSwitch, Action onExit, OverlayItem? currentGame, IEnumerable<RunningApp> runningApps, IEnumerable<OverlayItem> recentGames, bool enableControllerNavigation)
+    public void Show(
+        Action onSwitch,
+        Action onExit,
+        OverlayItem? currentGame,
+        IEnumerable<RunningApp> runningApps,
+        IEnumerable<OverlayItem> recentGames,
+        bool enableControllerNavigation,
+        int? processIdToSuspend,
+        bool suspendProcess)
     {
         lock (windowLock)
         {
@@ -29,7 +37,15 @@ internal sealed class OverlayService
 
             Application.Current?.Dispatcher.Invoke(() =>
             {
-                window = new OverlayWindow(onSwitch, onExit, currentGame, runningApps, recentGames, enableControllerNavigation);
+                window = new OverlayWindow(
+                    onSwitch,
+                    onExit,
+                    currentGame,
+                    runningApps,
+                    recentGames,
+                    enableControllerNavigation,
+                    processIdToSuspend,
+                    suspendProcess);
 
                 window.Loaded += (_, _) =>
                 {

@@ -199,13 +199,18 @@ public class OverlayPlugin : GenericPlugin
             .Select(g => OverlayItem.FromRecentGame(g, switcher))
             .ToList();
 
+        // Get process ID to suspend (if enabled)
+        int? processIdToSuspend = switcher.ActiveApp?.ProcessId;
+
         overlay.Show(
             () => switcher.SwitchToPlaynite(),
             HandleExitGame,
             currentGameItem,
             runningApps,
             recentGames,
-            settings.Settings.UseControllerToOpen);
+            settings.Settings.UseControllerToOpen,
+            processIdToSuspend,
+            settings.Settings.SuspendGameWhileOverlayOpen);
     }
 
     private void HandleExitGame()

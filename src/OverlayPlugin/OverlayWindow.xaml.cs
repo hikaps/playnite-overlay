@@ -30,7 +30,10 @@ public partial class OverlayWindow : Window
     private readonly List<OverlayItem> items;
     private readonly List<RunningApp> runningApps;
     private readonly bool enableControllerNavigation;
+    private readonly int? processIdToSuspend;
+    private readonly bool suspendProcess;
     private OverlayControllerNavigator? controllerNavigator;
+    private bool processWasSuspended;
     
     // Two-level navigation state
     private NavigationTarget navigationTarget = NavigationTarget.CurrentGameSection;
@@ -43,7 +46,15 @@ public partial class OverlayWindow : Window
     private static readonly SolidColorBrush HighlightBrush = new(Color.FromRgb(0xFF, 0xFF, 0xFF));
     private static readonly SolidColorBrush TransparentBrush = new(Colors.Transparent);
 
-    public OverlayWindow(Action onSwitch, Action onExit, OverlayItem? currentGame, IEnumerable<RunningApp> runningApps, IEnumerable<OverlayItem> recentGames, bool enableControllerNavigation)
+    public OverlayWindow(
+        Action onSwitch,
+        Action onExit,
+        OverlayItem? currentGame,
+        IEnumerable<RunningApp> runningApps,
+        IEnumerable<OverlayItem> recentGames,
+        bool enableControllerNavigation,
+        int? processIdToSuspend,
+        bool suspendProcess)
     {
         InitializeComponent();
         this.onSwitch = onSwitch;
@@ -51,6 +62,8 @@ public partial class OverlayWindow : Window
         this.items = new List<OverlayItem>(recentGames);
         this.runningApps = new List<RunningApp>(runningApps);
         this.enableControllerNavigation = enableControllerNavigation;
+        this.processIdToSuspend = processIdToSuspend;
+        this.suspendProcess = suspendProcess;
 
         // Setup current game section
         if (currentGame != null)
@@ -160,6 +173,12 @@ public partial class OverlayWindow : Window
                 controllerNavigator = new OverlayControllerNavigator(this);
             }
             
+            // Suspend the game process if enabled
+            if (suspendProcess && processIdToSuspend.HasValue && processIdToSuspend.Value > 0)
+            {
+                processWasSuspended = ProcessSuspend.Suspend(processIdToSuspend.Value);
+            }
+            
             try
             {
                 var anim = new System.Windows.Media.Animation.DoubleAnimation(0, 1, new Duration(TimeSpan.FromMilliseconds(200)))
@@ -175,6 +194,12 @@ public partial class OverlayWindow : Window
         {
             controllerNavigator?.Dispose();
             controllerNavigator = null;
+            
+            // Resume the game process if we suspended it
+            if (processWasSuspended && processIdToSuspend.HasValue)
+            {
+                ProcessSuspend.Resume(processIdToSuspend.Value);
+            }
         };
         
         Closing += OnClosingWithFade;
