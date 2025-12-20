@@ -8,40 +8,22 @@ using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
-using PlayniteOverlay.Models;
 using PlayniteOverlay.Input;
+using PlayniteOverlay.Models;
 
 namespace PlayniteOverlay;
 
 public partial class OverlayWindow : Window
 {
-    // P/Invoke for extended window styles and positioning
+    // P/Invoke for extended window styles (hide from Alt+Tab)
     [DllImport("user32.dll")]
     private static extern int GetWindowLong(IntPtr hWnd, int nIndex);
 
     [DllImport("user32.dll")]
     private static extern int SetWindowLong(IntPtr hWnd, int nIndex, int dwNewLong);
 
-    [DllImport("user32.dll")]
-    private static extern bool SetWindowPos(IntPtr hWnd, IntPtr hWndInsertAfter,
-        int X, int Y, int cx, int cy, uint uFlags);
-
     private const int GWL_EXSTYLE = -20;
     private const int WS_EX_TOOLWINDOW = 0x00000080;
-
-    // Virtual key codes for low-level keyboard hook
-    private const uint VK_ESCAPE = 0x1B;
-    private const uint VK_RETURN = 0x0D;
-    private const uint VK_SPACE = 0x20;
-    private const uint VK_LEFT = 0x25;
-    private const uint VK_UP = 0x26;
-    private const uint VK_RIGHT = 0x27;
-    private const uint VK_DOWN = 0x28;
-
-    private static readonly IntPtr HWND_TOPMOST = new IntPtr(-1);
-    private const uint SWP_NOSIZE = 0x0001;
-    private const uint SWP_NOMOVE = 0x0002;
-    private const uint SWP_NOACTIVATE = 0x0010;
 
     private readonly Action onSwitch;
     private readonly Action onExit;
@@ -49,7 +31,6 @@ public partial class OverlayWindow : Window
     private readonly List<RunningApp> runningApps;
     private readonly bool enableControllerNavigation;
     private OverlayControllerNavigator? controllerNavigator;
-    private InputBlocker? inputBlocker;
     
     // Two-level navigation state
     private NavigationTarget navigationTarget = NavigationTarget.CurrentGameSection;
@@ -179,14 +160,6 @@ public partial class OverlayWindow : Window
                 controllerNavigator = new OverlayControllerNavigator(this);
             }
             
-            // Install low-level hooks to block keyboard and mouse input from reaching games
-            inputBlocker = new InputBlocker();
-            inputBlocker.OnKeyEvent = HandleLowLevelKeyEvent;
-            inputBlocker.BlockAllKeyboard = false; // We'll selectively handle keys
-            inputBlocker.BlockMouse = true;
-            inputBlocker.OnMouseEvent = _ => true; // Block all mouse clicks
-            inputBlocker.Install();
-            
             try
             {
                 var anim = new System.Windows.Media.Animation.DoubleAnimation(0, 1, new Duration(TimeSpan.FromMilliseconds(200)))
@@ -200,10 +173,6 @@ public partial class OverlayWindow : Window
         
         Closed += (_, __) =>
         {
-            // Dispose input blocker to restore keyboard/mouse input
-            inputBlocker?.Dispose();
-            inputBlocker = null;
-            
             controllerNavigator?.Dispose();
             controllerNavigator = null;
         };
@@ -745,68 +714,17 @@ public partial class OverlayWindow : Window
 
     #region Window Lifecycle
 
-    /// <summary>
-    /// Handles key events from the low-level keyboard hook.
-    /// This intercepts keys before they reach the game, which is essential for exclusive fullscreen.
-    /// </summary>
-    /// <param name="vkCode">Virtual key code</param>
-    /// <param name="isKeyDown">True if key is being pressed, false if released</param>
-    /// <returns>True to block the key from reaching other applications</returns>
-    private bool HandleLowLevelKeyEvent(uint vkCode, bool isKeyDown)
-    {
-        // Only handle key down events for navigation
-        if (!isKeyDown)
-        {
-            // Block key up events for keys we handle, to prevent partial key events reaching the game
-            return vkCode switch
-            {
-                VK_ESCAPE or VK_RETURN or VK_SPACE or VK_UP or VK_DOWN or VK_LEFT or VK_RIGHT => true,
-                _ => false
-            };
-        }
-
-        // Dispatch navigation to UI thread
-        switch (vkCode)
-        {
-            case VK_ESCAPE:
-                Dispatcher.BeginInvoke(PerformCancel);
-                return true;
-            case VK_UP:
-                Dispatcher.BeginInvoke(NavigateUp);
-                return true;
-            case VK_DOWN:
-                Dispatcher.BeginInvoke(NavigateDown);
-                return true;
-            case VK_LEFT:
-                Dispatcher.BeginInvoke(NavigateLeft);
-                return true;
-            case VK_RIGHT:
-                Dispatcher.BeginInvoke(NavigateRight);
-                return true;
-            case VK_RETURN:
-                Dispatcher.BeginInvoke(PerformAccept);
-                return true;
-            case VK_SPACE:
-                // Space activates the focused button - let WPF handle it but also block from game
-                return true;
-            default:
-                // Don't block other keys (let user use chat, etc. if game supports it)
-                return false;
-        }
-    }
-
     protected override void OnSourceInitialized(EventArgs e)
     {
         base.OnSourceInitialized(e);
 
         var hwnd = new WindowInteropHelper(this).Handle;
 
-        // Apply extended window styles (TOOLWINDOW hides from Alt+Tab)
+        // Hide from Alt+Tab (no WPF alternative for this)
         var exStyle = GetWindowLong(hwnd, GWL_EXSTYLE);
         SetWindowLong(hwnd, GWL_EXSTYLE, exStyle | WS_EX_TOOLWINDOW);
 
-        // Set TOPMOST without activating the window
-        SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE | SWP_NOACTIVATE);
+        // Topmost is now handled by WPF via Topmost="True" in XAML
     }
 
     private void OnClosingWithFade(object? sender, System.ComponentModel.CancelEventArgs e)
