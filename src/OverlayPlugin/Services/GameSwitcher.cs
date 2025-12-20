@@ -232,6 +232,17 @@ public sealed class GameSwitcher
                 return;
             }
 
+            // Get Playnite's window handle
+            var playniteHandle = new System.Windows.Interop.WindowInteropHelper(mainWindow).Handle;
+
+            // Minimize the current foreground window before switching
+            // This prevents XInput bleed to background apps
+            IntPtr currentForeground = Win32Window.GetForegroundWindowHandle();
+            if (currentForeground != IntPtr.Zero && currentForeground != playniteHandle)
+            {
+                Win32Window.Minimize(currentForeground);
+            }
+
             // Restore if minimized
             if (mainWindow.WindowState == System.Windows.WindowState.Minimized)
             {

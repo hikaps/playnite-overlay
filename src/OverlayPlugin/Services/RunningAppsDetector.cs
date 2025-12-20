@@ -195,6 +195,14 @@ public sealed class RunningAppsDetector
                 return;
             }
 
+            // Minimize the current foreground window before switching
+            // This prevents XInput bleed to background apps
+            IntPtr currentForeground = Win32Window.GetForegroundWindowHandle();
+            if (currentForeground != IntPtr.Zero && currentForeground != app.WindowHandle)
+            {
+                Win32Window.Minimize(currentForeground);
+            }
+
             Win32Window.RestoreAndActivate(app.WindowHandle);
             logger.Info($"Switched to app: {app.Title} (PID: {app.ProcessId})");
             
