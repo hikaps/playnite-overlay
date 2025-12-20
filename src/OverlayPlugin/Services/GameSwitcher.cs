@@ -224,6 +224,10 @@ public sealed class GameSwitcher
 
     public void SwitchToPlaynite()
     {
+        // Minimize the current foreground window first (handles fullscreen apps)
+        // Do this outside the dispatcher to ensure it happens immediately
+        IntPtr foreground = Win32Window.GetCurrentForegroundWindow();
+        
         // Use BeginInvoke to avoid blocking if UI thread is busy
         System.Windows.Application.Current?.Dispatcher.BeginInvoke(new Action(() =>
         {
@@ -231,6 +235,16 @@ public sealed class GameSwitcher
             if (mainWindow == null)
             {
                 return;
+            }
+
+            // Get Playnite's window handle
+            var helper = new System.Windows.Interop.WindowInteropHelper(mainWindow);
+            IntPtr playniteHandle = helper.Handle;
+
+            // Minimize foreground if it's not Playnite itself
+            if (foreground != IntPtr.Zero && foreground != playniteHandle)
+            {
+                Win32Window.MinimizeWindow(foreground);
             }
 
             // Restore if minimized

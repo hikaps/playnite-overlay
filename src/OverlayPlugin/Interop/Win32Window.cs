@@ -10,6 +10,7 @@ namespace PlayniteOverlay;
 /// </summary>
 internal static class Win32Window
 {
+    private const int SW_MINIMIZE = 6;
     private const int SW_RESTORE = 9;
     private const int SW_SHOW = 5;
 
@@ -36,6 +37,75 @@ internal static class Win32Window
 
     [DllImport("kernel32.dll")]
     private static extern uint GetCurrentThreadId();
+
+    /// <summary>
+    /// Gets the current foreground window handle.
+    /// </summary>
+    public static IntPtr GetCurrentForegroundWindow()
+    {
+        return GetForegroundWindow();
+    }
+
+    /// <summary>
+    /// Minimizes the specified window.
+    /// </summary>
+    public static void MinimizeWindow(IntPtr hWnd)
+    {
+        if (hWnd == IntPtr.Zero)
+        {
+            return;
+        }
+
+        try
+        {
+            ShowWindow(hWnd, SW_MINIMIZE);
+        }
+        catch
+        {
+            // ignore - some windows may not respond to minimize
+        }
+    }
+
+    /// <summary>
+    /// Switches from the current foreground window to the target window.
+    /// Minimizes the foreground window first to ensure fullscreen apps don't
+    /// visually cover the target window.
+    /// </summary>
+    /// <param name="targetWindow">The window to switch to</param>
+    /// <param name="minimizeCurrent">Whether to minimize the current foreground window</param>
+    public static void SwitchToWindow(IntPtr targetWindow, bool minimizeCurrent = true)
+    {
+        if (targetWindow == IntPtr.Zero)
+        {
+            return;
+        }
+
+        try
+        {
+            IntPtr foreground = GetForegroundWindow();
+
+            // Minimize the current foreground window if requested and it's not the target
+            if (minimizeCurrent && foreground != IntPtr.Zero && foreground != targetWindow)
+            {
+                MinimizeWindow(foreground);
+            }
+
+            // Now activate the target window
+            RestoreAndActivate(targetWindow);
+        }
+        catch
+        {
+            // Fallback to basic activation
+            try
+            {
+                RestoreAndActivate(targetWindow);
+            }
+            catch
+            {
+                // ignore
+            }
+        }
+    }
 
     /// <summary>
     /// Restores (if minimized) and activates the specified window.
