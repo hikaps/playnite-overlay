@@ -195,7 +195,9 @@ public sealed class RunningAppsDetector
                 return;
             }
 
-            Win32Window.RestoreAndActivate(app.WindowHandle);
+            // Use SwitchToWindow which minimizes the foreground window first
+            // This ensures fullscreen apps don't visually cover the target
+            Win32Window.SwitchToWindow(app.WindowHandle);
             logger.Info($"Switched to app: {app.Title} (PID: {app.ProcessId})");
             
             // Notify subscribers that app was switched to
