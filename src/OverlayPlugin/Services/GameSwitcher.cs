@@ -227,33 +227,20 @@ public sealed class GameSwitcher
         System.Windows.Application.Current?.Dispatcher.Invoke(() =>
         {
             var mainWindow = System.Windows.Application.Current?.MainWindow;
-            var handle = IntPtr.Zero;
-
-            if (mainWindow != null)
+            if (mainWindow == null)
             {
-                try
-                {
-                    handle = new System.Windows.Interop.WindowInteropHelper(mainWindow).Handle;
-                }
-                catch
-                {
-                    handle = IntPtr.Zero;
-                }
+                return;
             }
 
-            if (handle == IntPtr.Zero)
+            // Restore if minimized
+            if (mainWindow.WindowState == System.Windows.WindowState.Minimized)
             {
-                try
-                {
-                    handle = System.Diagnostics.Process.GetCurrentProcess().MainWindowHandle;
-                }
-                catch
-                {
-                    handle = IntPtr.Zero;
-                }
+                mainWindow.WindowState = System.Windows.WindowState.Normal;
             }
 
-            Win32Window.RestoreAndActivate(handle);
+            // Show and activate (handles hidden/tray windows properly)
+            mainWindow.Show();
+            mainWindow.Activate();
         });
     }
 
