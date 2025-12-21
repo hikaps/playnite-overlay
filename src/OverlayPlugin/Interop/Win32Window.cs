@@ -149,6 +149,37 @@ internal static class Win32Window
     }
 
     /// <summary>
+    /// Activates the overlay window reliably by stealing focus from the
+    /// current foreground window (typically a game). This uses the
+    /// AttachThreadInput pattern to bypass Windows focus restrictions.
+    /// </summary>
+    /// <param name="overlayHwnd">Handle to the overlay window</param>
+    public static void ActivateOverlayWindow(IntPtr overlayHwnd)
+    {
+        if (overlayHwnd == IntPtr.Zero)
+        {
+            return;
+        }
+
+        try
+        {
+            ActivateWindowReliably(overlayHwnd);
+        }
+        catch
+        {
+            // Fallback to basic activation
+            try
+            {
+                SetForegroundWindow(overlayHwnd);
+            }
+            catch
+            {
+                // ignore
+            }
+        }
+    }
+
+    /// <summary>
     /// Activates a window reliably by attaching to the foreground thread.
     /// Windows restricts SetForegroundWindow unless:
     /// 1. The calling process is the foreground process, OR
