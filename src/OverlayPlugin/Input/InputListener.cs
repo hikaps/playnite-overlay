@@ -11,6 +11,8 @@ internal sealed class InputListener
 {
     private const int PollIntervalMs = 100;
     private const int HotkeyRetryLimit = 10;
+    private const int ToggleCooldownMs = 300;
+    private const int NavigationCooldownMs = 150;
 
     private static readonly ILogger logger = LogManager.GetLogger();
     private readonly ushort[] lastButtons = new ushort[4];
@@ -23,7 +25,42 @@ internal sealed class InputListener
     private string? customHotkeyGesture;
     private bool enableController = true;
 
+    // Overlay window reference for navigation (single polling loop)
+    private OverlayWindow? overlayWindow;
+    private readonly object overlayWindowLock = new object();
+
+    // Cooldown tracking
+    private DateTime lastToggleTime = DateTime.MinValue;
+    private DateTime lastNavigationTime = DateTime.MinValue;
+
     public event EventHandler? ToggleRequested;
+
+    /// <summary>
+    /// Sets the overlay window reference for controller navigation.
+    /// When set to non-null, navigation inputs are routed to the window.
+    /// When set to null, navigation is disabled.
+    /// </summary>
+    public void SetOverlayWindow(OverlayWindow? window)
+    {
+        lock (overlayWindowLock)
+        {
+            overlayWindow = window;
+            if (window != null)
+            {
+                // Capture current button state to prevent ghost inputs
+                // Any buttons currently pressed won't trigger actions until released
+                for (int i = 0; i < lastButtons.Length; i++)
+                {
+                    if (XInput.TryGetState(i, out var state))
+                    {
+                        lastButtons[i] = state.Gamepad.wButtons;
+                    }
+                }
+                // Reset navigation cooldown to prevent immediate input
+                lastNavigationTime = DateTime.Now;
+            }
+        }
+    }
 
     /// <summary>
     /// Starts both hotkey and controller input listening.
@@ -105,6 +142,13 @@ internal sealed class InputListener
 
         bool useGuide = controllerCombo.Equals("Guide", StringComparison.OrdinalIgnoreCase);
 
+        // Get current overlay window reference
+        OverlayWindow? currentOverlay;
+        lock (overlayWindowLock)
+        {
+            currentOverlay = overlayWindow;
+        }
+
         for (int index = 0; index < lastButtons.Length; index++)
         {
             // Use TryGetStateEx when checking for Guide button (includes Guide in wButtons)
@@ -131,20 +175,100 @@ internal sealed class InputListener
             }
 
             var buttons = state.Gamepad.wButtons;
-            var mask = ResolveComboMask(controllerCombo);
+            var previous = lastButtons[index];
 
+            // Handle toggle combo with cooldown
+            var mask = ResolveComboMask(controllerCombo);
             if (mask != 0)
             {
                 bool now = (buttons & mask) == mask;
-                bool prev = (lastButtons[index] & mask) == mask;
+                bool prev = (previous & mask) == mask;
                 if (now && !prev)
                 {
-                    logger.Debug($"Controller combo '{controllerCombo}' pressed on controller {index}");
-                    TriggerToggle();
+                    var elapsed = (DateTime.Now - lastToggleTime).TotalMilliseconds;
+                    if (elapsed >= ToggleCooldownMs)
+                    {
+                        logger.Debug($"Controller combo '{controllerCombo}' pressed on controller {index}");
+                        lastToggleTime = DateTime.Now;
+                        TriggerToggle();
+                    }
                 }
             }
 
+            // Handle navigation if overlay is open
+            if (currentOverlay != null)
+            {
+                HandleNavigation(currentOverlay, previous, buttons);
+            }
+
             lastButtons[index] = buttons;
+        }
+    }
+
+    private void HandleNavigation(OverlayWindow window, ushort previous, ushort buttons)
+    {
+        var elapsed = (DateTime.Now - lastNavigationTime).TotalMilliseconds;
+        if (elapsed < NavigationCooldownMs)
+        {
+            return;
+        }
+
+        // Check D-pad directions
+        if (IsPressed(previous, buttons, XInput.XINPUT_GAMEPAD_DPAD_UP))
+        {
+            lastNavigationTime = DateTime.Now;
+            Dispatch(window, () => window.ControllerNavigateUp());
+        }
+        else if (IsPressed(previous, buttons, XInput.XINPUT_GAMEPAD_DPAD_DOWN))
+        {
+            lastNavigationTime = DateTime.Now;
+            Dispatch(window, () => window.ControllerNavigateDown());
+        }
+        else if (IsPressed(previous, buttons, XInput.XINPUT_GAMEPAD_DPAD_LEFT))
+        {
+            lastNavigationTime = DateTime.Now;
+            Dispatch(window, () => window.ControllerNavigateLeft());
+        }
+        else if (IsPressed(previous, buttons, XInput.XINPUT_GAMEPAD_DPAD_RIGHT))
+        {
+            lastNavigationTime = DateTime.Now;
+            Dispatch(window, () => window.ControllerNavigateRight());
+        }
+
+        // Check action buttons (A, B, Back)
+        if (IsPressed(previous, buttons, XInput.XINPUT_GAMEPAD_A))
+        {
+            lastNavigationTime = DateTime.Now;
+            Dispatch(window, () => window.ControllerAccept());
+        }
+        else if (IsPressed(previous, buttons, XInput.XINPUT_GAMEPAD_B) ||
+                 IsPressed(previous, buttons, XInput.XINPUT_GAMEPAD_BACK))
+        {
+            lastNavigationTime = DateTime.Now;
+            Dispatch(window, () => window.ControllerCancel());
+        }
+    }
+
+    private static bool IsPressed(ushort previous, ushort current, ushort mask)
+    {
+        return (current & mask) != 0 && (previous & mask) == 0;
+    }
+
+    private static void Dispatch(OverlayWindow window, Action action)
+    {
+        var dispatcher = window.Dispatcher;
+        if (dispatcher.HasShutdownStarted || dispatcher.HasShutdownFinished)
+        {
+            return;
+        }
+
+        if (dispatcher.CheckAccess())
+        {
+            action();
+        }
+        else
+        {
+            dispatcher.BeginInvoke(action, DispatcherPriority.Send);
         }
     }
 
