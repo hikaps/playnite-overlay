@@ -189,6 +189,8 @@ public class OverlayPlugin : GenericPlugin
         }
 
         // Get running apps (excluding active app)
+        // Set the active app's window handle so SwitchToApp knows what to minimize
+        runningAppsDetector.ActiveAppWindowHandle = switcher.ActiveApp?.WindowHandle ?? IntPtr.Zero;
         var runningApps = runningAppsDetector.GetRunningApps(
             excludeFromRunningApps,
             settings.Settings.ShowGenericApps,
