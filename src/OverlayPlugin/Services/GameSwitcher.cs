@@ -224,12 +224,27 @@ public sealed class GameSwitcher
 
     public void SwitchToPlaynite()
     {
-        System.Windows.Application.Current?.Dispatcher.Invoke(() =>
+        // Capture the active app's window handle (not foreground - that's likely the overlay)
+        // This ensures we minimize the actual game, not whatever has focus
+        IntPtr windowToMinimize = activeApp?.WindowHandle ?? IntPtr.Zero;
+        
+        // Use BeginInvoke to avoid blocking if UI thread is busy
+        System.Windows.Application.Current?.Dispatcher.BeginInvoke(new Action(() =>
         {
             var mainWindow = System.Windows.Application.Current?.MainWindow;
             if (mainWindow == null)
             {
                 return;
+            }
+
+            // Get Playnite's window handle
+            var helper = new System.Windows.Interop.WindowInteropHelper(mainWindow);
+            IntPtr playniteHandle = helper.Handle;
+
+            // Minimize the active app (game) if it exists and is not Playnite itself
+            if (windowToMinimize != IntPtr.Zero && windowToMinimize != playniteHandle)
+            {
+                Win32Window.MinimizeWindow(windowToMinimize);
             }
 
             // Restore if minimized
@@ -241,7 +256,7 @@ public sealed class GameSwitcher
             // Show and activate (handles hidden/tray windows properly)
             mainWindow.Show();
             mainWindow.Activate();
-        });
+        }));
     }
 
     public void ExitActiveApp()
@@ -556,6 +571,13 @@ public sealed class GameSwitcher
 
     public void StartGame(Guid gameId)
     {
+        // Minimize the active app (the game we're currently playing) before launching
+        // This ensures fullscreen games don't visually cover the newly launched game
+        if (activeApp != null && activeApp.WindowHandle != IntPtr.Zero)
+        {
+            Win32Window.MinimizeWindow(activeApp.WindowHandle);
+        }
+        
         api.StartGame(gameId);
     }
 
