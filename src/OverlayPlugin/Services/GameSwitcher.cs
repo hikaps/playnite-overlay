@@ -552,7 +552,7 @@ public sealed class GameSwitcher
         }
     }
 
-    public IEnumerable<Playnite.SDK.Models.Game> GetRecentGames(int count)
+    public IEnumerable<Playnite.SDK.Models.Game> GetRecentGames(int count, HashSet<Guid>? excludeGameIds = null)
     {
         var games = api.Database.Games.AsQueryable();
         var query = games.Where(g => g.LastActivity != null);
@@ -563,10 +563,19 @@ public sealed class GameSwitcher
             query = query.Where(g => g.Id != activeApp.GameId.Value);
         }
 
-        return query
+        // Exclude running games to avoid showing duplicates
+        if (excludeGameIds != null && excludeGameIds.Count > 0)
+        {
+            query = query.Where(g => !excludeGameIds.Contains(g.Id));
+        }
+
+        // We need to fetch more games than requested to compensate for exclusions,
+        // then take the exact count after filtering
+        var allFiltered = query
             .OrderByDescending(g => g.LastActivity)
-            .Take(count)
             .ToList();
+
+        return allFiltered.Take(count);
     }
 
     public void StartGame(Guid gameId)
