@@ -12,7 +12,6 @@ internal sealed class InputListener
     private const int PollIntervalMs = 100;
     private const int HotkeyRetryLimit = 10;
     private const int ToggleCooldownMs = 300;
-    private const int NavigationCooldownMs = 150;
 
     private static readonly ILogger logger = LogManager.GetLogger();
     private readonly ushort[] lastButtons = new ushort[4];
@@ -29,9 +28,14 @@ internal sealed class InputListener
     private OverlayWindow? overlayWindow;
     private readonly object overlayWindowLock = new object();
 
-    // Cooldown tracking
+    // Toggle cooldown tracking
     private DateTime lastToggleTime = DateTime.MinValue;
-    private DateTime lastNavigationTime = DateTime.MinValue;
+
+    // Track which navigation buttons have been consumed per controller (waiting for release before re-triggering)
+    private readonly ushort[] consumedNavigationButtons = new ushort[4];
+
+    // Prevent duplicate navigation from multiple controllers reporting the same input in a single poll cycle
+    private bool navigationHandledThisCycle = false;
 
     public event EventHandler? ToggleRequested;
 
@@ -54,13 +58,36 @@ internal sealed class InputListener
                     if (XInput.TryGetState(i, out var state))
                     {
                         lastButtons[i] = state.Gamepad.wButtons;
+                        // Mark all currently pressed navigation buttons as consumed per controller
+                        // so they don't trigger until released and pressed again
+                        consumedNavigationButtons[i] = (ushort)(state.Gamepad.wButtons & NavigationButtonsMask);
+                    }
+                    else
+                    {
+                        consumedNavigationButtons[i] = 0;
                     }
                 }
-                // Reset navigation cooldown to prevent immediate input
-                lastNavigationTime = DateTime.Now;
+            }
+            else
+            {
+                // Reset consumed buttons for all controllers when overlay closes
+                for (int i = 0; i < consumedNavigationButtons.Length; i++)
+                {
+                    consumedNavigationButtons[i] = 0;
+                }
             }
         }
     }
+
+    // All navigation-related buttons that use consumed-button debouncing
+    private const ushort NavigationButtonsMask =
+        XInput.XINPUT_GAMEPAD_DPAD_UP |
+        XInput.XINPUT_GAMEPAD_DPAD_DOWN |
+        XInput.XINPUT_GAMEPAD_DPAD_LEFT |
+        XInput.XINPUT_GAMEPAD_DPAD_RIGHT |
+        XInput.XINPUT_GAMEPAD_A |
+        XInput.XINPUT_GAMEPAD_B |
+        XInput.XINPUT_GAMEPAD_BACK;
 
     /// <summary>
     /// Starts both hotkey and controller input listening.
@@ -140,6 +167,9 @@ internal sealed class InputListener
             return;
         }
 
+        // Reset navigation flag at start of each poll cycle
+        navigationHandledThisCycle = false;
+
         bool useGuide = controllerCombo.Equals("Guide", StringComparison.OrdinalIgnoreCase);
 
         // Get current overlay window reference
@@ -198,60 +228,80 @@ internal sealed class InputListener
             // Handle navigation if overlay is open
             if (currentOverlay != null)
             {
-                HandleNavigation(currentOverlay, previous, buttons);
+                HandleNavigation(currentOverlay, buttons, index);
             }
 
             lastButtons[index] = buttons;
         }
     }
 
-    private void HandleNavigation(OverlayWindow window, ushort previous, ushort buttons)
+    private void HandleNavigation(OverlayWindow window, ushort buttons, int controllerIndex)
     {
-        var elapsed = (DateTime.Now - lastNavigationTime).TotalMilliseconds;
-        if (elapsed < NavigationCooldownMs)
+        // Only allow one navigation action per poll cycle (prevents duplicate input from
+        // controllers that register as multiple XInput devices)
+        if (navigationHandledThisCycle)
         {
             return;
         }
 
-        // Check D-pad directions
-        if (IsPressed(previous, buttons, XInput.XINPUT_GAMEPAD_DPAD_UP))
+        // Clear consumed flag for any navigation buttons that are now released on THIS controller
+        ushort releasedButtons = (ushort)(consumedNavigationButtons[controllerIndex] & ~buttons);
+        consumedNavigationButtons[controllerIndex] = (ushort)(consumedNavigationButtons[controllerIndex] & ~releasedButtons);
+
+        // Check D-pad directions - only trigger if pressed AND not consumed on THIS controller
+        if (IsNewPress(buttons, XInput.XINPUT_GAMEPAD_DPAD_UP, controllerIndex))
         {
-            lastNavigationTime = DateTime.Now;
+            consumedNavigationButtons[controllerIndex] |= XInput.XINPUT_GAMEPAD_DPAD_UP;
+            navigationHandledThisCycle = true;
             Dispatch(window, () => window.ControllerNavigateUp());
         }
-        else if (IsPressed(previous, buttons, XInput.XINPUT_GAMEPAD_DPAD_DOWN))
+        else if (IsNewPress(buttons, XInput.XINPUT_GAMEPAD_DPAD_DOWN, controllerIndex))
         {
-            lastNavigationTime = DateTime.Now;
+            consumedNavigationButtons[controllerIndex] |= XInput.XINPUT_GAMEPAD_DPAD_DOWN;
+            navigationHandledThisCycle = true;
             Dispatch(window, () => window.ControllerNavigateDown());
         }
-        else if (IsPressed(previous, buttons, XInput.XINPUT_GAMEPAD_DPAD_LEFT))
+        else if (IsNewPress(buttons, XInput.XINPUT_GAMEPAD_DPAD_LEFT, controllerIndex))
         {
-            lastNavigationTime = DateTime.Now;
+            consumedNavigationButtons[controllerIndex] |= XInput.XINPUT_GAMEPAD_DPAD_LEFT;
+            navigationHandledThisCycle = true;
             Dispatch(window, () => window.ControllerNavigateLeft());
         }
-        else if (IsPressed(previous, buttons, XInput.XINPUT_GAMEPAD_DPAD_RIGHT))
+        else if (IsNewPress(buttons, XInput.XINPUT_GAMEPAD_DPAD_RIGHT, controllerIndex))
         {
-            lastNavigationTime = DateTime.Now;
+            consumedNavigationButtons[controllerIndex] |= XInput.XINPUT_GAMEPAD_DPAD_RIGHT;
+            navigationHandledThisCycle = true;
             Dispatch(window, () => window.ControllerNavigateRight());
         }
 
         // Check action buttons (A, B, Back)
-        if (IsPressed(previous, buttons, XInput.XINPUT_GAMEPAD_A))
+        if (IsNewPress(buttons, XInput.XINPUT_GAMEPAD_A, controllerIndex))
         {
-            lastNavigationTime = DateTime.Now;
+            consumedNavigationButtons[controllerIndex] |= XInput.XINPUT_GAMEPAD_A;
+            navigationHandledThisCycle = true;
             Dispatch(window, () => window.ControllerAccept());
         }
-        else if (IsPressed(previous, buttons, XInput.XINPUT_GAMEPAD_B) ||
-                 IsPressed(previous, buttons, XInput.XINPUT_GAMEPAD_BACK))
+        else if (IsNewPress(buttons, XInput.XINPUT_GAMEPAD_B, controllerIndex))
         {
-            lastNavigationTime = DateTime.Now;
+            consumedNavigationButtons[controllerIndex] |= XInput.XINPUT_GAMEPAD_B;
+            navigationHandledThisCycle = true;
+            Dispatch(window, () => window.ControllerCancel());
+        }
+        else if (IsNewPress(buttons, XInput.XINPUT_GAMEPAD_BACK, controllerIndex))
+        {
+            consumedNavigationButtons[controllerIndex] |= XInput.XINPUT_GAMEPAD_BACK;
+            navigationHandledThisCycle = true;
             Dispatch(window, () => window.ControllerCancel());
         }
     }
 
-    private static bool IsPressed(ushort previous, ushort current, ushort mask)
+    /// <summary>
+    /// Returns true if the button is currently pressed AND has not been consumed yet on this controller.
+    /// A button is consumed when it triggers an action, and is released when the button is no longer pressed.
+    /// </summary>
+    private bool IsNewPress(ushort buttons, ushort mask, int controllerIndex)
     {
-        return (current & mask) != 0 && (previous & mask) == 0;
+        return (buttons & mask) != 0 && (consumedNavigationButtons[controllerIndex] & mask) == 0;
     }
 
     private static void Dispatch(OverlayWindow window, Action action)
