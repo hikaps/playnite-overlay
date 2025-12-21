@@ -201,13 +201,21 @@ public class OverlayPlugin : GenericPlugin
             .Select(g => OverlayItem.FromRecentGame(g, switcher))
             .ToList();
 
+        // Determine if we should suspend the active app's process
+        int processIdToSuspend = 0;
+        if (settings.Settings.SuspendGameWhileOverlayActive && switcher.ActiveApp != null)
+        {
+            processIdToSuspend = switcher.ActiveApp.ProcessId;
+        }
+
         overlay.Show(
             () => switcher.SwitchToPlaynite(),
             HandleExitGame,
             currentGameItem,
             runningApps,
             recentGames,
-            settings.Settings.UseControllerToOpen);
+            settings.Settings.UseControllerToOpen,
+            processIdToSuspend);
     }
 
     private void HandleExitGame()
@@ -299,6 +307,9 @@ public class OverlayPlugin : GenericPlugin
         // Clean up resources
         input.Stop();
         overlay.Hide();
+        
+        // Safety: ensure any suspended process is resumed on plugin unload
+        overlay.ResumeIfSuspended();
 
         base.Dispose();
     }

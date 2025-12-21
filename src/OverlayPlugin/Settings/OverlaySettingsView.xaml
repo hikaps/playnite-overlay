@@ -4,88 +4,104 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              mc:Ignorable="d"
-             d:DesignWidth="540" d:DesignHeight="320">
-    <StackPanel Margin="10" Orientation="Vertical" >
-        <TextBlock Text="Overlay Settings" FontSize="16" FontWeight="Bold" Margin="0,0,0,10"/>
+             d:DesignWidth="540" d:DesignHeight="480">
+    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+        <StackPanel Margin="10" Orientation="Vertical">
+            <TextBlock Text="Overlay Settings" FontSize="16" FontWeight="Bold" Margin="0,0,0,10"/>
 
-        <GroupBox Header="Keyboard Shortcut">
-            <StackPanel Margin="10">
-                <TextBlock Text="Set a custom global hotkey to toggle the overlay from anywhere." TextWrapping="Wrap"/>
-                <CheckBox Content="Enable custom global hotkey"
-                          Margin="0,8,0,0"
-                          IsChecked="{Binding Settings.EnableCustomHotkey}"/>
-                <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
-                    <TextBlock Text="Custom hotkey:" VerticalAlignment="Center"/>
-                    <TextBox Width="200"
-                             Margin="8,0,0,0"
-                             Text="{Binding Settings.CustomHotkey}"
-                             IsReadOnly="True"
-                             PreviewKeyDown="Hotkey_PreviewKeyDown"
-                             ToolTip="Click here and press the desired key combo"/>
-                    <Button Margin="8,0,0,0" Content="Clear" Click="Hotkey_Clear_Click"/>
+            <GroupBox Header="Keyboard Shortcut">
+                <StackPanel Margin="10">
+                    <TextBlock Text="Set a custom global hotkey to toggle the overlay from anywhere." TextWrapping="Wrap"/>
+                    <CheckBox Content="Enable custom global hotkey"
+                              Margin="0,8,0,0"
+                              IsChecked="{Binding Settings.EnableCustomHotkey}"/>
+                    <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
+                        <TextBlock Text="Custom hotkey:" VerticalAlignment="Center"/>
+                        <TextBox Width="200"
+                                 Margin="8,0,0,0"
+                                 Text="{Binding Settings.CustomHotkey}"
+                                 IsReadOnly="True"
+                                 PreviewKeyDown="Hotkey_PreviewKeyDown"
+                                 ToolTip="Click here and press the desired key combo"/>
+                        <Button Margin="8,0,0,0" Content="Clear" Click="Hotkey_Clear_Click"/>
+                    </StackPanel>
                 </StackPanel>
-            </StackPanel>
-        </GroupBox>
+            </GroupBox>
 
-        <GroupBox Header="Controller">
-            <StackPanel Margin="10">
-                <CheckBox Content="Allow opening overlay with controller"
-                          IsChecked="{Binding Settings.UseControllerToOpen}"/>
-                <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
-                    <TextBlock Text="Button combo:" VerticalAlignment="Center"/>
-                    <ComboBox Width="160" Margin="8,0,0,0"
-                              SelectedValuePath="Content"
-                              SelectedValue="{Binding Settings.ControllerCombo}">
-                        <ComboBoxItem Content="Guide" />
-                        <ComboBoxItem Content="Start+Back" />
-                        <ComboBoxItem Content="LB+RB" />
-                    </ComboBox>
+            <GroupBox Header="Controller">
+                <StackPanel Margin="10">
+                    <CheckBox Content="Allow opening overlay with controller"
+                              IsChecked="{Binding Settings.UseControllerToOpen}"/>
+                    <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
+                        <TextBlock Text="Button combo:" VerticalAlignment="Center"/>
+                        <ComboBox Width="160" Margin="8,0,0,0"
+                                  SelectedValuePath="Content"
+                                  SelectedValue="{Binding Settings.ControllerCombo}">
+                            <ComboBoxItem Content="Guide" />
+                            <ComboBoxItem Content="Start+Back" />
+                            <ComboBoxItem Content="LB+RB" />
+                        </ComboBox>
+                    </StackPanel>
+                    <CheckBox Content="Controller input always active (not just during gameplay)"
+                              Margin="0,8,0,0"
+                              IsChecked="{Binding Settings.ControllerAlwaysActive}"
+                              ToolTip="Warning: May conflict with system Xbox overlay when enabled"/>
+                    <TextBlock Margin="0,6,0,0" TextWrapping="Wrap"
+                               Foreground="Gray"
+                               Text="Note: Controller detection uses XInput and may not work with all devices yet."/>
                 </StackPanel>
-                <CheckBox Content="Controller input always active (not just during gameplay)"
-                          Margin="0,8,0,0"
-                          IsChecked="{Binding Settings.ControllerAlwaysActive}"
-                          ToolTip="Warning: May conflict with system Xbox overlay when enabled"/>
-                <TextBlock Margin="0,6,0,0" TextWrapping="Wrap"
-                           Foreground="Gray"
-                           Text="Note: Controller detection uses XInput and may not work with all devices yet."/>
-            </StackPanel>
-        </GroupBox>
+            </GroupBox>
 
-        <GroupBox Header="Running Apps Detection">
-            <StackPanel Margin="10">
-                <CheckBox Content="Show non-game applications (browsers, editors, etc.)"
-                          IsChecked="{Binding Settings.ShowGenericApps}"
-                          ToolTip="When enabled, shows all running apps with visible windows. When disabled, only shows games."/>
-                <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
-                    <TextBlock Text="Maximum apps to display:" VerticalAlignment="Center"/>
-                    <TextBox Width="60" Margin="8,0,0,0"
-                             Text="{Binding Settings.MaxRunningApps, UpdateSourceTrigger=PropertyChanged}"
-                             ToolTip="Maximum number of running apps to show in the overlay (1-50)"/>
+            <GroupBox Header="Running Apps Detection">
+                <StackPanel Margin="10">
+                    <CheckBox Content="Show non-game applications (browsers, editors, etc.)"
+                              IsChecked="{Binding Settings.ShowGenericApps}"
+                              ToolTip="When enabled, shows all running apps with visible windows. When disabled, only shows games."/>
+                    <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                        <TextBlock Text="Maximum apps to display:" VerticalAlignment="Center"/>
+                        <TextBox Width="60" Margin="8,0,0,0"
+                                 Text="{Binding Settings.MaxRunningApps, UpdateSourceTrigger=PropertyChanged}"
+                                 ToolTip="Maximum number of running apps to show in the overlay (1-50)"/>
+                    </StackPanel>
+                    <TextBlock Margin="0,6,0,0" TextWrapping="Wrap"
+                               Foreground="Gray"
+                               Text="The overlay can detect and switch between multiple running games and applications."/>
                 </StackPanel>
-                <TextBlock Margin="0,6,0,0" TextWrapping="Wrap"
-                           Foreground="Gray"
-                           Text="The overlay can detect and switch between multiple running games and applications."/>
-            </StackPanel>
-        </GroupBox>
+            </GroupBox>
 
-        <GroupBox Header="Fullscreen Compatibility">
-            <StackPanel Margin="10">
-                <CheckBox Content="Force borderless windowed mode for games"
-                          IsChecked="{Binding Settings.ForceBorderlessMode}"
-                          ToolTip="Automatically converts windowed games to borderless fullscreen. This helps the overlay work on games that don't natively support it."/>
-                <TextBlock Margin="0,6,0,0" TextWrapping="Wrap"
-                           Foreground="Gray"
-                           Text="When enabled, games running in windowed mode will be converted to borderless fullscreen after launch. This allows the overlay to appear over the game."/>
-                <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
-                    <TextBlock Text="Delay before applying (ms):" VerticalAlignment="Center"/>
-                    <TextBox Width="60" Margin="8,0,0,0"
-                             Text="{Binding Settings.BorderlessDelayMs, UpdateSourceTrigger=PropertyChanged}"
-                             ToolTip="Time to wait after game starts before applying borderless mode (1000-10000 ms)"/>
+            <GroupBox Header="Fullscreen Compatibility">
+                <StackPanel Margin="10">
+                    <CheckBox Content="Force borderless windowed mode for games"
+                              IsChecked="{Binding Settings.ForceBorderlessMode}"
+                              ToolTip="Automatically converts windowed games to borderless fullscreen. This helps the overlay work on games that don't natively support it."/>
+                    <TextBlock Margin="0,6,0,0" TextWrapping="Wrap"
+                               Foreground="Gray"
+                               Text="When enabled, games running in windowed mode will be converted to borderless fullscreen after launch. This allows the overlay to appear over the game."/>
+                    <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                        <TextBlock Text="Delay before applying (ms):" VerticalAlignment="Center"/>
+                        <TextBox Width="60" Margin="8,0,0,0"
+                                 Text="{Binding Settings.BorderlessDelayMs, UpdateSourceTrigger=PropertyChanged}"
+                                 ToolTip="Time to wait after game starts before applying borderless mode (1000-10000 ms)"/>
+                    </StackPanel>
+                    <TextBlock Margin="0,8,0,0" TextWrapping="Wrap"
+                               Foreground="Orange"
+                               Text="Note: This only works for games running in windowed mode. For games in true exclusive fullscreen, you'll need to change the game's display settings to Windowed or Borderless."/>
                 </StackPanel>
-                <TextBlock Margin="0,8,0,0" TextWrapping="Wrap"
-                           Foreground="Orange"
-                           Text="Note: This only works for games running in windowed mode. For games in true exclusive fullscreen, you'll need to change the game's display settings to Windowed or Borderless."/>
-            </StackPanel>
-        </GroupBox>
-    </StackPanel>
+            </GroupBox>
+
+            <GroupBox Header="Game Suspension">
+                <StackPanel Margin="10">
+                    <CheckBox Content="Suspend game while overlay is active"
+                              IsChecked="{Binding Settings.SuspendGameWhileOverlayActive}"
+                              ToolTip="Pauses the game process while the overlay is visible. This prevents the game from receiving controller input."/>
+                    <TextBlock Margin="0,6,0,0" TextWrapping="Wrap"
+                               Foreground="Gray"
+                               Text="When enabled, the game process is temporarily suspended while the overlay is open. This prevents controller button presses from being sent to the game while navigating the overlay."/>
+                    <TextBlock Margin="0,8,0,0" TextWrapping="Wrap"
+                               Foreground="Orange"
+                               Text="Warning: Some games with anti-cheat software may not respond well to being suspended. If you experience issues, disable this option."/>
+                </StackPanel>
+            </GroupBox>
+        </StackPanel>
+    </ScrollViewer>
 </UserControl>
