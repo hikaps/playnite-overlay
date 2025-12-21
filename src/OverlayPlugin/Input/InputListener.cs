@@ -31,8 +31,8 @@ internal sealed class InputListener
     // Toggle cooldown tracking
     private DateTime lastToggleTime = DateTime.MinValue;
 
-    // Track which navigation buttons have been consumed (waiting for release before re-triggering)
-    private ushort consumedNavigationButtons = 0;
+    // Track which navigation buttons have been consumed per controller (waiting for release before re-triggering)
+    private readonly ushort[] consumedNavigationButtons = new ushort[4];
 
     public event EventHandler? ToggleRequested;
 
@@ -55,28 +55,25 @@ internal sealed class InputListener
                     if (XInput.TryGetState(i, out var state))
                     {
                         lastButtons[i] = state.Gamepad.wButtons;
+                        // Mark all currently pressed navigation buttons as consumed per controller
+                        // so they don't trigger until released and pressed again
+                        consumedNavigationButtons[i] = (ushort)(state.Gamepad.wButtons & NavigationButtonsMask);
+                    }
+                    else
+                    {
+                        consumedNavigationButtons[i] = 0;
                     }
                 }
-                // Mark all currently pressed navigation buttons as consumed
-                // so they don't trigger until released and pressed again
-                consumedNavigationButtons = GetCurrentNavigationButtons();
             }
             else
             {
-                // Reset consumed buttons when overlay closes
-                consumedNavigationButtons = 0;
+                // Reset consumed buttons for all controllers when overlay closes
+                for (int i = 0; i < consumedNavigationButtons.Length; i++)
+                {
+                    consumedNavigationButtons[i] = 0;
+                }
             }
         }
-    }
-
-    private ushort GetCurrentNavigationButtons()
-    {
-        ushort buttons = 0;
-        for (int i = 0; i < lastButtons.Length; i++)
-        {
-            buttons |= lastButtons[i];
-        }
-        return (ushort)(buttons & NavigationButtonsMask);
     }
 
     // All navigation-related buttons that use consumed-button debouncing
@@ -225,66 +222,66 @@ internal sealed class InputListener
             // Handle navigation if overlay is open
             if (currentOverlay != null)
             {
-                HandleNavigation(currentOverlay, buttons);
+                HandleNavigation(currentOverlay, buttons, index);
             }
 
             lastButtons[index] = buttons;
         }
     }
 
-    private void HandleNavigation(OverlayWindow window, ushort buttons)
+    private void HandleNavigation(OverlayWindow window, ushort buttons, int controllerIndex)
     {
-        // Clear consumed flag for any navigation buttons that are now released
-        ushort releasedButtons = (ushort)(consumedNavigationButtons & ~buttons);
-        consumedNavigationButtons = (ushort)(consumedNavigationButtons & ~releasedButtons);
+        // Clear consumed flag for any navigation buttons that are now released on THIS controller
+        ushort releasedButtons = (ushort)(consumedNavigationButtons[controllerIndex] & ~buttons);
+        consumedNavigationButtons[controllerIndex] = (ushort)(consumedNavigationButtons[controllerIndex] & ~releasedButtons);
 
-        // Check D-pad directions - only trigger if pressed AND not consumed
-        if (IsNewPress(buttons, XInput.XINPUT_GAMEPAD_DPAD_UP))
+        // Check D-pad directions - only trigger if pressed AND not consumed on THIS controller
+        if (IsNewPress(buttons, XInput.XINPUT_GAMEPAD_DPAD_UP, controllerIndex))
         {
-            consumedNavigationButtons |= XInput.XINPUT_GAMEPAD_DPAD_UP;
+            consumedNavigationButtons[controllerIndex] |= XInput.XINPUT_GAMEPAD_DPAD_UP;
             Dispatch(window, () => window.ControllerNavigateUp());
         }
-        else if (IsNewPress(buttons, XInput.XINPUT_GAMEPAD_DPAD_DOWN))
+        else if (IsNewPress(buttons, XInput.XINPUT_GAMEPAD_DPAD_DOWN, controllerIndex))
         {
-            consumedNavigationButtons |= XInput.XINPUT_GAMEPAD_DPAD_DOWN;
+            consumedNavigationButtons[controllerIndex] |= XInput.XINPUT_GAMEPAD_DPAD_DOWN;
             Dispatch(window, () => window.ControllerNavigateDown());
         }
-        else if (IsNewPress(buttons, XInput.XINPUT_GAMEPAD_DPAD_LEFT))
+        else if (IsNewPress(buttons, XInput.XINPUT_GAMEPAD_DPAD_LEFT, controllerIndex))
         {
-            consumedNavigationButtons |= XInput.XINPUT_GAMEPAD_DPAD_LEFT;
+            consumedNavigationButtons[controllerIndex] |= XInput.XINPUT_GAMEPAD_DPAD_LEFT;
             Dispatch(window, () => window.ControllerNavigateLeft());
         }
-        else if (IsNewPress(buttons, XInput.XINPUT_GAMEPAD_DPAD_RIGHT))
+        else if (IsNewPress(buttons, XInput.XINPUT_GAMEPAD_DPAD_RIGHT, controllerIndex))
         {
-            consumedNavigationButtons |= XInput.XINPUT_GAMEPAD_DPAD_RIGHT;
+            consumedNavigationButtons[controllerIndex] |= XInput.XINPUT_GAMEPAD_DPAD_RIGHT;
             Dispatch(window, () => window.ControllerNavigateRight());
         }
 
         // Check action buttons (A, B, Back)
-        if (IsNewPress(buttons, XInput.XINPUT_GAMEPAD_A))
+        if (IsNewPress(buttons, XInput.XINPUT_GAMEPAD_A, controllerIndex))
         {
-            consumedNavigationButtons |= XInput.XINPUT_GAMEPAD_A;
+            consumedNavigationButtons[controllerIndex] |= XInput.XINPUT_GAMEPAD_A;
             Dispatch(window, () => window.ControllerAccept());
         }
-        else if (IsNewPress(buttons, XInput.XINPUT_GAMEPAD_B))
+        else if (IsNewPress(buttons, XInput.XINPUT_GAMEPAD_B, controllerIndex))
         {
-            consumedNavigationButtons |= XInput.XINPUT_GAMEPAD_B;
+            consumedNavigationButtons[controllerIndex] |= XInput.XINPUT_GAMEPAD_B;
             Dispatch(window, () => window.ControllerCancel());
         }
-        else if (IsNewPress(buttons, XInput.XINPUT_GAMEPAD_BACK))
+        else if (IsNewPress(buttons, XInput.XINPUT_GAMEPAD_BACK, controllerIndex))
         {
-            consumedNavigationButtons |= XInput.XINPUT_GAMEPAD_BACK;
+            consumedNavigationButtons[controllerIndex] |= XInput.XINPUT_GAMEPAD_BACK;
             Dispatch(window, () => window.ControllerCancel());
         }
     }
 
     /// <summary>
-    /// Returns true if the button is currently pressed AND has not been consumed yet.
+    /// Returns true if the button is currently pressed AND has not been consumed yet on this controller.
     /// A button is consumed when it triggers an action, and is released when the button is no longer pressed.
     /// </summary>
-    private bool IsNewPress(ushort buttons, ushort mask)
+    private bool IsNewPress(ushort buttons, ushort mask, int controllerIndex)
     {
-        return (buttons & mask) != 0 && (consumedNavigationButtons & mask) == 0;
+        return (buttons & mask) != 0 && (consumedNavigationButtons[controllerIndex] & mask) == 0;
     }
 
     private static void Dispatch(OverlayWindow window, Action action)
