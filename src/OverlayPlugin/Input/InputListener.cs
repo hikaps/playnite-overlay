@@ -34,6 +34,9 @@ internal sealed class InputListener
     // Track which navigation buttons have been consumed per controller (waiting for release before re-triggering)
     private readonly ushort[] consumedNavigationButtons = new ushort[4];
 
+    // Prevent duplicate navigation from multiple controllers reporting the same input in a single poll cycle
+    private bool navigationHandledThisCycle = false;
+
     public event EventHandler? ToggleRequested;
 
     /// <summary>
@@ -164,6 +167,9 @@ internal sealed class InputListener
             return;
         }
 
+        // Reset navigation flag at start of each poll cycle
+        navigationHandledThisCycle = false;
+
         bool useGuide = controllerCombo.Equals("Guide", StringComparison.OrdinalIgnoreCase);
 
         // Get current overlay window reference
@@ -231,6 +237,13 @@ internal sealed class InputListener
 
     private void HandleNavigation(OverlayWindow window, ushort buttons, int controllerIndex)
     {
+        // Only allow one navigation action per poll cycle (prevents duplicate input from
+        // controllers that register as multiple XInput devices)
+        if (navigationHandledThisCycle)
+        {
+            return;
+        }
+
         // Clear consumed flag for any navigation buttons that are now released on THIS controller
         ushort releasedButtons = (ushort)(consumedNavigationButtons[controllerIndex] & ~buttons);
         consumedNavigationButtons[controllerIndex] = (ushort)(consumedNavigationButtons[controllerIndex] & ~releasedButtons);
@@ -239,21 +252,25 @@ internal sealed class InputListener
         if (IsNewPress(buttons, XInput.XINPUT_GAMEPAD_DPAD_UP, controllerIndex))
         {
             consumedNavigationButtons[controllerIndex] |= XInput.XINPUT_GAMEPAD_DPAD_UP;
+            navigationHandledThisCycle = true;
             Dispatch(window, () => window.ControllerNavigateUp());
         }
         else if (IsNewPress(buttons, XInput.XINPUT_GAMEPAD_DPAD_DOWN, controllerIndex))
         {
             consumedNavigationButtons[controllerIndex] |= XInput.XINPUT_GAMEPAD_DPAD_DOWN;
+            navigationHandledThisCycle = true;
             Dispatch(window, () => window.ControllerNavigateDown());
         }
         else if (IsNewPress(buttons, XInput.XINPUT_GAMEPAD_DPAD_LEFT, controllerIndex))
         {
             consumedNavigationButtons[controllerIndex] |= XInput.XINPUT_GAMEPAD_DPAD_LEFT;
+            navigationHandledThisCycle = true;
             Dispatch(window, () => window.ControllerNavigateLeft());
         }
         else if (IsNewPress(buttons, XInput.XINPUT_GAMEPAD_DPAD_RIGHT, controllerIndex))
         {
             consumedNavigationButtons[controllerIndex] |= XInput.XINPUT_GAMEPAD_DPAD_RIGHT;
+            navigationHandledThisCycle = true;
             Dispatch(window, () => window.ControllerNavigateRight());
         }
 
@@ -261,16 +278,19 @@ internal sealed class InputListener
         if (IsNewPress(buttons, XInput.XINPUT_GAMEPAD_A, controllerIndex))
         {
             consumedNavigationButtons[controllerIndex] |= XInput.XINPUT_GAMEPAD_A;
+            navigationHandledThisCycle = true;
             Dispatch(window, () => window.ControllerAccept());
         }
         else if (IsNewPress(buttons, XInput.XINPUT_GAMEPAD_B, controllerIndex))
         {
             consumedNavigationButtons[controllerIndex] |= XInput.XINPUT_GAMEPAD_B;
+            navigationHandledThisCycle = true;
             Dispatch(window, () => window.ControllerCancel());
         }
         else if (IsNewPress(buttons, XInput.XINPUT_GAMEPAD_BACK, controllerIndex))
         {
             consumedNavigationButtons[controllerIndex] |= XInput.XINPUT_GAMEPAD_BACK;
+            navigationHandledThisCycle = true;
             Dispatch(window, () => window.ControllerCancel());
         }
     }
