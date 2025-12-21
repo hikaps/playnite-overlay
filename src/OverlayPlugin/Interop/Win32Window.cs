@@ -13,6 +13,9 @@ internal static class Win32Window
     [DllImport("user32.dll")]
     private static extern bool SetForegroundWindow(IntPtr hWnd);
 
+    [DllImport("user32.dll")]
+    private static extern bool IsIconic(IntPtr hWnd);
+
     public static void RestoreAndActivate(IntPtr hWnd)
     {
         if (hWnd == IntPtr.Zero)
@@ -22,8 +25,12 @@ internal static class Win32Window
 
         try
         {
-            // Always restore - handles both minimized and hidden (tray) windows
-            ShowWindow(hWnd, SW_RESTORE);
+            // Only restore if the window is actually minimized
+            // Calling SW_RESTORE on a maximized window will un-maximize it
+            if (IsIconic(hWnd))
+            {
+                ShowWindow(hWnd, SW_RESTORE);
+            }
 
             // Bring to foreground
             SetForegroundWindow(hWnd);

@@ -8,7 +8,6 @@ using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
-using PlayniteOverlay.Input;
 using PlayniteOverlay.Models;
 
 namespace PlayniteOverlay;
@@ -29,8 +28,6 @@ public partial class OverlayWindow : Window
     private readonly Action onExit;
     private readonly List<OverlayItem> items;
     private readonly List<RunningApp> runningApps;
-    private readonly bool enableControllerNavigation;
-    private OverlayControllerNavigator? controllerNavigator;
     
     // Two-level navigation state
     private NavigationTarget navigationTarget = NavigationTarget.CurrentGameSection;
@@ -43,14 +40,13 @@ public partial class OverlayWindow : Window
     private static readonly SolidColorBrush HighlightBrush = new(Color.FromRgb(0xFF, 0xFF, 0xFF));
     private static readonly SolidColorBrush TransparentBrush = new(Colors.Transparent);
 
-    public OverlayWindow(Action onSwitch, Action onExit, OverlayItem? currentGame, IEnumerable<RunningApp> runningApps, IEnumerable<OverlayItem> recentGames, bool enableControllerNavigation)
+    public OverlayWindow(Action onSwitch, Action onExit, OverlayItem? currentGame, IEnumerable<RunningApp> runningApps, IEnumerable<OverlayItem> recentGames)
     {
         InitializeComponent();
         this.onSwitch = onSwitch;
         this.onExit = onExit;
         this.items = new List<OverlayItem>(recentGames);
         this.runningApps = new List<RunningApp>(runningApps);
-        this.enableControllerNavigation = enableControllerNavigation;
 
         // Setup current game section
         if (currentGame != null)
@@ -155,10 +151,6 @@ public partial class OverlayWindow : Window
         Loaded += (_, __) =>
         {
             Activate(); Focus(); Keyboard.Focus(this);
-            if (this.enableControllerNavigation)
-            {
-                controllerNavigator = new OverlayControllerNavigator(this);
-            }
             
             try
             {
@@ -169,12 +161,6 @@ public partial class OverlayWindow : Window
                 RootCard.BeginAnimation(UIElement.OpacityProperty, anim);
             }
             catch { }
-        };
-        
-        Closed += (_, __) =>
-        {
-            controllerNavigator?.Dispose();
-            controllerNavigator = null;
         };
         
         Closing += OnClosingWithFade;
@@ -674,41 +660,17 @@ public partial class OverlayWindow : Window
 
     #region Controller Navigation Wrappers
 
-    internal void ControllerNavigateUp()
-    {
-        if (!enableControllerNavigation) return;
-        NavigateUp();
-    }
+    internal void ControllerNavigateUp() => NavigateUp();
 
-    internal void ControllerNavigateDown()
-    {
-        if (!enableControllerNavigation) return;
-        NavigateDown();
-    }
+    internal void ControllerNavigateDown() => NavigateDown();
 
-    internal void ControllerNavigateLeft()
-    {
-        if (!enableControllerNavigation) return;
-        NavigateLeft();
-    }
+    internal void ControllerNavigateLeft() => NavigateLeft();
 
-    internal void ControllerNavigateRight()
-    {
-        if (!enableControllerNavigation) return;
-        NavigateRight();
-    }
+    internal void ControllerNavigateRight() => NavigateRight();
 
-    internal void ControllerAccept()
-    {
-        if (!enableControllerNavigation) return;
-        PerformAccept();
-    }
+    internal void ControllerAccept() => PerformAccept();
 
-    internal void ControllerCancel()
-    {
-        if (!enableControllerNavigation) return;
-        PerformCancel();
-    }
+    internal void ControllerCancel() => PerformCancel();
 
     #endregion
 

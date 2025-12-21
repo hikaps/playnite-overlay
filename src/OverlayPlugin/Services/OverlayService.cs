@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Windows;
 using Playnite.SDK;
 using PlayniteOverlay;
+using PlayniteOverlay.Input;
 using PlayniteOverlay.Models;
 
 namespace PlayniteOverlay.Services;
@@ -11,14 +12,20 @@ internal sealed class OverlayService
 {
     private static readonly ILogger logger = LogManager.GetLogger();
     private readonly object windowLock = new object();
+    private readonly InputListener inputListener;
     private OverlayWindow? window;
+
+    public OverlayService(InputListener inputListener)
+    {
+        this.inputListener = inputListener ?? throw new ArgumentNullException(nameof(inputListener));
+    }
 
     public bool IsVisible
     {
         get { lock (windowLock) return window != null; }
     }
 
-    public void Show(Action onSwitch, Action onExit, OverlayItem? currentGame, IEnumerable<RunningApp> runningApps, IEnumerable<OverlayItem> recentGames, bool enableControllerNavigation)
+    public void Show(Action onSwitch, Action onExit, OverlayItem? currentGame, IEnumerable<RunningApp> runningApps, IEnumerable<OverlayItem> recentGames)
     {
         lock (windowLock)
         {
@@ -29,7 +36,7 @@ internal sealed class OverlayService
 
             Application.Current?.Dispatcher.Invoke(() =>
             {
-                window = new OverlayWindow(onSwitch, onExit, currentGame, runningApps, recentGames, enableControllerNavigation);
+                window = new OverlayWindow(onSwitch, onExit, currentGame, runningApps, recentGames);
 
                 window.Loaded += (_, _) =>
                 {
@@ -40,10 +47,16 @@ internal sealed class OverlayService
                     window.Top = dipBounds.Top;
                     window.Width = dipBounds.Width;
                     window.Height = dipBounds.Height;
+
+                    // Wire up controller navigation via InputListener
+                    inputListener.SetOverlayWindow(window);
                 };
 
                 window.Closed += (_, _) =>
                 {
+                    // Disconnect controller navigation
+                    inputListener.SetOverlayWindow(null);
+
                     lock (windowLock)
                     {
                         window = null;

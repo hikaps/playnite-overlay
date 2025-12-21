@@ -29,7 +29,7 @@ public class OverlayPlugin : GenericPlugin
     {
         logger = LogManager.GetLogger();
         input = new InputListener();
-        overlay = new OverlayService();
+        overlay = new OverlayService(input);
         switcher = new GameSwitcher(api);
         runningAppsDetector = new RunningAppsDetector(api);
         settings = new OverlaySettingsViewModel(this);
@@ -204,8 +204,7 @@ public class OverlayPlugin : GenericPlugin
             HandleExitGame,
             currentGameItem,
             runningApps,
-            recentGames,
-            settings.Settings.UseControllerToOpen);
+            recentGames);
     }
 
     private void HandleExitGame()
