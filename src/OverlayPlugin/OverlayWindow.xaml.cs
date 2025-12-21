@@ -686,6 +686,11 @@ public partial class OverlayWindow : Window
         var exStyle = GetWindowLong(hwnd, GWL_EXSTYLE);
         SetWindowLong(hwnd, GWL_EXSTYLE, exStyle | WS_EX_TOOLWINDOW);
 
+        // Reliably steal focus from the game using AttachThreadInput pattern.
+        // This ensures the overlay receives keyboard/controller input instead of
+        // the input bleeding through to the underlying game.
+        Win32Window.ActivateOverlayWindow(hwnd);
+
         // Topmost is now handled by WPF via Topmost="True" in XAML
     }
 
