@@ -13,6 +13,13 @@ public sealed class RunningAppsDetector
 {
     private static readonly ILogger logger = LogManager.GetLogger();
     private readonly IPlayniteAPI api;
+    
+    /// <summary>
+    /// Window handle of the currently active app (game being played).
+    /// Set this before calling GetRunningApps() so that SwitchToApp() knows
+    /// which window to minimize when switching.
+    /// </summary>
+    public IntPtr ActiveAppWindowHandle { get; set; } = IntPtr.Zero;
 
     /// <summary>
     /// Event fired when user switches to an app via the Switch button
@@ -169,6 +176,8 @@ public sealed class RunningAppsDetector
 
     /// <summary>
     /// Switches to (activates) the specified running app.
+    /// Also minimizes the currently active app (set via ActiveAppWindowHandle) to ensure
+    /// fullscreen games don't visually cover the target.
     /// </summary>
     public void SwitchToApp(RunningApp app)
     {
@@ -195,9 +204,16 @@ public sealed class RunningAppsDetector
                 return;
             }
 
-            // Use SwitchToWindow which minimizes the foreground window first
-            // This ensures fullscreen apps don't visually cover the target
-            Win32Window.SwitchToWindow(app.WindowHandle);
+            // Minimize the active app (the game we're currently playing) if it's different from target
+            // This ensures fullscreen games don't visually cover the target
+            if (ActiveAppWindowHandle != IntPtr.Zero && ActiveAppWindowHandle != app.WindowHandle)
+            {
+                Win32Window.MinimizeWindow(ActiveAppWindowHandle);
+            }
+
+            // Now activate the target window (no need to minimize foreground again,
+            // since we already minimized the active app above)
+            Win32Window.SwitchToWindow(app.WindowHandle, minimizeCurrent: false);
             logger.Info($"Switched to app: {app.Title} (PID: {app.ProcessId})");
             
             // Notify subscribers that app was switched to
