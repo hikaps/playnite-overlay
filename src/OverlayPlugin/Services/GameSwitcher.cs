@@ -554,7 +554,7 @@ public sealed class GameSwitcher
 
     public IEnumerable<Playnite.SDK.Models.Game> GetRecentGames(int count, HashSet<Guid>? excludeGameIds = null)
     {
-        var games = api.Database.Games.AsQueryable();
+        var games = api.Database.Games;
         var query = games.Where(g => g.LastActivity != null);
 
         // Exclude active app if it's a Playnite game

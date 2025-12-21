@@ -421,7 +421,7 @@ public class GameSwitcherTests
 
         mockApi.Setup(a => a.Database).Returns(mockDatabase.Object);
         mockDatabase.Setup(d => d.Games).Returns(mockGames.Object);
-        mockGames.Setup(g => g[gameId]).Returns(default(Game));
+        mockGames.Setup(g => g[gameId]).Returns((Game?)null);
 
         var switcher = new GameSwitcher(mockApi.Object);
 
@@ -445,7 +445,7 @@ public class GameSwitcherTests
         var game3 = new Game("Game 3") { Id = Guid.NewGuid(), LastActivity = DateTime.Now.AddHours(-3) };
         
         var games = new List<Game> { game1, game2, game3 };
-        mockGames.Setup(g => g.AsQueryable()).Returns(games.AsQueryable());
+        mockGames.As<IEnumerable<Game>>().Setup(g => g.GetEnumerator()).Returns(() => games.GetEnumerator());
         
         mockApi.Setup(a => a.Database).Returns(mockDatabase.Object);
         mockDatabase.Setup(d => d.Games).Returns(mockGames.Object);
@@ -476,7 +476,7 @@ public class GameSwitcherTests
         var game4 = new Game("Game 4") { Id = Guid.NewGuid(), LastActivity = DateTime.Now.AddHours(-4) };
         
         var games = new List<Game> { game1, game2, game3, game4 };
-        mockGames.Setup(g => g.AsQueryable()).Returns(games.AsQueryable());
+        mockGames.As<IEnumerable<Game>>().Setup(g => g.GetEnumerator()).Returns(() => games.GetEnumerator());
         
         mockApi.Setup(a => a.Database).Returns(mockDatabase.Object);
         mockDatabase.Setup(d => d.Games).Returns(mockGames.Object);
@@ -515,7 +515,7 @@ public class GameSwitcherTests
             });
         }
         
-        mockGames.Setup(g => g.AsQueryable()).Returns(games.AsQueryable());
+        mockGames.As<IEnumerable<Game>>().Setup(g => g.GetEnumerator()).Returns(() => games.GetEnumerator());
         
         mockApi.Setup(a => a.Database).Returns(mockDatabase.Object);
         mockDatabase.Setup(d => d.Games).Returns(mockGames.Object);
@@ -549,7 +549,7 @@ public class GameSwitcherTests
         var game2 = new Game("Game 2") { Id = Guid.NewGuid(), LastActivity = DateTime.Now.AddHours(-2) };
         
         var games = new List<Game> { game1, game2 };
-        mockGames.Setup(g => g.AsQueryable()).Returns(games.AsQueryable());
+        mockGames.As<IEnumerable<Game>>().Setup(g => g.GetEnumerator()).Returns(() => games.GetEnumerator());
         
         mockApi.Setup(a => a.Database).Returns(mockDatabase.Object);
         mockDatabase.Setup(d => d.Games).Returns(mockGames.Object);
