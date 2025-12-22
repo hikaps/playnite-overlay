@@ -9,6 +9,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.4.3] - 2025-12-22
+
+### Added
+- **Hide Running Apps from Recent Games**: Running games no longer appear in both "Running Apps" and "Recent Games" sections
+  - Prevents duplicate entries in the overlay UI
+  - Recent games list now excludes any games currently shown in Running Apps
+
+### Fixed
+- **D-pad and Button Double-Navigation**: Fixed controller inputs triggering multiple times per press
+  - Affected users with controllers that register as multiple XInput devices
+  - Added per-poll-cycle flag to prevent duplicate navigation events
+- **Window Switching Reliability**: Improved app switching behavior
+  - Better handling of window focus transitions
+  - More reliable foreground window detection
+- **System Tray Restore**: Fixed black screen when restoring Playnite from system tray
+  - Properly handles minimized-to-tray state
+- **Thread-Safe Event Invocation**: Fixed potential race condition in event handlers
+
+### Changed
+- **XInput Polling Consolidation**: Refactored controller input handling into single polling loop
+  - Cleaner code structure
+  - More efficient input processing
+- **WPF Simplification**: Refactored overlay to use more native WPF features
+
+---
+
 ## [0.4.2] - 2025-12-19
 
 ### Fixed

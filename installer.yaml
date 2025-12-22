@@ -1,5 +1,15 @@
 AddonId: 'playnite-overlay'
 Packages:
+  - Version: 0.4.3
+    RequiredApiVersion: 6.0.0
+    ReleaseDate: 2025-12-22
+    PackageUrl: https://github.com/hikaps/playnite-overlay/releases/download/v0.4.3/playnite-overlay-0.4.3.pext
+    Changelog:
+      - Hide running apps from recent games list (no duplicates)
+      - Fix D-pad and button double-navigation on multi-device controllers
+      - Fix window switching reliability
+      - Fix system tray restore black screen
+      - Refactor XInput polling and WPF overlay
   - Version: 0.4.2
     RequiredApiVersion: 6.0.0
     ReleaseDate: 2025-12-19
@@ -9,12 +19,6 @@ Packages:
       - Fix Xbox Guide button detection
       - Remove Toggle Overlay menu item (use hotkey or controller)
       - Code cleanup and refactoring
-  - Version: 0.4.1
-    RequiredApiVersion: 6.0.0
-    ReleaseDate: 2025-12-18
-    PackageUrl: https://github.com/hikaps/playnite-overlay/releases/download/v0.4.1/playnite-overlay-0.4.1.pext
-    Changelog:
-      - Add extension icon
   - Version: 0.4.0
     RequiredApiVersion: 6.0.0
     ReleaseDate: 2025-12-18
