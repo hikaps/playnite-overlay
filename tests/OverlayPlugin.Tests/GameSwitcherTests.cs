@@ -421,7 +421,7 @@ public class GameSwitcherTests
 
         mockApi.Setup(a => a.Database).Returns(mockDatabase.Object);
         mockDatabase.Setup(d => d.Games).Returns(mockGames.Object);
-        mockGames.Setup(g => g[gameId]).Returns(default(Game));
+        mockGames.Setup(g => g[gameId]).Returns((Game?)null);
 
         var switcher = new GameSwitcher(mockApi.Object);
 
@@ -430,5 +430,138 @@ public class GameSwitcherTests
 
         // Assert
         Assert.Null(result);
+    }
+
+    [Fact]
+    public void GetRecentGames_WithNoExclusions_ReturnsAllRecentGames()
+    {
+        // Arrange
+        var mockApi = new Mock<IPlayniteAPI>();
+        var mockDatabase = new Mock<IGameDatabaseAPI>();
+        var mockGames = new Mock<IItemCollection<Game>>();
+        
+        var game1 = new Game("Game 1") { Id = Guid.NewGuid(), LastActivity = DateTime.Now.AddHours(-1) };
+        var game2 = new Game("Game 2") { Id = Guid.NewGuid(), LastActivity = DateTime.Now.AddHours(-2) };
+        var game3 = new Game("Game 3") { Id = Guid.NewGuid(), LastActivity = DateTime.Now.AddHours(-3) };
+        
+        var games = new List<Game> { game1, game2, game3 };
+        mockGames.As<IEnumerable<Game>>().Setup(g => g.GetEnumerator()).Returns(() => games.GetEnumerator());
+        
+        mockApi.Setup(a => a.Database).Returns(mockDatabase.Object);
+        mockDatabase.Setup(d => d.Games).Returns(mockGames.Object);
+
+        var switcher = new GameSwitcher(mockApi.Object);
+
+        // Act
+        var result = switcher.GetRecentGames(5).ToList();
+
+        // Assert
+        Assert.Equal(3, result.Count);
+        Assert.Equal("Game 1", result[0].Name);
+        Assert.Equal("Game 2", result[1].Name);
+        Assert.Equal("Game 3", result[2].Name);
+    }
+
+    [Fact]
+    public void GetRecentGames_WithExclusionSet_ExcludesSpecifiedGames()
+    {
+        // Arrange
+        var mockApi = new Mock<IPlayniteAPI>();
+        var mockDatabase = new Mock<IGameDatabaseAPI>();
+        var mockGames = new Mock<IItemCollection<Game>>();
+        
+        var game1 = new Game("Game 1") { Id = Guid.NewGuid(), LastActivity = DateTime.Now.AddHours(-1) };
+        var game2 = new Game("Game 2") { Id = Guid.NewGuid(), LastActivity = DateTime.Now.AddHours(-2) };
+        var game3 = new Game("Game 3") { Id = Guid.NewGuid(), LastActivity = DateTime.Now.AddHours(-3) };
+        var game4 = new Game("Game 4") { Id = Guid.NewGuid(), LastActivity = DateTime.Now.AddHours(-4) };
+        
+        var games = new List<Game> { game1, game2, game3, game4 };
+        mockGames.As<IEnumerable<Game>>().Setup(g => g.GetEnumerator()).Returns(() => games.GetEnumerator());
+        
+        mockApi.Setup(a => a.Database).Returns(mockDatabase.Object);
+        mockDatabase.Setup(d => d.Games).Returns(mockGames.Object);
+
+        var switcher = new GameSwitcher(mockApi.Object);
+        
+        // Exclude game2 and game3 (simulating they are running)
+        var excludeIds = new HashSet<Guid> { game2.Id, game3.Id };
+
+        // Act
+        var result = switcher.GetRecentGames(5, excludeIds).ToList();
+
+        // Assert
+        Assert.Equal(2, result.Count);
+        Assert.Equal("Game 1", result[0].Name);
+        Assert.Equal("Game 4", result[1].Name);
+        Assert.DoesNotContain(result, g => g.Name == "Game 2");
+        Assert.DoesNotContain(result, g => g.Name == "Game 3");
+    }
+
+    [Fact]
+    public void GetRecentGames_WithExclusionSet_ReturnsRequestedCount()
+    {
+        // Arrange
+        var mockApi = new Mock<IPlayniteAPI>();
+        var mockDatabase = new Mock<IGameDatabaseAPI>();
+        var mockGames = new Mock<IItemCollection<Game>>();
+        
+        var games = new List<Game>();
+        for (int i = 1; i <= 10; i++)
+        {
+            games.Add(new Game($"Game {i}") 
+            { 
+                Id = Guid.NewGuid(), 
+                LastActivity = DateTime.Now.AddHours(-i) 
+            });
+        }
+        
+        mockGames.As<IEnumerable<Game>>().Setup(g => g.GetEnumerator()).Returns(() => games.GetEnumerator());
+        
+        mockApi.Setup(a => a.Database).Returns(mockDatabase.Object);
+        mockDatabase.Setup(d => d.Games).Returns(mockGames.Object);
+
+        var switcher = new GameSwitcher(mockApi.Object);
+        
+        // Exclude games 2 and 3 (simulating they are running)
+        var excludeIds = new HashSet<Guid> { games[1].Id, games[2].Id };
+
+        // Act - request 5 games
+        var result = switcher.GetRecentGames(5, excludeIds).ToList();
+
+        // Assert - should still get 5 games (1, 4, 5, 6, 7)
+        Assert.Equal(5, result.Count);
+        Assert.Equal("Game 1", result[0].Name);
+        Assert.Equal("Game 4", result[1].Name);
+        Assert.Equal("Game 5", result[2].Name);
+        Assert.Equal("Game 6", result[3].Name);
+        Assert.Equal("Game 7", result[4].Name);
+    }
+
+    [Fact]
+    public void GetRecentGames_WithEmptyExclusionSet_ReturnsAllRecentGames()
+    {
+        // Arrange
+        var mockApi = new Mock<IPlayniteAPI>();
+        var mockDatabase = new Mock<IGameDatabaseAPI>();
+        var mockGames = new Mock<IItemCollection<Game>>();
+        
+        var game1 = new Game("Game 1") { Id = Guid.NewGuid(), LastActivity = DateTime.Now.AddHours(-1) };
+        var game2 = new Game("Game 2") { Id = Guid.NewGuid(), LastActivity = DateTime.Now.AddHours(-2) };
+        
+        var games = new List<Game> { game1, game2 };
+        mockGames.As<IEnumerable<Game>>().Setup(g => g.GetEnumerator()).Returns(() => games.GetEnumerator());
+        
+        mockApi.Setup(a => a.Database).Returns(mockDatabase.Object);
+        mockDatabase.Setup(d => d.Games).Returns(mockGames.Object);
+
+        var switcher = new GameSwitcher(mockApi.Object);
+
+        // Act
+        var result = switcher.GetRecentGames(5, new HashSet<Guid>()).ToList();
+
+        // Assert
+        Assert.Equal(2, result.Count);
+        Assert.Equal("Game 1", result[0].Name);
+        Assert.Equal("Game 2", result[1].Name);
     }
 }
