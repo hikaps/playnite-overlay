@@ -20,7 +20,7 @@
         </Image>
         
         <!-- Layer 2: Dim overlay for contrast -->
-        <Rectangle Fill="#B3000000"/>
+        <Rectangle Fill="#99000000"/>
         
         <!-- Layer 3: Content card -->
         <Border x:Name="RootCard" CornerRadius="10" Background="#EE1A1A1A" 

@@ -174,10 +174,10 @@ public partial class OverlayWindow : Window
                 };
                 RootCard.BeginAnimation(UIElement.OpacityProperty, anim);
                 
-                // Animate backdrop if visible (fade to 0.35 opacity)
+                // Animate backdrop if visible (fade to 0.6 opacity)
                 if (BackdropImage.Visibility == Visibility.Visible)
                 {
-                    var backdropAnim = new System.Windows.Media.Animation.DoubleAnimation(0, 0.35, new Duration(TimeSpan.FromMilliseconds(200)))
+                    var backdropAnim = new System.Windows.Media.Animation.DoubleAnimation(0, 0.6, new Duration(TimeSpan.FromMilliseconds(200)))
                     {
                         EasingFunction = new System.Windows.Media.Animation.CubicEase { EasingMode = System.Windows.Media.Animation.EasingMode.EaseOut }
                     };
