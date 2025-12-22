@@ -7,6 +7,7 @@ public sealed class OverlayItem
     public string Title { get; set; } = string.Empty;
     public Guid GameId { get; set; }
     public string? ImagePath { get; set; }
+    public string? BackgroundImagePath { get; set; }  // For backdrop blur effect
     public string? SecondaryText { get; set; }    // "2h ago" or "Playing for 45m"
     public bool IsCurrentGame { get; set; }       // For styling/behavior
     public Action? OnSelect { get; set; }
@@ -39,12 +40,14 @@ public sealed class OverlayItem
             if (game != null)
             {
                 var imagePath = GetBestImagePath(game, switcher);
+                var backgroundPath = GetBackgroundImagePath(game, switcher);
                 
                 return new OverlayItem
                 {
                     Title = game.Name,
                     GameId = game.Id,
                     ImagePath = imagePath,
+                    BackgroundImagePath = backgroundPath,
                     SecondaryText = $"Playing for {sessionDuration}",
                     IsCurrentGame = true,
                     OnSelect = null  // Can't switch to self
@@ -79,5 +82,14 @@ public sealed class OverlayItem
         }
         
         return null; // Will trigger placeholder in UI
+    }
+
+    private static string? GetBackgroundImagePath(Playnite.SDK.Models.Game game, Services.GameSwitcher switcher)
+    {
+        // Only use BackgroundImage for backdrop (no fallback - skip if not available)
+        if (string.IsNullOrWhiteSpace(game.BackgroundImage))
+            return null;
+        
+        return switcher.ResolveImagePath(game.BackgroundImage);
     }
 }

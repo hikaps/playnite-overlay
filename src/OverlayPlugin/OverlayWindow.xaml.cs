@@ -66,6 +66,20 @@ public partial class OverlayWindow : Window
                     // Cover failed to load, image will remain empty
                 }
             }
+            
+            // Setup backdrop image (only if background image available)
+            if (!string.IsNullOrWhiteSpace(currentGame.BackgroundImagePath))
+            {
+                try
+                {
+                    BackdropImage.Source = new BitmapImage(new Uri(currentGame.BackgroundImagePath, UriKind.RelativeOrAbsolute));
+                    BackdropImage.Visibility = Visibility.Visible;
+                }
+                catch
+                {
+                    // Failed to load, keep hidden (will show solid dark background)
+                }
+            }
         }
         else
         {
@@ -159,6 +173,16 @@ public partial class OverlayWindow : Window
                     EasingFunction = new System.Windows.Media.Animation.CubicEase { EasingMode = System.Windows.Media.Animation.EasingMode.EaseOut }
                 };
                 RootCard.BeginAnimation(UIElement.OpacityProperty, anim);
+                
+                // Animate backdrop if visible (fade to 0.35 opacity)
+                if (BackdropImage.Visibility == Visibility.Visible)
+                {
+                    var backdropAnim = new System.Windows.Media.Animation.DoubleAnimation(0, 0.35, new Duration(TimeSpan.FromMilliseconds(200)))
+                    {
+                        EasingFunction = new System.Windows.Media.Animation.CubicEase { EasingMode = System.Windows.Media.Animation.EasingMode.EaseOut }
+                    };
+                    BackdropImage.BeginAnimation(UIElement.OpacityProperty, backdropAnim);
+                }
             }
             catch { }
         };
