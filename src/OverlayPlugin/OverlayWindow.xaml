@@ -3,14 +3,26 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         WindowStyle="None"
         AllowsTransparency="True"
-        Background="#B3000000"
+        Background="Transparent"
         ShowInTaskbar="False"
         Topmost="True"
         WindowStartupLocation="Manual"
         WindowState="Normal"
         ResizeMode="NoResize"
         Focusable="True">
-    <Grid x:Name="Backdrop" Background="Transparent">
+    <Grid x:Name="Backdrop">
+        <!-- Layer 1: Blurred background image (hidden if no image) -->
+        <Image x:Name="BackdropImage" Stretch="UniformToFill" 
+               Opacity="0" Visibility="Collapsed">
+            <Image.Effect>
+                <BlurEffect Radius="20"/>
+            </Image.Effect>
+        </Image>
+        
+        <!-- Layer 2: Dim overlay for contrast -->
+        <Rectangle Fill="#99000000"/>
+        
+        <!-- Layer 3: Content card -->
         <Border x:Name="RootCard" CornerRadius="10" Background="#EE1A1A1A" 
                 Padding="28" HorizontalAlignment="Center" VerticalAlignment="Center" 
                 Width="920" MaxHeight="620" Opacity="0">
