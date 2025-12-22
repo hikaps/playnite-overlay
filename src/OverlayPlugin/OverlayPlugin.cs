@@ -196,8 +196,14 @@ public class OverlayPlugin : GenericPlugin
             settings.Settings.ShowGenericApps,
             settings.Settings.MaxRunningApps);
 
-        // Build recent games list (excludes active app if it's a game)
-        var recentGames = switcher.GetRecentGames(5)
+        // Extract game IDs of running Playnite games to exclude from recent list
+        var runningGameIds = new HashSet<Guid>(
+            runningApps
+                .Where(a => a.Type == AppType.PlayniteGame && a.GameId.HasValue)
+                .Select(a => a.GameId!.Value));
+
+        // Build recent games list (excludes active app and running apps)
+        var recentGames = switcher.GetRecentGames(5, runningGameIds)
             .Select(g => OverlayItem.FromRecentGame(g, switcher))
             .ToList();
 
