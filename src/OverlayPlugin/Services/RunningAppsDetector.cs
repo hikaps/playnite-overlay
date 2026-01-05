@@ -13,6 +13,7 @@ public sealed class RunningAppsDetector
 {
     private static readonly ILogger logger = LogManager.GetLogger();
     private readonly IPlayniteAPI api;
+    private readonly OverlaySettings settings;
     
     /// <summary>
     /// Window handle of the currently active app (game being played).
@@ -44,9 +45,10 @@ public sealed class RunningAppsDetector
     [DllImport("user32.dll")]
     private static extern bool IsWindow(IntPtr hWnd);
 
-    public RunningAppsDetector(IPlayniteAPI api)
+    public RunningAppsDetector(IPlayniteAPI api, OverlaySettings settings)
     {
         this.api = api;
+        this.settings = settings;
     }
 
     /// <summary>
@@ -184,10 +186,13 @@ public sealed class RunningAppsDetector
         if (app.WindowHandle == IntPtr.Zero)
         {
             logger.Warn($"Cannot switch to app: invalid window handle for {app.Title}");
-            api.Notifications?.Add(
-                $"switch-app-invalid-{app.ProcessId}",
-                $"Cannot switch to {app.Title}: window not found",
-                NotificationType.Info);
+            if (settings.ShowNotifications)
+            {
+                api.Notifications?.Add(
+                    $"switch-app-invalid-{app.ProcessId}",
+                    $"Cannot switch to {app.Title}: window not found",
+                    NotificationType.Info);
+            }
             return;
         }
 
@@ -197,10 +202,13 @@ public sealed class RunningAppsDetector
             if (!IsWindow(app.WindowHandle))
             {
                 logger.Warn($"Cannot switch to app: window no longer exists for {app.Title}");
-                api.Notifications?.Add(
-                    $"switch-app-gone-{app.ProcessId}",
-                    $"{app.Title} is no longer running",
-                    NotificationType.Info);
+                if (settings.ShowNotifications)
+                {
+                    api.Notifications?.Add(
+                        $"switch-app-gone-{app.ProcessId}",
+                        $"{app.Title} is no longer running",
+                        NotificationType.Info);
+                }
                 return;
             }
 
@@ -223,10 +231,13 @@ public sealed class RunningAppsDetector
         catch (Exception ex)
         {
             logger.Error(ex, $"Failed to switch to app: {app.Title}");
-            api.Notifications?.Add(
-                $"switch-app-error-{app.ProcessId}",
-                $"Failed to switch to {app.Title}",
-                NotificationType.Error);
+            if (settings.ShowNotifications)
+            {
+                api.Notifications?.Add(
+                    $"switch-app-error-{app.ProcessId}",
+                    $"Failed to switch to {app.Title}",
+                    NotificationType.Error);
+            }
         }
     }
 

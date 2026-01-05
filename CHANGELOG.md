@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Show Notifications Toggle**: New setting to enable/disable all overlay notifications (app switching, exit operations, errors).
+
 ---
 
 ## [0.4.3] - 2025-12-22
