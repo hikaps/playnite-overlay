@@ -39,7 +39,7 @@ public class OverlaySettings : MVVM.ObservableObject
         set => SetProperty(ref controllerAlwaysActive, value);
     }
 
-    private bool showGenericApps = true;
+    private bool showGenericApps = false;
     public bool ShowGenericApps
     {
         get => showGenericApps;
