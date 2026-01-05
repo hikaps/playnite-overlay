@@ -15,6 +15,7 @@ public sealed class GameSwitcher
 {
     private static readonly ILogger logger = LogManager.GetLogger();
     private readonly IPlayniteAPI api;
+    private readonly OverlaySettings settings;
     private RunningApp? activeApp;
 
     private const int GracefulExitTimeoutMs = 3000;
@@ -29,9 +30,10 @@ public sealed class GameSwitcher
     [DllImport("user32.dll")]
     private static extern uint GetWindowThreadProcessId(IntPtr hWnd, out int processId);
 
-    public GameSwitcher(IPlayniteAPI api)
+    public GameSwitcher(IPlayniteAPI api, OverlaySettings settings)
     {
         this.api = api;
+        this.settings = settings;
     }
 
     public RunningApp? ActiveApp => activeApp;
@@ -264,10 +266,13 @@ public sealed class GameSwitcher
         if (activeApp == null)
         {
             logger.Warn("ExitActiveApp called but no active app is set.");
-            api.Notifications?.Add(
-                "exit-app-none",
-                "No app is currently active.",
-                NotificationType.Info);
+            if (settings.ShowNotifications)
+            {
+                api.Notifications?.Add(
+                    "exit-app-none",
+                    "No app is currently active.",
+                    NotificationType.Info);
+            }
             return;
         }
 
@@ -290,10 +295,13 @@ public sealed class GameSwitcher
                     if (!processes.Any())
                     {
                         logger.Warn($"No running processes found for game: {game.Name}");
-                        api.Notifications?.Add(
-                            $"exit-game-notfound-{game.Id}",
-                            $"Could not find running processes for {game.Name}",
-                            NotificationType.Info);
+                        if (settings.ShowNotifications)
+                        {
+                            api.Notifications?.Add(
+                                $"exit-game-notfound-{game.Id}",
+                                $"Could not find running processes for {game.Name}",
+                                NotificationType.Info);
+                        }
                         return;
                     }
 
@@ -330,26 +338,35 @@ public sealed class GameSwitcher
                     if (successCount > 0 && failCount == 0)
                     {
                         logger.Info($"Successfully exited all processes for {game.Name}");
-                        api.Notifications?.Add(
-                            $"exit-game-success-{game.Id}",
-                            $"Successfully exited {game.Name}",
-                            NotificationType.Info);
+                        if (settings.ShowNotifications)
+                        {
+                            api.Notifications?.Add(
+                                $"exit-game-success-{game.Id}",
+                                $"Successfully exited {game.Name}",
+                                NotificationType.Info);
+                        }
                     }
                     else if (successCount > 0 && failCount > 0)
                     {
                         logger.Warn($"Partially exited {game.Name}: {successCount} succeeded, {failCount} failed");
-                        api.Notifications?.Add(
-                            $"exit-game-partial-{game.Id}",
-                            $"Partially exited {game.Name} ({successCount}/{successCount + failCount} processes)",
-                            NotificationType.Info);
+                        if (settings.ShowNotifications)
+                        {
+                            api.Notifications?.Add(
+                                $"exit-game-partial-{game.Id}",
+                                $"Partially exited {game.Name} ({successCount}/{successCount + failCount} processes)",
+                                NotificationType.Info);
+                        }
                     }
                     else
                     {
                         logger.Error($"Failed to exit any processes for {game.Name}");
-                        api.Notifications?.Add(
-                            $"exit-game-fail-{game.Id}",
-                            $"Failed to exit {game.Name}. Try running Playnite as administrator.",
-                            NotificationType.Error);
+                        if (settings.ShowNotifications)
+                        {
+                            api.Notifications?.Add(
+                                $"exit-game-fail-{game.Id}",
+                                $"Failed to exit {game.Name}. Try running Playnite as administrator.",
+                                NotificationType.Error);
+                        }
                     }
                     return;
                 }
@@ -363,18 +380,24 @@ public sealed class GameSwitcher
                 if (TerminateProcess(process))
                 {
                     logger.Info($"Successfully exited active app: {activeApp.Title}");
-                    api.Notifications?.Add(
-                        $"exit-app-success-{activeApp.ProcessId}",
-                        $"Successfully exited {activeApp.Title}",
-                        NotificationType.Info);
+                    if (settings.ShowNotifications)
+                    {
+                        api.Notifications?.Add(
+                            $"exit-app-success-{activeApp.ProcessId}",
+                            $"Successfully exited {activeApp.Title}",
+                            NotificationType.Info);
+                    }
                 }
                 else
                 {
                     logger.Error($"Failed to exit active app: {activeApp.Title}");
-                    api.Notifications?.Add(
-                        $"exit-app-fail-{activeApp.ProcessId}",
-                        $"Failed to exit {activeApp.Title}. Try running Playnite as administrator.",
-                        NotificationType.Error);
+                    if (settings.ShowNotifications)
+                    {
+                        api.Notifications?.Add(
+                            $"exit-app-fail-{activeApp.ProcessId}",
+                            $"Failed to exit {activeApp.Title}. Try running Playnite as administrator.",
+                            NotificationType.Error);
+                    }
                 }
                 
                 process.Dispose();
@@ -383,19 +406,25 @@ public sealed class GameSwitcher
             {
                 // Process not found - already exited
                 logger.Info($"Active app already exited: {activeApp.Title}");
-                api.Notifications?.Add(
-                    $"exit-app-gone-{activeApp.ProcessId}",
-                    $"{activeApp.Title} is no longer running",
-                    NotificationType.Info);
+                if (settings.ShowNotifications)
+                {
+                    api.Notifications?.Add(
+                        $"exit-app-gone-{activeApp.ProcessId}",
+                        $"{activeApp.Title} is no longer running",
+                        NotificationType.Info);
+                }
             }
         }
         catch (Exception ex)
         {
             logger.Error(ex, $"Failed to exit active app: {activeApp.Title}");
-            api.Notifications?.Add(
-                $"exit-app-error-{activeApp.ProcessId}",
-                $"Error exiting {activeApp.Title}: {ex.Message}",
-                NotificationType.Error);
+            if (settings.ShowNotifications)
+            {
+                api.Notifications?.Add(
+                    $"exit-app-error-{activeApp.ProcessId}",
+                    $"Error exiting {activeApp.Title}: {ex.Message}",
+                    NotificationType.Error);
+            }
         }
     }
 

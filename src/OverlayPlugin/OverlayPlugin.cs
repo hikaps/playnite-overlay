@@ -30,9 +30,9 @@ public class OverlayPlugin : GenericPlugin
         logger = LogManager.GetLogger();
         input = new InputListener();
         overlay = new OverlayService(input);
-        switcher = new GameSwitcher(api);
-        runningAppsDetector = new RunningAppsDetector(api);
         settings = new OverlaySettingsViewModel(this);
+        switcher = new GameSwitcher(api, settings.Settings);
+        runningAppsDetector = new RunningAppsDetector(api, settings.Settings);
 
         Properties = new GenericPluginProperties
         {

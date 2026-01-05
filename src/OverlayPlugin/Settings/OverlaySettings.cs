@@ -74,4 +74,14 @@ public class OverlaySettings : MVVM.ObservableObject
         get => borderlessDelayMs;
         set => SetProperty(ref borderlessDelayMs, value);
     }
+
+    private bool showNotifications = true;
+    /// <summary>
+    /// When enabled, shows notifications for app switching, exit operations, and errors.
+    /// </summary>
+    public bool ShowNotifications
+    {
+        get => showNotifications;
+        set => SetProperty(ref showNotifications, value);
+    }
 }

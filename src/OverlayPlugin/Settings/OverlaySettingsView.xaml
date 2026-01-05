@@ -63,6 +63,10 @@
                                  Text="{Binding Settings.MaxRunningApps, UpdateSourceTrigger=PropertyChanged}"
                                  ToolTip="Maximum number of running apps to show in the overlay (1-50)"/>
                     </StackPanel>
+                    <CheckBox Content="Show notifications"
+                              Margin="0,8,0,0"
+                              IsChecked="{Binding Settings.ShowNotifications}"
+                              ToolTip="When enabled, shows notifications for app switching, exit operations, and errors."/>
                     <TextBlock Margin="0,6,0,0" TextWrapping="Wrap"
                                Foreground="Gray"
                                Text="The overlay can detect and switch between multiple running games and applications."/>
