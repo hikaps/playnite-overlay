@@ -95,4 +95,34 @@ public class OverlaySettings : MVVM.ObservableObject
         get => showNotifications;
         set => SetProperty(ref showNotifications, value);
     }
+
+    private bool showAchievements = true;
+    /// <summary>
+    /// When enabled, shows achievement progress in the NOW PLAYING section if SuccessStory plugin is installed.
+    /// </summary>
+    public bool ShowAchievements
+    {
+        get => showAchievements;
+        set => SetProperty(ref showAchievements, value);
+    }
+
+    private int maxRecentAchievements = 3;
+    /// <summary>
+    /// Maximum number of recently unlocked achievements to display.
+    /// </summary>
+    public int MaxRecentAchievements
+    {
+        get => maxRecentAchievements;
+        set => SetProperty(ref maxRecentAchievements, value);
+    }
+
+    private int maxLockedAchievements = 3;
+    /// <summary>
+    /// Maximum number of locked achievements to display.
+    /// </summary>
+    public int MaxLockedAchievements
+    {
+        get => maxLockedAchievements;
+        set => SetProperty(ref maxLockedAchievements, value);
+    }
 }
