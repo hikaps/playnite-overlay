@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **SuccessStory Integration**: Display achievement progress in the NOW PLAYING section
+  - Shows achievement progress (X/Y - Z%) when SuccessStory plugin is installed
+  - Displays recently unlocked achievements with gold trophy icon
+  - Shows locked achievements with lock icon
+  - New settings: `ShowAchievements`, `MaxRecentAchievements`, `MaxLockedAchievements`
+  - Gracefully hidden when SuccessStory is not installed or game has no achievement data
+
 ---
 
 ## [0.4.3] - 2025-12-22

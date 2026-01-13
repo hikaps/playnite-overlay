@@ -66,6 +66,9 @@ public partial class OverlayWindow : Window
                     // Cover failed to load, image will remain empty
                 }
             }
+
+            // Setup achievements section
+            SetupAchievementsDisplay(currentGame.Achievements);
         }
         else
         {
@@ -671,6 +674,55 @@ public partial class OverlayWindow : Window
     internal void ControllerAccept() => PerformAccept();
 
     internal void ControllerCancel() => PerformCancel();
+
+    #endregion
+
+    #region Achievements Display
+
+    private void SetupAchievementsDisplay(GameAchievementSummary? achievements)
+    {
+        if (achievements == null || !achievements.HasData)
+        {
+            AchievementsPanel.Visibility = Visibility.Collapsed;
+            return;
+        }
+
+        AchievementsPanel.Visibility = Visibility.Visible;
+
+        // Display progress: "Achievements: 15/50 (30%)"
+        var percentText = achievements.PercentComplete.ToString("F0");
+        AchievementsProgress.Text = $"Achievements: {achievements.UnlockedCount}/{achievements.TotalCount} ({percentText}%)";
+
+        // Display recently unlocked achievements
+        RecentAchievementsList.Children.Clear();
+        foreach (var achievement in achievements.RecentlyUnlocked)
+        {
+            var text = new TextBlock
+            {
+                Text = $"\U0001F3C6 {achievement.Name}",
+                FontSize = 11,
+                Foreground = new SolidColorBrush(Color.FromRgb(0xFF, 0xD7, 0x00)), // Gold color
+                Margin = new Thickness(0, 2, 0, 0),
+                TextTrimming = TextTrimming.CharacterEllipsis
+            };
+            RecentAchievementsList.Children.Add(text);
+        }
+
+        // Display locked achievements
+        LockedAchievementsList.Children.Clear();
+        foreach (var achievement in achievements.LockedToShow)
+        {
+            var text = new TextBlock
+            {
+                Text = $"\U0001F512 {achievement.Name}",
+                FontSize = 11,
+                Foreground = new SolidColorBrush(Color.FromRgb(0x88, 0x88, 0x88)), // Gray color
+                Margin = new Thickness(0, 2, 0, 0),
+                TextTrimming = TextTrimming.CharacterEllipsis
+            };
+            LockedAchievementsList.Children.Add(text);
+        }
+    }
 
     #endregion
 
