@@ -11,6 +11,9 @@ public sealed class OverlayItem
     public bool IsCurrentGame { get; set; }       // For styling/behavior
     public Action? OnSelect { get; set; }
 
+    // Achievement data (only populated for current game when SuccessStory is available)
+    public GameAchievementSummary? Achievements { get; set; }
+
     public static OverlayItem FromRecentGame(Playnite.SDK.Models.Game game, Services.GameSwitcher switcher)
     {
         var imagePath = GetBestImagePath(game, switcher);
