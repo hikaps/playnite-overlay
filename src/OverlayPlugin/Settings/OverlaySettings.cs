@@ -39,6 +39,17 @@ public class OverlaySettings : MVVM.ObservableObject
         set => SetProperty(ref controllerAlwaysActive, value);
     }
 
+    private bool pcGamesOnly = false;
+    /// <summary>
+    /// When enabled, controller input is only active for PC platform games.
+    /// Emulated games will not trigger controller overlay activation.
+    /// </summary>
+    public bool PcGamesOnly
+    {
+        get => pcGamesOnly;
+        set => SetProperty(ref pcGamesOnly, value);
+    }
+
     private bool showGenericApps = false;
     public bool ShowGenericApps
     {

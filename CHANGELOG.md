@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - **Show Notifications Toggle**: New setting to enable/disable all overlay notifications (app switching, exit operations, errors).
+- **PC Games Only Mode**: Option to disable controller input for non-PC games
+  - Useful when emulators have their own overlays (RetroArch, etc.)
+  - Works with all controller settings (Controller Always Active enabled or disabled)
+  - Keyboard hotkey continues to work for all games regardless of this setting
+  - Games without platform metadata are treated as PC games (backward compatible)
+  - New setting: `PcGamesOnly` (default: disabled for backward compatibility)
+  - **Tip**: Set platform metadata for emulated games to prevent controller conflicts
 
 ### Changed
 - **Show Generic Apps Default**: Changed default from enabled to disabled. New installations will only show Playnite-tracked games by default.

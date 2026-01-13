@@ -77,9 +77,12 @@ public class OverlayPlugin : GenericPlugin
     {
         // Set the game as active app
         switcher.SetActiveFromGame(args.Game);
-        
+
+        // Check if we should enable controller for this game
+        bool shouldEnableController = !settings.Settings.PcGamesOnly || IsPcGame(args.Game);
+
         // Start controller input if not already running (when not always-active)
-        if (!settings.Settings.ControllerAlwaysActive)
+        if (!settings.Settings.ControllerAlwaysActive && shouldEnableController)
         {
             input.StartController();
         }
@@ -284,9 +287,28 @@ public class OverlayPlugin : GenericPlugin
             if (BorderlessHelper.RestoreWindow(state))
             {
                 logger.Info($"Restored window state for {gameName}");
-            }
-            borderlessStates.Remove(gameId);
         }
+        borderlessStates.Remove(gameId);
+    }
+
+    /// <summary>
+    /// Checks if a game is a PC game based on its platform metadata.
+    /// Returns true if the game has a PC platform, or if no platform info is available (backward compatible).
+    /// </summary>
+    private static bool IsPcGame(Playnite.SDK.Models.Game game)
+    {
+        if (game.Platforms == null || !game.Platforms.Any())
+        {
+            // No platform info - assume PC (backward compatible)
+            return true;
+        }
+
+        return game.Platforms.Any(p =>
+            p.Name != null && (
+                p.Name.Equals("PC", StringComparison.OrdinalIgnoreCase) ||
+                p.Name.Equals("PC (Windows)", StringComparison.OrdinalIgnoreCase) ||
+                p.Name.IndexOf("Windows", StringComparison.OrdinalIgnoreCase) >= 0
+            ));
     }
 
     public override void Dispose()
