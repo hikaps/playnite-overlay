@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **PC Games Only Mode**: Option to disable controller input for non-PC games
+  - Useful when emulators have their own overlays (RetroArch, etc.)
+  - Keyboard hotkey continues to work for all games
+  - New setting: `PcGamesOnly` (default: disabled for backward compatibility)
+
 ---
 
 ## [0.4.3] - 2025-12-22
