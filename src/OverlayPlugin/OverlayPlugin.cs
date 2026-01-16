@@ -287,8 +287,9 @@ public class OverlayPlugin : GenericPlugin
             if (BorderlessHelper.RestoreWindow(state))
             {
                 logger.Info($"Restored window state for {gameName}");
+            }
+            borderlessStates.Remove(gameId);
         }
-        borderlessStates.Remove(gameId);
     }
 
     /// <summary>
