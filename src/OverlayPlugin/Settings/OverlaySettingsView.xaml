@@ -46,6 +46,10 @@
                               Margin="0,8,0,0"
                               IsChecked="{Binding Settings.ControllerAlwaysActive}"
                               ToolTip="Warning: May conflict with system Xbox overlay when enabled"/>
+                    <CheckBox Content="Only enable controller for PC games"
+                              Margin="0,8,0,0"
+                              IsChecked="{Binding Settings.PcGamesOnly}"
+                              ToolTip="When enabled, controller input is disabled for emulated/console games. Useful when emulators have their own overlays."/>
                     <TextBlock Margin="0,6,0,0" TextWrapping="Wrap"
                                Foreground="Gray"
                                Text="Note: Controller detection uses XInput and may not work with all devices yet."/>
