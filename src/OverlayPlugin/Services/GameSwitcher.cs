@@ -189,7 +189,7 @@ public sealed class GameSwitcher
             catch { }
 
             // Get all running apps and find the one that matches foreground window
-            var runningApps = new RunningAppsDetector(api).GetRunningApps(
+            var runningApps = new RunningAppsDetector(api, settings).GetRunningApps(
                 activeApp?.GameId, 
                 includeGenericApps, 
                 maxApps);
