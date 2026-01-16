@@ -1,6 +1,7 @@
 using Xunit;
 using PlayniteOverlay.Services;
 using PlayniteOverlay.Models;
+using PlayniteOverlay;
 using Moq;
 using Playnite.SDK;
 using Playnite.SDK.Models;
@@ -17,7 +18,7 @@ public class GameSwitcherTests
     {
         // Arrange
         var mockApi = new Mock<IPlayniteAPI>();
-        var switcher = new GameSwitcher(mockApi.Object);
+        var switcher = new GameSwitcher(mockApi.Object, new OverlaySettings());
         var game = new Game("Test Game");
 
         // Act
@@ -32,7 +33,7 @@ public class GameSwitcherTests
     {
         // Arrange
         var mockApi = new Mock<IPlayniteAPI>();
-        var switcher = new GameSwitcher(mockApi.Object);
+        var switcher = new GameSwitcher(mockApi.Object, new OverlaySettings());
         var game = new Game("Test Game");
         switcher.SetActiveFromGame(game);
 
@@ -48,7 +49,7 @@ public class GameSwitcherTests
     {
         // Arrange
         var mockApi = new Mock<IPlayniteAPI>();
-        var switcher = new GameSwitcher(mockApi.Object);
+        var switcher = new GameSwitcher(mockApi.Object, new OverlaySettings());
         var game = new Game("Test Game");
         switcher.SetActiveFromGame(game);
 
@@ -64,7 +65,7 @@ public class GameSwitcherTests
     {
         // Arrange
         var mockApi = new Mock<IPlayniteAPI>();
-        var switcher = new GameSwitcher(mockApi.Object);
+        var switcher = new GameSwitcher(mockApi.Object, new OverlaySettings());
         var gameId = Guid.NewGuid();
 
         // Act
@@ -79,7 +80,7 @@ public class GameSwitcherTests
     {
         // Arrange
         var mockApi = new Mock<IPlayniteAPI>();
-        var switcher = new GameSwitcher(mockApi.Object);
+        var switcher = new GameSwitcher(mockApi.Object, new OverlaySettings());
 
         // Act
         var result = switcher.ResolveImagePath(null);
@@ -93,7 +94,7 @@ public class GameSwitcherTests
     {
         // Arrange
         var mockApi = new Mock<IPlayniteAPI>();
-        var switcher = new GameSwitcher(mockApi.Object);
+        var switcher = new GameSwitcher(mockApi.Object, new OverlaySettings());
 
         // Act
         var result = switcher.ResolveImagePath("");
@@ -107,7 +108,7 @@ public class GameSwitcherTests
     {
         // Arrange
         var mockApi = new Mock<IPlayniteAPI>();
-        var switcher = new GameSwitcher(mockApi.Object);
+        var switcher = new GameSwitcher(mockApi.Object, new OverlaySettings());
 
         // Act
         var result = switcher.ResolveImagePath("   ");
@@ -121,7 +122,7 @@ public class GameSwitcherTests
     {
         // Arrange
         var mockApi = new Mock<IPlayniteAPI>();
-        var switcher = new GameSwitcher(mockApi.Object);
+        var switcher = new GameSwitcher(mockApi.Object, new OverlaySettings());
         var url = "http://example.com/image.jpg";
 
         // Act
@@ -136,7 +137,7 @@ public class GameSwitcherTests
     {
         // Arrange
         var mockApi = new Mock<IPlayniteAPI>();
-        var switcher = new GameSwitcher(mockApi.Object);
+        var switcher = new GameSwitcher(mockApi.Object, new OverlaySettings());
         var url = "https://example.com/image.jpg";
 
         // Act
@@ -154,7 +155,7 @@ public class GameSwitcherTests
         var mockDatabase = new Mock<IGameDatabaseAPI>();
         mockApi.Setup(a => a.Database).Returns(mockDatabase.Object);
         mockDatabase.Setup(d => d.GetFullFilePath("local.jpg")).Returns("/full/path/local.jpg");
-        var switcher = new GameSwitcher(mockApi.Object);
+        var switcher = new GameSwitcher(mockApi.Object, new OverlaySettings());
 
         // Act
         var result = switcher.ResolveImagePath("local.jpg");
@@ -171,7 +172,7 @@ public class GameSwitcherTests
         var mockApi = new Mock<IPlayniteAPI>();
         var mockNotifications = new Mock<INotificationsAPI>();
         mockApi.Setup(a => a.Notifications).Returns(mockNotifications.Object);
-        var switcher = new GameSwitcher(mockApi.Object);
+        var switcher = new GameSwitcher(mockApi.Object, new OverlaySettings());
 
         // Act & Assert - Should not throw
         switcher.ExitActiveApp();
@@ -189,7 +190,7 @@ public class GameSwitcherTests
         var mockApi = new Mock<IPlayniteAPI>();
         var mockMainView = new Mock<IMainViewAPI>();
         mockApi.Setup(a => a.MainView).Returns(mockMainView.Object);
-        var switcher = new GameSwitcher(mockApi.Object);
+        var switcher = new GameSwitcher(mockApi.Object, new OverlaySettings());
         var game = new Game("Test Game");
         switcher.SetActiveFromGame(game);
 
@@ -202,7 +203,7 @@ public class GameSwitcherTests
     {
         // Arrange
         var mockApi = new Mock<IPlayniteAPI>();
-        var switcher = new GameSwitcher(mockApi.Object);
+        var switcher = new GameSwitcher(mockApi.Object, new OverlaySettings());
 
         // Assert
         Assert.Null(switcher.ActiveApp);
@@ -213,7 +214,7 @@ public class GameSwitcherTests
     {
         // Arrange
         var mockApi = new Mock<IPlayniteAPI>();
-        var switcher = new GameSwitcher(mockApi.Object);
+        var switcher = new GameSwitcher(mockApi.Object, new OverlaySettings());
         var app = new RunningApp { Title = "Test App", ProcessId = 1234 };
         switcher.SetActiveApp(app);
 
@@ -229,7 +230,7 @@ public class GameSwitcherTests
     {
         // Arrange
         var mockApi = new Mock<IPlayniteAPI>();
-        var switcher = new GameSwitcher(mockApi.Object);
+        var switcher = new GameSwitcher(mockApi.Object, new OverlaySettings());
         var app = new RunningApp
         {
             Title = "Test App",
@@ -251,7 +252,7 @@ public class GameSwitcherTests
     {
         // Arrange
         var mockApi = new Mock<IPlayniteAPI>();
-        var switcher = new GameSwitcher(mockApi.Object);
+        var switcher = new GameSwitcher(mockApi.Object, new OverlaySettings());
 
         // Act
         var result = switcher.IsActiveAppStillValid();
@@ -265,7 +266,7 @@ public class GameSwitcherTests
     {
         // Arrange
         var mockApi = new Mock<IPlayniteAPI>();
-        var switcher = new GameSwitcher(mockApi.Object);
+        var switcher = new GameSwitcher(mockApi.Object, new OverlaySettings());
 
         // Act
         var result = switcher.GetRelativeTime(null);
@@ -279,7 +280,7 @@ public class GameSwitcherTests
     {
         // Arrange
         var mockApi = new Mock<IPlayniteAPI>();
-        var switcher = new GameSwitcher(mockApi.Object);
+        var switcher = new GameSwitcher(mockApi.Object, new OverlaySettings());
 
         // Act
         var result = switcher.GetRelativeTime(DateTime.Now);
@@ -293,7 +294,7 @@ public class GameSwitcherTests
     {
         // Arrange
         var mockApi = new Mock<IPlayniteAPI>();
-        var switcher = new GameSwitcher(mockApi.Object);
+        var switcher = new GameSwitcher(mockApi.Object, new OverlaySettings());
 
         // Act
         var result = switcher.GetRelativeTime(DateTime.Now.AddDays(-1.5));
@@ -307,7 +308,7 @@ public class GameSwitcherTests
     {
         // Arrange
         var mockApi = new Mock<IPlayniteAPI>();
-        var switcher = new GameSwitcher(mockApi.Object);
+        var switcher = new GameSwitcher(mockApi.Object, new OverlaySettings());
 
         // Act
         var result = switcher.GetSessionDuration(null);
@@ -321,7 +322,7 @@ public class GameSwitcherTests
     {
         // Arrange
         var mockApi = new Mock<IPlayniteAPI>();
-        var switcher = new GameSwitcher(mockApi.Object);
+        var switcher = new GameSwitcher(mockApi.Object, new OverlaySettings());
 
         // Act
         var result = switcher.GetSessionDuration(DateTime.Now);
@@ -335,7 +336,7 @@ public class GameSwitcherTests
     {
         // Arrange
         var mockApi = new Mock<IPlayniteAPI>();
-        var switcher = new GameSwitcher(mockApi.Object);
+        var switcher = new GameSwitcher(mockApi.Object, new OverlaySettings());
 
         // Act
         var result = switcher.FormatPlaytime(0);
@@ -349,7 +350,7 @@ public class GameSwitcherTests
     {
         // Arrange
         var mockApi = new Mock<IPlayniteAPI>();
-        var switcher = new GameSwitcher(mockApi.Object);
+        var switcher = new GameSwitcher(mockApi.Object, new OverlaySettings());
 
         // Act
         var result = switcher.FormatPlaytime(1800); // 30 minutes
@@ -363,7 +364,7 @@ public class GameSwitcherTests
     {
         // Arrange
         var mockApi = new Mock<IPlayniteAPI>();
-        var switcher = new GameSwitcher(mockApi.Object);
+        var switcher = new GameSwitcher(mockApi.Object, new OverlaySettings());
 
         // Act
         var result = switcher.FormatPlaytime(36000); // 10 hours
@@ -377,7 +378,7 @@ public class GameSwitcherTests
     {
         // Arrange
         var mockApi = new Mock<IPlayniteAPI>();
-        var switcher = new GameSwitcher(mockApi.Object);
+        var switcher = new GameSwitcher(mockApi.Object, new OverlaySettings());
 
         // Act
         var result = switcher.FormatPlaytime(3600000); // 1000 hours
@@ -400,7 +401,7 @@ public class GameSwitcherTests
         mockDatabase.Setup(d => d.Games).Returns(mockGames.Object);
         mockGames.Setup(g => g[gameId]).Returns(game);
 
-        var switcher = new GameSwitcher(mockApi.Object);
+        var switcher = new GameSwitcher(mockApi.Object, new OverlaySettings());
 
         // Act
         var result = switcher.ResolveGame(gameId);
@@ -423,7 +424,7 @@ public class GameSwitcherTests
         mockDatabase.Setup(d => d.Games).Returns(mockGames.Object);
         mockGames.Setup(g => g[gameId]).Returns((Game?)null);
 
-        var switcher = new GameSwitcher(mockApi.Object);
+        var switcher = new GameSwitcher(mockApi.Object, new OverlaySettings());
 
         // Act
         var result = switcher.ResolveGame(gameId);
@@ -450,7 +451,7 @@ public class GameSwitcherTests
         mockApi.Setup(a => a.Database).Returns(mockDatabase.Object);
         mockDatabase.Setup(d => d.Games).Returns(mockGames.Object);
 
-        var switcher = new GameSwitcher(mockApi.Object);
+        var switcher = new GameSwitcher(mockApi.Object, new OverlaySettings());
 
         // Act
         var result = switcher.GetRecentGames(5).ToList();
@@ -481,7 +482,7 @@ public class GameSwitcherTests
         mockApi.Setup(a => a.Database).Returns(mockDatabase.Object);
         mockDatabase.Setup(d => d.Games).Returns(mockGames.Object);
 
-        var switcher = new GameSwitcher(mockApi.Object);
+        var switcher = new GameSwitcher(mockApi.Object, new OverlaySettings());
         
         // Exclude game2 and game3 (simulating they are running)
         var excludeIds = new HashSet<Guid> { game2.Id, game3.Id };
@@ -520,7 +521,7 @@ public class GameSwitcherTests
         mockApi.Setup(a => a.Database).Returns(mockDatabase.Object);
         mockDatabase.Setup(d => d.Games).Returns(mockGames.Object);
 
-        var switcher = new GameSwitcher(mockApi.Object);
+        var switcher = new GameSwitcher(mockApi.Object, new OverlaySettings());
         
         // Exclude games 2 and 3 (simulating they are running)
         var excludeIds = new HashSet<Guid> { games[1].Id, games[2].Id };
@@ -554,7 +555,7 @@ public class GameSwitcherTests
         mockApi.Setup(a => a.Database).Returns(mockDatabase.Object);
         mockDatabase.Setup(d => d.Games).Returns(mockGames.Object);
 
-        var switcher = new GameSwitcher(mockApi.Object);
+        var switcher = new GameSwitcher(mockApi.Object, new OverlaySettings());
 
         // Act
         var result = switcher.GetRecentGames(5, new HashSet<Guid>()).ToList();
