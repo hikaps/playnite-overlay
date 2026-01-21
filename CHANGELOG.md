@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **Show Generic Apps Default**: Changed default from enabled to disabled. New installations will only show Playnite-tracked games by default.
+
 ---
 
 ## [0.4.3] - 2025-12-22
