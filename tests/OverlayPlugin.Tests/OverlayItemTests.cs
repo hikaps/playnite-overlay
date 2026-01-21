@@ -1,6 +1,7 @@
 using Xunit;
 using PlayniteOverlay.Models;
 using PlayniteOverlay.Services;
+using PlayniteOverlay;
 using System;
 using Moq;
 using Playnite.SDK;
@@ -18,7 +19,7 @@ public class OverlayItemTests
         mockApi.Setup(a => a.Database).Returns(mockDatabase.Object);
         mockDatabase.Setup(d => d.GetFullFilePath(It.IsAny<string>())).Returns((string path) => path);
         
-        var switcher = new GameSwitcher(mockApi.Object);
+        var switcher = new GameSwitcher(mockApi.Object, new OverlaySettings());
         var game = new Playnite.SDK.Models.Game("Test Game");
 
         // Act
@@ -38,7 +39,7 @@ public class OverlayItemTests
         mockApi.Setup(a => a.Database).Returns(mockDatabase.Object);
         mockDatabase.Setup(d => d.GetFullFilePath("cover.jpg")).Returns("/path/to/cover.jpg");
         
-        var switcher = new GameSwitcher(mockApi.Object);
+        var switcher = new GameSwitcher(mockApi.Object, new OverlaySettings());
         var game = new Playnite.SDK.Models.Game("Test Game")
         {
             CoverImage = "cover.jpg",
@@ -61,7 +62,7 @@ public class OverlayItemTests
         mockApi.Setup(a => a.Database).Returns(mockDatabase.Object);
         mockDatabase.Setup(d => d.GetFullFilePath("icon.png")).Returns("/path/to/icon.png");
         
-        var switcher = new GameSwitcher(mockApi.Object);
+        var switcher = new GameSwitcher(mockApi.Object, new OverlaySettings());
         var game = new Playnite.SDK.Models.Game("Test Game")
         {
             Icon = "icon.png"
@@ -82,7 +83,7 @@ public class OverlayItemTests
         var mockDatabase = new Mock<IGameDatabaseAPI>();
         mockApi.Setup(a => a.Database).Returns(mockDatabase.Object);
         
-        var switcher = new GameSwitcher(mockApi.Object);
+        var switcher = new GameSwitcher(mockApi.Object, new OverlaySettings());
         var game = new Playnite.SDK.Models.Game("Test Game");
         var item = OverlayItem.FromRecentGame(game, switcher);
 
