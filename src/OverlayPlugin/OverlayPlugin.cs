@@ -21,6 +21,7 @@ public class OverlayPlugin : GenericPlugin
     private readonly OverlayService overlay;
     private readonly GameSwitcher switcher;
     private readonly RunningAppsDetector runningAppsDetector;
+    private readonly SuccessStoryIntegration successStory;
     private readonly OverlaySettingsViewModel settings;
     private readonly Dictionary<Guid, BorderlessHelper.WindowState> borderlessStates = new Dictionary<Guid, BorderlessHelper.WindowState>();
     private bool isDisposed;
@@ -33,6 +34,7 @@ public class OverlayPlugin : GenericPlugin
         settings = new OverlaySettingsViewModel(this);
         switcher = new GameSwitcher(api, settings.Settings);
         runningAppsDetector = new RunningAppsDetector(api, settings.Settings);
+        successStory = new SuccessStoryIntegration(api);
 
         Properties = new GenericPluginProperties
         {
@@ -198,6 +200,15 @@ public class OverlayPlugin : GenericPlugin
             currentGameItem = OverlayItem.FromRunningApp(switcher.ActiveApp, switcher);
             excludeFromRunningApps = switcher.ActiveApp.GameId;
             logger.Debug($"Using active app for NOW PLAYING: {switcher.ActiveApp.Title}");
+
+            // Populate achievements if enabled and game has a valid ID
+            if (settings.Settings.ShowAchievements && currentGameItem.GameId != Guid.Empty)
+            {
+                currentGameItem.Achievements = successStory.GetGameAchievements(
+                    currentGameItem.GameId,
+                    settings.Settings.MaxRecentAchievements,
+                    settings.Settings.MaxLockedAchievements);
+            }
         }
         else if (switcher.ActiveApp != null)
         {
