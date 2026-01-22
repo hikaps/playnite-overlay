@@ -77,11 +77,26 @@ public class OverlayPlugin : GenericPlugin
     {
         // Set the game as active app
         switcher.SetActiveFromGame(args.Game);
-        
-        // Start controller input if not already running (when not always-active)
-        if (!settings.Settings.ControllerAlwaysActive)
+
+        // Check if we should enable controller for this game
+        bool shouldEnableController = !settings.Settings.PcGamesOnly || IsPcGame(args.Game);
+
+        if (shouldEnableController)
         {
-            input.StartController();
+            // Enable controller input for this game
+            input.EnableControllerInput();
+            
+            // Start controller timer if not already running (when not always-active)
+            if (!settings.Settings.ControllerAlwaysActive)
+            {
+                input.StartController();
+            }
+        }
+        else
+        {
+            // Disable controller input for non-PC games when PcGamesOnly is enabled
+            logger.Info($"Disabling controller input for non-PC game: {args.Game.Name}");
+            input.DisableControllerInput();
         }
 
         // Apply borderless mode if enabled and we have a process ID
@@ -98,6 +113,9 @@ public class OverlayPlugin : GenericPlugin
 
         // Clear active app when game stops
         switcher.ClearActiveApp();
+        
+        // Re-enable controller input after game stops (in case it was disabled for non-PC game)
+        input.EnableControllerInput();
         
         // Stop controller input only if not configured to be always-active
         if (!settings.Settings.ControllerAlwaysActive)
@@ -287,6 +305,26 @@ public class OverlayPlugin : GenericPlugin
             }
             borderlessStates.Remove(gameId);
         }
+    }
+
+    /// <summary>
+    /// Checks if a game is a PC game based on its platform metadata.
+    /// Returns true if the game has a PC platform, or if no platform info is available (backward compatible).
+    /// </summary>
+    private static bool IsPcGame(Playnite.SDK.Models.Game game)
+    {
+        if (game.Platforms == null || !game.Platforms.Any())
+        {
+            // No platform info - assume PC (backward compatible)
+            return true;
+        }
+
+        return game.Platforms.Any(p =>
+            p.Name != null && (
+                p.Name.Equals("PC", StringComparison.OrdinalIgnoreCase) ||
+                p.Name.Equals("PC (Windows)", StringComparison.OrdinalIgnoreCase) ||
+                p.Name.IndexOf("Windows", StringComparison.OrdinalIgnoreCase) >= 0
+            ));
     }
 
     public override void Dispose()
