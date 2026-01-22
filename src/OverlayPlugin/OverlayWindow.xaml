@@ -385,7 +385,7 @@
                     
                     <!-- Audio Device Section (auto-hidden when no devices) -->
                     <Border x:Name="AudioSection" Background="#252525" CornerRadius="8" 
-                            Padding="16" Margin="20,0,0,0" Visibility="Collapsed"
+                            Padding="16" Margin="0,20,0,0" Visibility="Collapsed"
                             BorderThickness="2" BorderBrush="Transparent" Focusable="False">
                         <StackPanel>
                             <TextBlock Text="AUDIO OUTPUT" FontSize="10" FontWeight="Bold" 
