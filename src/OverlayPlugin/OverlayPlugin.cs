@@ -81,10 +81,22 @@ public class OverlayPlugin : GenericPlugin
         // Check if we should enable controller for this game
         bool shouldEnableController = !settings.Settings.PcGamesOnly || IsPcGame(args.Game);
 
-        // Start controller input if not already running (when not always-active)
-        if (!settings.Settings.ControllerAlwaysActive && shouldEnableController)
+        if (shouldEnableController)
         {
-            input.StartController();
+            // Enable controller input for this game
+            input.EnableControllerInput();
+            
+            // Start controller timer if not already running (when not always-active)
+            if (!settings.Settings.ControllerAlwaysActive)
+            {
+                input.StartController();
+            }
+        }
+        else
+        {
+            // Disable controller input for non-PC games when PcGamesOnly is enabled
+            logger.Info($"Disabling controller input for non-PC game: {args.Game.Name}");
+            input.DisableControllerInput();
         }
 
         // Apply borderless mode if enabled and we have a process ID
@@ -101,6 +113,9 @@ public class OverlayPlugin : GenericPlugin
 
         // Clear active app when game stops
         switcher.ClearActiveApp();
+        
+        // Re-enable controller input after game stops (in case it was disabled for non-PC game)
+        input.EnableControllerInput();
         
         // Stop controller input only if not configured to be always-active
         if (!settings.Settings.ControllerAlwaysActive)
