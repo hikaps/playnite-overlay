@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Controls;
@@ -26,6 +27,7 @@ public partial class OverlayWindow : Window
 
     private readonly Action onSwitch;
     private readonly Action onExit;
+    private readonly Action<string>? onAudioDeviceChanged;
     private readonly List<OverlayItem> items;
     private readonly List<RunningApp> runningApps;
     
@@ -40,11 +42,12 @@ public partial class OverlayWindow : Window
     private static readonly SolidColorBrush HighlightBrush = new(Color.FromRgb(0xFF, 0xFF, 0xFF));
     private static readonly SolidColorBrush TransparentBrush = new(Colors.Transparent);
 
-    public OverlayWindow(Action onSwitch, Action onExit, OverlayItem? currentGame, IEnumerable<RunningApp> runningApps, IEnumerable<OverlayItem> recentGames)
+    public OverlayWindow(Action onSwitch, Action onExit, OverlayItem? currentGame, IEnumerable<RunningApp> runningApps, IEnumerable<OverlayItem> recentGames, IEnumerable<AudioDevice>? audioDevices = null, Action<string>? onAudioDeviceChanged = null)
     {
         InitializeComponent();
         this.onSwitch = onSwitch;
         this.onExit = onExit;
+        this.onAudioDeviceChanged = onAudioDeviceChanged;
         this.items = new List<OverlayItem>(recentGames);
         this.runningApps = new List<RunningApp>(runningApps);
 
@@ -118,6 +121,9 @@ public partial class OverlayWindow : Window
                 selectedIndex = RecentList.SelectedIndex;
             }
         };
+
+        // Setup audio devices section
+        SetupAudioDevices(audioDevices);
 
         // Initial focus - section level on first visible section
         Dispatcher.BeginInvoke(() => FocusFirstVisibleSection(), DispatcherPriority.Loaded);
@@ -721,6 +727,45 @@ public partial class OverlayWindow : Window
                 TextTrimming = TextTrimming.CharacterEllipsis
             };
             LockedAchievementsList.Children.Add(text);
+        }
+    }
+
+    #endregion
+
+    #region Audio Device Setup
+
+    private void SetupAudioDevices(IEnumerable<AudioDevice>? audioDevices)
+    {
+        if (audioDevices == null || !audioDevices.Any())
+        {
+            AudioSection.Visibility = Visibility.Collapsed;
+            return;
+        }
+
+        AudioSection.Visibility = Visibility.Visible;
+        AudioDeviceCombo.ItemsSource = audioDevices;
+        
+        // Pre-select current default device
+        var defaultDevice = audioDevices.FirstOrDefault(d => d.IsDefault);
+        if (defaultDevice != null)
+        {
+            AudioDeviceCombo.SelectedItem = defaultDevice;
+        }
+    }
+
+    private void OnAudioDeviceChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (AudioDeviceCombo.SelectedItem is AudioDevice selectedDevice && onAudioDeviceChanged != null)
+        {
+            try
+            {
+                onAudioDeviceChanged(selectedDevice.Id);
+            }
+            catch (Exception ex)
+            {
+                // Log error but don't crash - this is a non-critical feature
+                System.Diagnostics.Debug.WriteLine($"Error changing audio device: {ex.Message}");
+            }
         }
     }
 

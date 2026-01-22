@@ -22,6 +22,7 @@ public class OverlayPlugin : GenericPlugin
     private readonly GameSwitcher switcher;
     private readonly RunningAppsDetector runningAppsDetector;
     private readonly SuccessStoryIntegration successStory;
+    private readonly AudioDeviceService? audioDeviceService;
     private readonly OverlaySettingsViewModel settings;
     private readonly Dictionary<Guid, BorderlessHelper.WindowState> borderlessStates = new Dictionary<Guid, BorderlessHelper.WindowState>();
     private bool isDisposed;
@@ -35,6 +36,17 @@ public class OverlayPlugin : GenericPlugin
         switcher = new GameSwitcher(api, settings.Settings);
         runningAppsDetector = new RunningAppsDetector(api, settings.Settings);
         successStory = new SuccessStoryIntegration(api);
+
+        // Initialize audio device service (optional - may fail if NAudio unavailable)
+        try
+        {
+            audioDeviceService = new AudioDeviceService();
+        }
+        catch (Exception ex)
+        {
+            logger.Warn(ex, "Failed to initialize AudioDeviceService - audio switching will be disabled");
+            audioDeviceService = null;
+        }
 
         Properties = new GenericPluginProperties
         {
@@ -236,12 +248,25 @@ public class OverlayPlugin : GenericPlugin
             .Select(g => OverlayItem.FromRecentGame(g, switcher))
             .ToList();
 
+        // Get audio devices (null if service unavailable or enumeration fails)
+        IEnumerable<AudioDevice>? audioDevices = null;
+        try
+        {
+            audioDevices = audioDeviceService?.GetOutputDevices();
+        }
+        catch (Exception ex)
+        {
+            logger.Debug(ex, "Error getting audio devices");
+        }
+
         overlay.Show(
             () => switcher.SwitchToPlaynite(),
             HandleExitGame,
             currentGameItem,
             runningApps,
-            recentGames);
+            recentGames,
+            audioDevices,
+            SwitchAudioDevice);
     }
 
     private void HandleExitGame()
@@ -259,6 +284,32 @@ public class OverlayPlugin : GenericPlugin
         {
             switcher.SetActiveApp(foregroundApp);
             logger.Info($"Auto-detected foreground app after exit: {foregroundApp.Title}");
+        }
+    }
+
+    private void SwitchAudioDevice(string deviceId)
+    {
+        if (audioDeviceService == null)
+        {
+            logger.Warn("Cannot switch audio device: AudioDeviceService not initialized");
+            return;
+        }
+
+        try
+        {
+            var success = audioDeviceService.SetDefaultDevice(deviceId);
+            if (success)
+            {
+                logger.Info($"Successfully switched audio device to {deviceId}");
+            }
+            else
+            {
+                logger.Warn($"Failed to switch audio device to {deviceId}");
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.Error(ex, $"Error switching audio device to {deviceId}");
         }
     }
 
@@ -353,6 +404,7 @@ public class OverlayPlugin : GenericPlugin
         // Clean up resources
         input.Stop();
         overlay.Hide();
+        audioDeviceService?.Dispose();
 
         base.Dispose();
     }
