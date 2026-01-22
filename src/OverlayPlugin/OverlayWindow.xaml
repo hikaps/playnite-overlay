@@ -41,14 +41,22 @@
                             </Border>
                             
                             <!-- Game Info -->
-                            <StackPanel Grid.Column="2" VerticalAlignment="Center">
+                            <StackPanel Grid.Column="2" VerticalAlignment="Top">
                                 <TextBlock Text="NOW PLAYING" FontSize="10" FontWeight="Bold" 
                                            Foreground="#888888" Margin="0,0,0,10"/>
                                 <TextBlock x:Name="CurrentGameTitle" FontSize="22" 
                                            FontWeight="SemiBold" Foreground="#FFFFFF" 
                                            TextTrimming="CharacterEllipsis" Margin="0,0,0,6" TextWrapping="NoWrap"/>
                                 <TextBlock x:Name="CurrentGameInfo" FontSize="13" 
-                                           Foreground="#AAAAAA" Margin="0,0,0,20" TextWrapping="Wrap"/>
+                                           Foreground="#AAAAAA" Margin="0,0,0,12" TextWrapping="Wrap"/>
+                                
+                                <!-- Achievements Section (hidden when no data) -->
+                                <StackPanel x:Name="AchievementsPanel" Visibility="Collapsed" Margin="0,0,0,12">
+                                    <TextBlock x:Name="AchievementsProgress" FontSize="12" 
+                                               Foreground="#AAAAAA" Margin="0,0,0,6"/>
+                                    <StackPanel x:Name="RecentAchievementsList"/>
+                                    <StackPanel x:Name="LockedAchievementsList"/>
+                                </StackPanel>
                                 
                                 <!-- Action Buttons -->
                                 <StackPanel Orientation="Horizontal">
