@@ -26,6 +26,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - **Show Generic Apps Default**: Changed default from enabled to disabled. New installations will only show Playnite-tracked games by default.
 
+### Fixed
+- **SuccessStory Achievement Detection**: Fixed locked achievements incorrectly showing as unlocked
+  - SuccessStory uses `0001-01-01` date to represent locked achievements
+  - Plugin now correctly identifies locked vs unlocked achievements
+
 ---
 
 ## [0.4.3] - 2025-12-22

@@ -182,7 +182,12 @@ public sealed class SuccessStoryIntegration
             var dateStr = ExtractStringValue(json, "DateUnlocked");
             if (!string.IsNullOrEmpty(dateStr) && DateTime.TryParse(dateStr, out var date))
             {
-                achievement.DateUnlocked = date;
+                // SuccessStory uses DateTime.MinValue (0001-01-01) for locked achievements
+                // Only set DateUnlocked if it's a valid date (year > 1)
+                if (date.Year > 1)
+                {
+                    achievement.DateUnlocked = date;
+                }
             }
 
             return achievement;
