@@ -8,6 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Audio Device Switcher**: Switch default Windows audio output device directly from the overlay
+  - Shows dropdown with all active audio output devices
+  - Displays current default device with indicator
+  - Auto-hides when no audio devices detected or NAudio fails to initialize
+  - Uses NAudio 2.2.1 for device enumeration
+  - Switches device for all roles (Multimedia, Console, Communications)
 - **Show Notifications Toggle**: New setting to enable/disable all overlay notifications (app switching, exit operations, errors).
 - **PC Games Only Mode**: Option to disable controller input for non-PC games
   - Useful when emulators have their own overlays (RetroArch, etc.)
