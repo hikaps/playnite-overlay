@@ -193,6 +193,14 @@ public partial class OverlayWindow : Window
 
     private void OnPreviewKeyDown(object sender, KeyEventArgs e)
     {
+        // If audio ComboBox dropdown is open, let it handle its own navigation
+        if (AudioDeviceCombo.IsDropDownOpen && 
+            (e.Key == Key.Up || e.Key == Key.Down || e.Key == Key.Enter))
+        {
+            // Don't mark as handled - let the ComboBox receive these keys
+            return;
+        }
+        
         switch (e.Key)
         {
             case Key.Escape:
