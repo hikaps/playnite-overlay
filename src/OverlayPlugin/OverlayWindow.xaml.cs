@@ -680,6 +680,10 @@ public partial class OverlayWindow : Window
                 case NavigationTarget.ExitButton:
                     ExitBtn.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
                     break;
+                case NavigationTarget.AudioDeviceCombo:
+                    // Open the ComboBox dropdown when Enter is pressed
+                    AudioDeviceCombo.IsDropDownOpen = true;
+                    break;
                 case NavigationTarget.RunningAppItem:
                     if (runningAppSelectedIndex >= 0 && runningAppSelectedIndex < runningApps.Count)
                     {
@@ -702,6 +706,13 @@ public partial class OverlayWindow : Window
 
     private void PerformCancel()
     {
+        // If the audio ComboBox dropdown is open, close it first
+        if (AudioDeviceCombo.IsDropDownOpen)
+        {
+            AudioDeviceCombo.IsDropDownOpen = false;
+            return;
+        }
+        
         if (isInsideSection)
         {
             // Exit to section level
