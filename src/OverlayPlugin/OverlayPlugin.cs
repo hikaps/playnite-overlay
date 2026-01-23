@@ -287,11 +287,12 @@ public class OverlayPlugin : GenericPlugin
         }
     }
 
-    private void SwitchAudioDevice(string deviceId)
+    private void SwitchAudioDevice(string deviceId, Action<bool> onComplete)
     {
         if (audioDeviceService == null)
         {
             logger.Warn("Cannot switch audio device: AudioDeviceService not initialized");
+            onComplete(false);
             return;
         }
 
@@ -301,15 +302,18 @@ public class OverlayPlugin : GenericPlugin
             if (success)
             {
                 logger.Info($"Successfully switched audio device to {deviceId}");
+                onComplete(true);
             }
             else
             {
                 logger.Warn($"Failed to switch audio device to {deviceId}");
+                onComplete(false);
             }
         }
         catch (Exception ex)
         {
             logger.Error(ex, $"Error switching audio device to {deviceId}");
+            onComplete(false);
         }
     }
 

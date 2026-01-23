@@ -27,7 +27,7 @@ public partial class OverlayWindow : Window
 
     private readonly Action onSwitch;
     private readonly Action onExit;
-    private readonly Action<string>? onAudioDeviceChanged;
+    private readonly Action<string, Action<bool>>? onAudioDeviceChanged;
     private readonly List<OverlayItem> items;
     private readonly List<RunningApp> runningApps;
     
@@ -37,12 +37,13 @@ public partial class OverlayWindow : Window
     private int selectedIndex = -1;
     private int runningAppSelectedIndex = -1;
     private bool isClosing;
+    private bool isInitializingAudio = false;
     
     // Section highlight color
     private static readonly SolidColorBrush HighlightBrush = new(Color.FromRgb(0xFF, 0xFF, 0xFF));
     private static readonly SolidColorBrush TransparentBrush = new(Colors.Transparent);
 
-    public OverlayWindow(Action onSwitch, Action onExit, OverlayItem? currentGame, IEnumerable<RunningApp> runningApps, IEnumerable<OverlayItem> recentGames, IEnumerable<AudioDevice>? audioDevices = null, Action<string>? onAudioDeviceChanged = null)
+    public OverlayWindow(Action onSwitch, Action onExit, OverlayItem? currentGame, IEnumerable<RunningApp> runningApps, IEnumerable<OverlayItem> recentGames, IEnumerable<AudioDevice>? audioDevices = null, Action<string, Action<bool>>? onAudioDeviceChanged = null)
     {
         InitializeComponent();
         this.onSwitch = onSwitch;
@@ -812,6 +813,7 @@ public partial class OverlayWindow : Window
             return;
         }
 
+        isInitializingAudio = true;
         AudioDeviceCombo.Visibility = Visibility.Visible;
         AudioDeviceCombo.ItemsSource = audioDevices;
         
@@ -821,15 +823,35 @@ public partial class OverlayWindow : Window
         {
             AudioDeviceCombo.SelectedItem = defaultDevice;
         }
+        isInitializingAudio = false;
     }
 
     private void OnAudioDeviceChanged(object sender, SelectionChangedEventArgs e)
     {
+        // Skip during initialization to avoid triggering device switch on setup
+        if (isInitializingAudio) return;
+        
         if (AudioDeviceCombo.SelectedItem is AudioDevice selectedDevice && onAudioDeviceChanged != null)
         {
             try
             {
-                onAudioDeviceChanged(selectedDevice.Id);
+                // Call the callback with the device ID and a success handler
+                onAudioDeviceChanged(selectedDevice.Id, (success) =>
+                {
+                    if (success)
+                    {
+                        // Update IsDefault flags to reflect the new default device
+                        // This will trigger UI refresh thanks to INotifyPropertyChanged
+                        if (AudioDeviceCombo.ItemsSource is IEnumerable<AudioDevice> devices)
+                        {
+                            foreach (var device in devices)
+                            {
+                                device.IsDefault = (device.Id == selectedDevice.Id);
+                            }
+                        }
+                    }
+                    // If not successful, do nothing - the UI stays as-is (fail silently)
+                });
             }
             catch (Exception ex)
             {
