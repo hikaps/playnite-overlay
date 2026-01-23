@@ -1,5 +1,16 @@
 AddonId: 'playnite-overlay'
 Packages:
+  - Version: 0.5.0
+    RequiredApiVersion: 6.0.0
+    ReleaseDate: 2026-01-23
+    PackageUrl: https://github.com/hikaps/playnite-overlay/releases/download/v0.5.0/playnite-overlay-0.5.0.pext
+    Changelog:
+      - Audio Device Switcher - switch audio output from overlay
+      - SuccessStory integration - view achievement progress
+      - PC Games Only Mode - disable controller for emulated games
+      - Show Notifications toggle setting
+      - Fixed locked achievements detection
+      - Show Generic Apps now disabled by default
   - Version: 0.4.3
     RequiredApiVersion: 6.0.0
     ReleaseDate: 2025-12-22

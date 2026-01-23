@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+---
+
+## [0.5.0] - 2026-01-23
+
 ### Added
 - **Audio Device Switcher**: Switch default Windows audio output device directly from the overlay
   - Shows dropdown with all active audio output devices
