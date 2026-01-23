@@ -378,6 +378,7 @@ public partial class OverlayWindow : Window
         {
             case NavigationTarget.SwitchButton:
             case NavigationTarget.ExitButton:
+            case NavigationTarget.AudioDeviceCombo:
                 section = NavigationTarget.CurrentGameSection;
                 break;
             case NavigationTarget.RunningAppItem:
@@ -422,6 +423,22 @@ public partial class OverlayWindow : Window
         
         navigationTarget = NavigationTarget.ExitButton;
         ExitBtn.Focus();
+        CurrentGameSection.BringIntoView();
+    }
+
+    private void FocusAudioCombo()
+    {
+        if (!Dispatcher.CheckAccess())
+        {
+            Dispatcher.Invoke(FocusAudioCombo);
+            return;
+        }
+
+        RunningAppsList.SelectedIndex = -1;
+        RecentList.SelectedIndex = -1;
+        
+        navigationTarget = NavigationTarget.AudioDeviceCombo;
+        AudioDeviceCombo.Focus();
         CurrentGameSection.BringIntoView();
     }
 
@@ -522,6 +539,10 @@ public partial class OverlayWindow : Window
                     FocusSwitchButton();
                     break;
                     
+                case NavigationTarget.AudioDeviceCombo:
+                    FocusExitButton();
+                    break;
+                    
                 case NavigationTarget.RunningAppItem:
                     if (runningAppSelectedIndex <= 0)
                     {
@@ -568,6 +589,19 @@ public partial class OverlayWindow : Window
                     break;
                     
                 case NavigationTarget.ExitButton:
+                    // Check if audio combo is visible, if so go there
+                    if (AudioDeviceCombo.Visibility == Visibility.Visible)
+                    {
+                        FocusAudioCombo();
+                    }
+                    else
+                    {
+                        // At bottom of CurrentGameSection, exit to section level
+                        ExitToSectionLevel();
+                    }
+                    break;
+                    
+                case NavigationTarget.AudioDeviceCombo:
                     // At bottom of CurrentGameSection, exit to section level
                     ExitToSectionLevel();
                     break;
@@ -599,17 +633,32 @@ public partial class OverlayWindow : Window
 
     private void NavigateLeft()
     {
-        if (isInsideSection && navigationTarget == NavigationTarget.ExitButton)
+        if (isInsideSection)
         {
-            FocusSwitchButton();
+            if (navigationTarget == NavigationTarget.ExitButton)
+            {
+                FocusSwitchButton();
+            }
+            else if (navigationTarget == NavigationTarget.AudioDeviceCombo)
+            {
+                FocusExitButton();
+            }
         }
     }
 
     private void NavigateRight()
     {
-        if (isInsideSection && navigationTarget == NavigationTarget.SwitchButton)
+        if (isInsideSection)
         {
-            FocusExitButton();
+            if (navigationTarget == NavigationTarget.SwitchButton)
+            {
+                FocusExitButton();
+            }
+            else if (navigationTarget == NavigationTarget.ExitButton &&
+                     AudioDeviceCombo.Visibility == Visibility.Visible)
+            {
+                FocusAudioCombo();
+            }
         }
     }
 
@@ -736,13 +785,15 @@ public partial class OverlayWindow : Window
 
     private void SetupAudioDevices(IEnumerable<AudioDevice>? audioDevices)
     {
-        if (audioDevices == null || !audioDevices.Any())
+        // Only show when CurrentGameSection is visible AND devices available
+        if (CurrentGameSection.Visibility != Visibility.Visible || 
+            audioDevices == null || !audioDevices.Any())
         {
-            AudioSection.Visibility = Visibility.Collapsed;
+            AudioDeviceCombo.Visibility = Visibility.Collapsed;
             return;
         }
 
-        AudioSection.Visibility = Visibility.Visible;
+        AudioDeviceCombo.Visibility = Visibility.Visible;
         AudioDeviceCombo.ItemsSource = audioDevices;
         
         // Pre-select current default device
@@ -834,6 +885,7 @@ public partial class OverlayWindow : Window
         // Item-level (Level 2) - inside CurrentGameSection
         SwitchButton,
         ExitButton,
+        AudioDeviceCombo,
         
         // Item-level (Level 2) - inside list sections
         RunningAppItem,
