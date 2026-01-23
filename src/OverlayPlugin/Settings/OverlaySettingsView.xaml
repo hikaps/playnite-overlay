@@ -46,6 +46,10 @@
                               Margin="0,8,0,0"
                               IsChecked="{Binding Settings.ControllerAlwaysActive}"
                               ToolTip="Warning: May conflict with system Xbox overlay when enabled"/>
+                    <CheckBox Content="Only enable controller for PC games"
+                              Margin="0,8,0,0"
+                              IsChecked="{Binding Settings.PcGamesOnly}"
+                              ToolTip="When enabled, controller input is disabled for emulated/console games. Useful when emulators have their own overlays."/>
                     <TextBlock Margin="0,6,0,0" TextWrapping="Wrap"
                                Foreground="Gray"
                                Text="Note: Controller detection uses XInput and may not work with all devices yet."/>
@@ -63,9 +67,36 @@
                                  Text="{Binding Settings.MaxRunningApps, UpdateSourceTrigger=PropertyChanged}"
                                  ToolTip="Maximum number of running apps to show in the overlay (1-50)"/>
                     </StackPanel>
+                    <CheckBox Content="Show notifications"
+                              Margin="0,8,0,0"
+                              IsChecked="{Binding Settings.ShowNotifications}"
+                              ToolTip="When enabled, shows notifications for app switching, exit operations, and errors."/>
                     <TextBlock Margin="0,6,0,0" TextWrapping="Wrap"
                                Foreground="Gray"
                                Text="The overlay can detect and switch between multiple running games and applications."/>
+                </StackPanel>
+            </GroupBox>
+
+            <GroupBox Header="Achievements (SuccessStory)">
+                <StackPanel Margin="10">
+                    <CheckBox Content="Show achievement progress in overlay"
+                              IsChecked="{Binding Settings.ShowAchievements}"
+                              ToolTip="Display achievement progress when SuccessStory plugin is installed and game has achievement data."/>
+                    <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                        <TextBlock Text="Recent unlocked to show:" VerticalAlignment="Center"/>
+                        <TextBox Width="60" Margin="8,0,0,0"
+                                 Text="{Binding Settings.MaxRecentAchievements, UpdateSourceTrigger=PropertyChanged}"
+                                 ToolTip="Maximum number of recently unlocked achievements to display (1-10)"/>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                        <TextBlock Text="Locked achievements to show:" VerticalAlignment="Center"/>
+                        <TextBox Width="60" Margin="8,0,0,0"
+                                 Text="{Binding Settings.MaxLockedAchievements, UpdateSourceTrigger=PropertyChanged}"
+                                 ToolTip="Maximum number of locked achievements to display (1-10)"/>
+                    </StackPanel>
+                    <TextBlock Margin="0,6,0,0" TextWrapping="Wrap"
+                               Foreground="Gray"
+                               Text="Requires the SuccessStory plugin to be installed. Achievement data is read from SuccessStory's cache."/>
                 </StackPanel>
             </GroupBox>
 

@@ -23,6 +23,7 @@ internal sealed class InputListener
     private string controllerCombo = "Guide";
     private string? customHotkeyGesture;
     private bool enableController = true;
+    private bool runtimeControllerEnabled = true; // Runtime override for game context (e.g., PC Games Only filter)
 
     // Overlay window reference for navigation (single polling loop)
     private OverlayWindow? overlayWindow;
@@ -145,6 +146,24 @@ internal sealed class InputListener
         pollTimer = null;
     }
 
+    /// <summary>
+    /// Enables controller input processing at runtime without affecting the polling timer.
+    /// Used for dynamic enable/disable based on game context (e.g., PC Games Only filter).
+    /// </summary>
+    public void EnableControllerInput()
+    {
+        runtimeControllerEnabled = true;
+    }
+
+    /// <summary>
+    /// Disables controller input processing at runtime without affecting the polling timer.
+    /// Used for dynamic enable/disable based on game context (e.g., PC Games Only filter).
+    /// </summary>
+    public void DisableControllerInput()
+    {
+        runtimeControllerEnabled = false;
+    }
+
     public void ApplySettings(OverlaySettings settings)
     {
         customHotkeyGesture = settings.EnableCustomHotkey ? settings.CustomHotkey : null;
@@ -161,9 +180,9 @@ internal sealed class InputListener
 
     private void PollControllers()
     {
-        if (!enableController)
+        if (!enableController || !runtimeControllerEnabled)
         {
-            // Controller polling is running but disabled in settings
+            // Controller polling is running but disabled in settings or runtime
             return;
         }
 

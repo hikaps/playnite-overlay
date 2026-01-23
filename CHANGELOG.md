@@ -9,6 +9,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.5.0] - 2026-01-23
+
+### Added
+- **Audio Device Switcher**: Switch default Windows audio output device directly from the overlay
+  - Shows dropdown with all active audio output devices
+  - Displays current default device with indicator
+  - Auto-hides when no audio devices detected or NAudio fails to initialize
+  - Uses NAudio 2.2.1 for device enumeration
+  - Switches device for all roles (Multimedia, Console, Communications)
+- **Show Notifications Toggle**: New setting to enable/disable all overlay notifications (app switching, exit operations, errors).
+- **PC Games Only Mode**: Option to disable controller input for non-PC games
+  - Useful when emulators have their own overlays (RetroArch, etc.)
+  - Works with all controller settings (Controller Always Active enabled or disabled)
+  - Keyboard hotkey continues to work for all games regardless of this setting
+  - Games without platform metadata are treated as PC games (backward compatible)
+  - New setting: `PcGamesOnly` (default: disabled for backward compatibility)
+  - **Tip**: Set platform metadata for emulated games to prevent controller conflicts
+- **SuccessStory Integration**: Display achievement progress in the NOW PLAYING section
+  - Shows achievement progress (X/Y - Z%) when SuccessStory plugin is installed
+  - Displays recently unlocked achievements with gold trophy icon
+  - Shows locked achievements with lock icon
+  - New settings: `ShowAchievements`, `MaxRecentAchievements`, `MaxLockedAchievements`
+  - Gracefully hidden when SuccessStory is not installed or game has no achievement data
+
+### Changed
+- **Show Generic Apps Default**: Changed default from enabled to disabled. New installations will only show Playnite-tracked games by default.
+
+### Fixed
+- **SuccessStory Achievement Detection**: Fixed locked achievements incorrectly showing as unlocked
+  - SuccessStory uses `0001-01-01` date to represent locked achievements
+  - Plugin now correctly identifies locked vs unlocked achievements
+
+---
+
 ## [0.4.3] - 2025-12-22
 
 ### Added

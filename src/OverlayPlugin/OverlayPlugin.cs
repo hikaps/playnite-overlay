@@ -21,6 +21,8 @@ public class OverlayPlugin : GenericPlugin
     private readonly OverlayService overlay;
     private readonly GameSwitcher switcher;
     private readonly RunningAppsDetector runningAppsDetector;
+    private readonly SuccessStoryIntegration successStory;
+    private readonly AudioDeviceService? audioDeviceService;
     private readonly OverlaySettingsViewModel settings;
     private readonly Dictionary<Guid, BorderlessHelper.WindowState> borderlessStates = new Dictionary<Guid, BorderlessHelper.WindowState>();
     private bool isDisposed;
@@ -30,9 +32,21 @@ public class OverlayPlugin : GenericPlugin
         logger = LogManager.GetLogger();
         input = new InputListener();
         overlay = new OverlayService(input);
-        switcher = new GameSwitcher(api);
-        runningAppsDetector = new RunningAppsDetector(api);
         settings = new OverlaySettingsViewModel(this);
+        switcher = new GameSwitcher(api, settings.Settings);
+        runningAppsDetector = new RunningAppsDetector(api, settings.Settings);
+        successStory = new SuccessStoryIntegration(api);
+
+        // Initialize audio device service (optional - may fail if NAudio unavailable)
+        try
+        {
+            audioDeviceService = new AudioDeviceService();
+        }
+        catch (Exception ex)
+        {
+            logger.Warn(ex, "Failed to initialize AudioDeviceService - audio switching will be disabled");
+            audioDeviceService = null;
+        }
 
         Properties = new GenericPluginProperties
         {
@@ -77,11 +91,26 @@ public class OverlayPlugin : GenericPlugin
     {
         // Set the game as active app
         switcher.SetActiveFromGame(args.Game);
-        
-        // Start controller input if not already running (when not always-active)
-        if (!settings.Settings.ControllerAlwaysActive)
+
+        // Check if we should enable controller for this game
+        bool shouldEnableController = !settings.Settings.PcGamesOnly || IsPcGame(args.Game);
+
+        if (shouldEnableController)
         {
-            input.StartController();
+            // Enable controller input for this game
+            input.EnableControllerInput();
+            
+            // Start controller timer if not already running (when not always-active)
+            if (!settings.Settings.ControllerAlwaysActive)
+            {
+                input.StartController();
+            }
+        }
+        else
+        {
+            // Disable controller input for non-PC games when PcGamesOnly is enabled
+            logger.Info($"Disabling controller input for non-PC game: {args.Game.Name}");
+            input.DisableControllerInput();
         }
 
         // Apply borderless mode if enabled and we have a process ID
@@ -98,6 +127,9 @@ public class OverlayPlugin : GenericPlugin
 
         // Clear active app when game stops
         switcher.ClearActiveApp();
+        
+        // Re-enable controller input after game stops (in case it was disabled for non-PC game)
+        input.EnableControllerInput();
         
         // Stop controller input only if not configured to be always-active
         if (!settings.Settings.ControllerAlwaysActive)
@@ -180,6 +212,15 @@ public class OverlayPlugin : GenericPlugin
             currentGameItem = OverlayItem.FromRunningApp(switcher.ActiveApp, switcher);
             excludeFromRunningApps = switcher.ActiveApp.GameId;
             logger.Debug($"Using active app for NOW PLAYING: {switcher.ActiveApp.Title}");
+
+            // Populate achievements if enabled and game has a valid ID
+            if (settings.Settings.ShowAchievements && currentGameItem.GameId != Guid.Empty)
+            {
+                currentGameItem.Achievements = successStory.GetGameAchievements(
+                    currentGameItem.GameId,
+                    settings.Settings.MaxRecentAchievements,
+                    settings.Settings.MaxLockedAchievements);
+            }
         }
         else if (switcher.ActiveApp != null)
         {
@@ -207,12 +248,25 @@ public class OverlayPlugin : GenericPlugin
             .Select(g => OverlayItem.FromRecentGame(g, switcher))
             .ToList();
 
+        // Get audio devices (null if service unavailable or enumeration fails)
+        IEnumerable<AudioDevice>? audioDevices = null;
+        try
+        {
+            audioDevices = audioDeviceService?.GetOutputDevices();
+        }
+        catch (Exception ex)
+        {
+            logger.Debug(ex, "Error getting audio devices");
+        }
+
         overlay.Show(
             () => switcher.SwitchToPlaynite(),
             HandleExitGame,
             currentGameItem,
             runningApps,
-            recentGames);
+            recentGames,
+            audioDevices,
+            SwitchAudioDevice);
     }
 
     private void HandleExitGame()
@@ -230,6 +284,36 @@ public class OverlayPlugin : GenericPlugin
         {
             switcher.SetActiveApp(foregroundApp);
             logger.Info($"Auto-detected foreground app after exit: {foregroundApp.Title}");
+        }
+    }
+
+    private void SwitchAudioDevice(string deviceId, Action<bool> onComplete)
+    {
+        if (audioDeviceService == null)
+        {
+            logger.Warn("Cannot switch audio device: AudioDeviceService not initialized");
+            onComplete(false);
+            return;
+        }
+
+        try
+        {
+            var success = audioDeviceService.SetDefaultDevice(deviceId);
+            if (success)
+            {
+                logger.Info($"Successfully switched audio device to {deviceId}");
+                onComplete(true);
+            }
+            else
+            {
+                logger.Warn($"Failed to switch audio device to {deviceId}");
+                onComplete(false);
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.Error(ex, $"Error switching audio device to {deviceId}");
+            onComplete(false);
         }
     }
 
@@ -289,6 +373,26 @@ public class OverlayPlugin : GenericPlugin
         }
     }
 
+    /// <summary>
+    /// Checks if a game is a PC game based on its platform metadata.
+    /// Returns true if the game has a PC platform, or if no platform info is available (backward compatible).
+    /// </summary>
+    private static bool IsPcGame(Playnite.SDK.Models.Game game)
+    {
+        if (game.Platforms == null || !game.Platforms.Any())
+        {
+            // No platform info - assume PC (backward compatible)
+            return true;
+        }
+
+        return game.Platforms.Any(p =>
+            p.Name != null && (
+                p.Name.Equals("PC", StringComparison.OrdinalIgnoreCase) ||
+                p.Name.Equals("PC (Windows)", StringComparison.OrdinalIgnoreCase) ||
+                p.Name.IndexOf("Windows", StringComparison.OrdinalIgnoreCase) >= 0
+            ));
+    }
+
     public override void Dispose()
     {
         if (isDisposed)
@@ -304,6 +408,7 @@ public class OverlayPlugin : GenericPlugin
         // Clean up resources
         input.Stop();
         overlay.Hide();
+        audioDeviceService?.Dispose();
 
         base.Dispose();
     }
