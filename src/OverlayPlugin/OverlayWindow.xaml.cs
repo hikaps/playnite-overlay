@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Controls;
@@ -26,6 +27,7 @@ public partial class OverlayWindow : Window
 
     private readonly Action onSwitch;
     private readonly Action onExit;
+    private readonly Action<string, Action<bool>>? onAudioDeviceChanged;
     private readonly List<OverlayItem> items;
     private readonly List<RunningApp> runningApps;
     
@@ -35,16 +37,18 @@ public partial class OverlayWindow : Window
     private int selectedIndex = -1;
     private int runningAppSelectedIndex = -1;
     private bool isClosing;
+    private bool isInitializingAudio = false;
     
     // Section highlight color
     private static readonly SolidColorBrush HighlightBrush = new(Color.FromRgb(0xFF, 0xFF, 0xFF));
     private static readonly SolidColorBrush TransparentBrush = new(Colors.Transparent);
 
-    public OverlayWindow(Action onSwitch, Action onExit, OverlayItem? currentGame, IEnumerable<RunningApp> runningApps, IEnumerable<OverlayItem> recentGames)
+    public OverlayWindow(Action onSwitch, Action onExit, OverlayItem? currentGame, IEnumerable<RunningApp> runningApps, IEnumerable<OverlayItem> recentGames, IEnumerable<AudioDevice>? audioDevices = null, Action<string, Action<bool>>? onAudioDeviceChanged = null)
     {
         InitializeComponent();
         this.onSwitch = onSwitch;
         this.onExit = onExit;
+        this.onAudioDeviceChanged = onAudioDeviceChanged;
         this.items = new List<OverlayItem>(recentGames);
         this.runningApps = new List<RunningApp>(runningApps);
 
@@ -119,6 +123,9 @@ public partial class OverlayWindow : Window
             }
         };
 
+        // Setup audio devices section
+        SetupAudioDevices(audioDevices);
+
         // Initial focus - section level on first visible section
         Dispatcher.BeginInvoke(() => FocusFirstVisibleSection(), DispatcherPriority.Loaded);
 
@@ -187,6 +194,14 @@ public partial class OverlayWindow : Window
 
     private void OnPreviewKeyDown(object sender, KeyEventArgs e)
     {
+        // If audio ComboBox dropdown is open, let it handle its own navigation
+        if (AudioDeviceCombo.IsDropDownOpen && 
+            (e.Key == Key.Up || e.Key == Key.Down || e.Key == Key.Enter))
+        {
+            // Don't mark as handled - let the ComboBox receive these keys
+            return;
+        }
+        
         switch (e.Key)
         {
             case Key.Escape:
@@ -372,6 +387,7 @@ public partial class OverlayWindow : Window
         {
             case NavigationTarget.SwitchButton:
             case NavigationTarget.ExitButton:
+            case NavigationTarget.AudioDeviceCombo:
                 section = NavigationTarget.CurrentGameSection;
                 break;
             case NavigationTarget.RunningAppItem:
@@ -416,6 +432,22 @@ public partial class OverlayWindow : Window
         
         navigationTarget = NavigationTarget.ExitButton;
         ExitBtn.Focus();
+        CurrentGameSection.BringIntoView();
+    }
+
+    private void FocusAudioCombo()
+    {
+        if (!Dispatcher.CheckAccess())
+        {
+            Dispatcher.Invoke(FocusAudioCombo);
+            return;
+        }
+
+        RunningAppsList.SelectedIndex = -1;
+        RecentList.SelectedIndex = -1;
+        
+        navigationTarget = NavigationTarget.AudioDeviceCombo;
+        AudioDeviceCombo.Focus();
         CurrentGameSection.BringIntoView();
     }
 
@@ -516,6 +548,10 @@ public partial class OverlayWindow : Window
                     FocusSwitchButton();
                     break;
                     
+                case NavigationTarget.AudioDeviceCombo:
+                    FocusExitButton();
+                    break;
+                    
                 case NavigationTarget.RunningAppItem:
                     if (runningAppSelectedIndex <= 0)
                     {
@@ -562,6 +598,19 @@ public partial class OverlayWindow : Window
                     break;
                     
                 case NavigationTarget.ExitButton:
+                    // Check if audio combo is visible, if so go there
+                    if (AudioDeviceCombo.Visibility == Visibility.Visible)
+                    {
+                        FocusAudioCombo();
+                    }
+                    else
+                    {
+                        // At bottom of CurrentGameSection, exit to section level
+                        ExitToSectionLevel();
+                    }
+                    break;
+                    
+                case NavigationTarget.AudioDeviceCombo:
                     // At bottom of CurrentGameSection, exit to section level
                     ExitToSectionLevel();
                     break;
@@ -593,17 +642,32 @@ public partial class OverlayWindow : Window
 
     private void NavigateLeft()
     {
-        if (isInsideSection && navigationTarget == NavigationTarget.ExitButton)
+        if (isInsideSection)
         {
-            FocusSwitchButton();
+            if (navigationTarget == NavigationTarget.ExitButton)
+            {
+                FocusSwitchButton();
+            }
+            else if (navigationTarget == NavigationTarget.AudioDeviceCombo)
+            {
+                FocusExitButton();
+            }
         }
     }
 
     private void NavigateRight()
     {
-        if (isInsideSection && navigationTarget == NavigationTarget.SwitchButton)
+        if (isInsideSection)
         {
-            FocusExitButton();
+            if (navigationTarget == NavigationTarget.SwitchButton)
+            {
+                FocusExitButton();
+            }
+            else if (navigationTarget == NavigationTarget.ExitButton &&
+                     AudioDeviceCombo.Visibility == Visibility.Visible)
+            {
+                FocusAudioCombo();
+            }
         }
     }
 
@@ -624,6 +688,10 @@ public partial class OverlayWindow : Window
                     break;
                 case NavigationTarget.ExitButton:
                     ExitBtn.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                    break;
+                case NavigationTarget.AudioDeviceCombo:
+                    // Open the ComboBox dropdown when Enter is pressed
+                    AudioDeviceCombo.IsDropDownOpen = true;
                     break;
                 case NavigationTarget.RunningAppItem:
                     if (runningAppSelectedIndex >= 0 && runningAppSelectedIndex < runningApps.Count)
@@ -647,6 +715,13 @@ public partial class OverlayWindow : Window
 
     private void PerformCancel()
     {
+        // If the audio ComboBox dropdown is open, close it first
+        if (AudioDeviceCombo.IsDropDownOpen)
+        {
+            AudioDeviceCombo.IsDropDownOpen = false;
+            return;
+        }
+        
         if (isInsideSection)
         {
             // Exit to section level
@@ -726,6 +801,68 @@ public partial class OverlayWindow : Window
 
     #endregion
 
+    #region Audio Device Setup
+
+    private void SetupAudioDevices(IEnumerable<AudioDevice>? audioDevices)
+    {
+        // Only show when CurrentGameSection is visible AND devices available
+        if (CurrentGameSection.Visibility != Visibility.Visible || 
+            audioDevices == null || !audioDevices.Any())
+        {
+            AudioDeviceCombo.Visibility = Visibility.Collapsed;
+            return;
+        }
+
+        isInitializingAudio = true;
+        AudioDeviceCombo.Visibility = Visibility.Visible;
+        AudioDeviceCombo.ItemsSource = audioDevices;
+        
+        // Pre-select current default device
+        var defaultDevice = audioDevices.FirstOrDefault(d => d.IsDefault);
+        if (defaultDevice != null)
+        {
+            AudioDeviceCombo.SelectedItem = defaultDevice;
+        }
+        isInitializingAudio = false;
+    }
+
+    private void OnAudioDeviceChanged(object sender, SelectionChangedEventArgs e)
+    {
+        // Skip during initialization to avoid triggering device switch on setup
+        if (isInitializingAudio) return;
+        
+        if (AudioDeviceCombo.SelectedItem is AudioDevice selectedDevice && onAudioDeviceChanged != null)
+        {
+            try
+            {
+                // Call the callback with the device ID and a success handler
+                onAudioDeviceChanged(selectedDevice.Id, (success) =>
+                {
+                    if (success)
+                    {
+                        // Update IsDefault flags to reflect the new default device
+                        // This will trigger UI refresh thanks to INotifyPropertyChanged
+                        if (AudioDeviceCombo.ItemsSource is IEnumerable<AudioDevice> devices)
+                        {
+                            foreach (var device in devices)
+                            {
+                                device.IsDefault = (device.Id == selectedDevice.Id);
+                            }
+                        }
+                    }
+                    // If not successful, do nothing - the UI stays as-is (fail silently)
+                });
+            }
+            catch (Exception ex)
+            {
+                // Log error but don't crash - this is a non-critical feature
+                System.Diagnostics.Debug.WriteLine($"Error changing audio device: {ex.Message}");
+            }
+        }
+    }
+
+    #endregion
+
     #region Window Lifecycle
 
     protected override void OnSourceInitialized(EventArgs e)
@@ -789,6 +926,7 @@ public partial class OverlayWindow : Window
         // Item-level (Level 2) - inside CurrentGameSection
         SwitchButton,
         ExitButton,
+        AudioDeviceCombo,
         
         // Item-level (Level 2) - inside list sections
         RunningAppItem,
