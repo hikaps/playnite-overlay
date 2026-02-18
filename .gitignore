@@ -15,5 +15,4 @@ TestResults/
 .DS_Store
 Thumbs.db
 
-# Local notes (not committed)
-*.local.md
+.sisyphus/
