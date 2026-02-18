@@ -280,7 +280,8 @@ public class OverlayPlugin : GenericPlugin
             audioDevices,
             SwitchAudioDevice,
             gameVolumeService,
-            switcher.ActiveApp?.ProcessId);
+            switcher.ActiveApp?.ProcessId,
+            switcher);
     }
 
     private void HandleExitGame()
