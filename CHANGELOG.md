@@ -9,6 +9,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.6.0] - 2026-02-18
+
+### Added
+- **Per-App Volume Control**: Adjust volume for individual running applications directly from the overlay
+  - Shows volume slider for each running app in the RUNNING APPS section
+  - Uses NAudio for per-process audio control
+  - Mute/unmute toggle for each app
+- **Time and Playtime Display**: Real-time clock and session duration now shown in overlay header
+  - Current time displayed in 12-hour format (e.g., "3:45 PM")
+  - Session duration updates live when a game is active ("Playing for 2h 15m")
+
+---
+
 ## [0.5.0] - 2026-01-23
 
 ### Added

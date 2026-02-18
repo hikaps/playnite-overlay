@@ -23,6 +23,7 @@ public class OverlayPlugin : GenericPlugin
     private readonly RunningAppsDetector runningAppsDetector;
     private readonly SuccessStoryIntegration successStory;
     private readonly AudioDeviceService? audioDeviceService;
+    private readonly GameVolumeService? gameVolumeService;
     private readonly OverlaySettingsViewModel settings;
     private readonly Dictionary<Guid, BorderlessHelper.WindowState> borderlessStates = new Dictionary<Guid, BorderlessHelper.WindowState>();
     private bool isDisposed;
@@ -46,6 +47,17 @@ public class OverlayPlugin : GenericPlugin
         {
             logger.Warn(ex, "Failed to initialize AudioDeviceService - audio switching will be disabled");
             audioDeviceService = null;
+        }
+
+        // Initialize game volume service (optional - may fail if NAudio unavailable)
+        try
+        {
+            gameVolumeService = new GameVolumeService();
+        }
+        catch (Exception ex)
+        {
+            logger.Warn(ex, "Failed to initialize GameVolumeService - volume control will be disabled");
+            gameVolumeService = null;
         }
 
         Properties = new GenericPluginProperties
@@ -266,7 +278,10 @@ public class OverlayPlugin : GenericPlugin
             runningApps,
             recentGames,
             audioDevices,
-            SwitchAudioDevice);
+            SwitchAudioDevice,
+            gameVolumeService,
+            switcher.ActiveApp?.ProcessId,
+            switcher);
     }
 
     private void HandleExitGame()
@@ -409,6 +424,7 @@ public class OverlayPlugin : GenericPlugin
         input.Stop();
         overlay.Hide();
         audioDeviceService?.Dispose();
+        gameVolumeService?.Dispose();
 
         base.Dispose();
     }
