@@ -592,7 +592,7 @@ public partial class OverlayWindow : Window
                     break;
 
                 case NavigationTarget.VolumeSlider:
-                    if (AudioDeviceCombo.Visibility == Visibility.Visible)
+                    if (AudioControlsRow.Visibility == Visibility.Visible)
                     {
                         FocusAudioCombo();
                     }
@@ -656,7 +656,7 @@ public partial class OverlayWindow : Window
                     break;
 
                 case NavigationTarget.ExitButton:
-                    if (AudioDeviceCombo.Visibility == Visibility.Visible)
+                    if (AudioControlsRow.Visibility == Visibility.Visible)
                     {
                         FocusAudioCombo();
                     }
@@ -771,7 +771,7 @@ public partial class OverlayWindow : Window
                 FocusVolumeSlider();
             }
             else if (navigationTarget == NavigationTarget.MuteBtn &&
-                     AudioDeviceCombo.Visibility == Visibility.Visible)
+                     AudioControlsRow.Visibility == Visibility.Visible)
             {
                 FocusAudioCombo();
             }
@@ -790,7 +790,7 @@ public partial class OverlayWindow : Window
                     FocusAudioCombo();
                     break;
                 case NavigationTarget.VolumeSlider:
-                    if (AudioControlsRow.Visibility == Visibility.Visible)
+                    if (MuteBtn.Visibility == Visibility.Visible)
                     {
                         FocusMuteBtn();
                     }
@@ -806,7 +806,7 @@ public partial class OverlayWindow : Window
             switch (navigationTarget)
             {
                 case NavigationTarget.AudioDeviceCombo:
-                    if (AudioControlsRow.Visibility == Visibility.Visible)
+                    if (MuteBtn.Visibility == Visibility.Visible)
                     {
                         FocusMuteBtn();
                     }
@@ -968,14 +968,14 @@ public partial class OverlayWindow : Window
         if (CurrentGameSection.Visibility != Visibility.Visible ||
             audioDevices == null || !audioDevices.Any())
         {
-            AudioDeviceCombo.Visibility = Visibility.Collapsed;
             AudioControlsRow.Visibility = Visibility.Collapsed;
             VolumeControls.Visibility = Visibility.Collapsed;
             return;
         }
 
+        AudioControlsRow.Visibility = Visibility.Visible;
+        
         isInitializingAudio = true;
-        AudioDeviceCombo.Visibility = Visibility.Visible;
         AudioDeviceCombo.ItemsSource = audioDevices;
 
         var defaultDevice = audioDevices.FirstOrDefault(d => d.IsDefault);
@@ -986,7 +986,7 @@ public partial class OverlayWindow : Window
         isInitializingAudio = false;
 
         var canControlVolume = gameVolumeService != null && currentGameProcessId.HasValue;
-        AudioControlsRow.Visibility = canControlVolume ? Visibility.Visible : Visibility.Collapsed;
+        MuteBtn.Visibility = canControlVolume ? Visibility.Visible : Visibility.Collapsed;
         
         if (canControlVolume)
         {
