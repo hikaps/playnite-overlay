@@ -130,10 +130,66 @@
                                 </StackPanel>
                             </StackPanel>
                             
-                            <!-- Audio Device Selector (Top-Right Corner) -->
+                             <!-- Audio Device Selector (Top-Right Corner) -->
                             <StackPanel Grid.Column="3" Grid.Row="0" 
                                         VerticalAlignment="Top" HorizontalAlignment="Right" 
                                         Margin="12,0,0,0">
+                                <!-- Volume Controls -->
+                                <StackPanel Orientation="Horizontal" 
+                                            x:Name="VolumeControls"
+                                            Visibility="Collapsed"
+                                            Focusable="False"
+                                            Margin="0,0,0,8">
+                                    <Slider x:Name="VolumeSlider"
+                                            Width="120"
+                                            Minimum="0"
+                                            Maximum="100"
+                                            Value="100"
+                                            Focusable="True"
+                                            Margin="0,0,4,0"
+                                            Background="#2A2A2A"
+                                            Foreground="#4A90E2"/>
+                                    <Button x:Name="MuteBtn"
+                                            Content="🔊"
+                                            Width="32"
+                                            Height="24"
+                                            Background="#3A3A3A"
+                                            Foreground="#EEEEEE"
+                                            BorderThickness="0"
+                                            FontSize="12"
+                                            Cursor="Hand"
+                                            Padding="0"
+                                            Focusable="True">
+                                        <Button.Style>
+                                            <Style TargetType="Button">
+                                                <Setter Property="Template">
+                                                    <Setter.Value>
+                                                        <ControlTemplate TargetType="Button">
+                                                            <Border x:Name="ButtonBorder"
+                                                                    Background="{TemplateBinding Background}" 
+                                                                    BorderBrush="Transparent"
+                                                                    BorderThickness="2"
+                                                                    CornerRadius="5">
+                                                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                            </Border>
+                                                            <ControlTemplate.Triggers>
+                                                                <Trigger Property="IsMouseOver" Value="True">
+                                                                    <Setter TargetName="ButtonBorder" Property="Background" Value="#4A4A4A"/>
+                                                                </Trigger>
+                                                                <Trigger Property="IsPressed" Value="True">
+                                                                    <Setter TargetName="ButtonBorder" Property="Background" Value="#2A2A2A"/>
+                                                                </Trigger>
+                                                                <Trigger Property="IsKeyboardFocused" Value="True">
+                                                                    <Setter TargetName="ButtonBorder" Property="BorderBrush" Value="#FFFFFF"/>
+                                                                </Trigger>
+                                                            </ControlTemplate.Triggers>
+                                                        </ControlTemplate>
+                                                    </Setter.Value>
+                                                </Setter>
+                                            </Style>
+                                        </Button.Style>
+                                    </Button>
+                                </StackPanel>
                                 <ComboBox x:Name="AudioDeviceCombo"
                                           Background="#2A2A2A"
                                           Foreground="#EEEEEE"

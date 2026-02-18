@@ -10,6 +10,7 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
 using PlayniteOverlay.Models;
+using PlayniteOverlay.Services;
 
 namespace PlayniteOverlay;
 
@@ -28,6 +29,8 @@ public partial class OverlayWindow : Window
     private readonly Action onSwitch;
     private readonly Action onExit;
     private readonly Action<string, Action<bool>>? onAudioDeviceChanged;
+    private readonly GameVolumeService? gameVolumeService;
+    private readonly int? currentGameProcessId;
     private readonly List<OverlayItem> items;
     private readonly List<RunningApp> runningApps;
     
@@ -43,12 +46,14 @@ public partial class OverlayWindow : Window
     private static readonly SolidColorBrush HighlightBrush = new(Color.FromRgb(0xFF, 0xFF, 0xFF));
     private static readonly SolidColorBrush TransparentBrush = new(Colors.Transparent);
 
-    public OverlayWindow(Action onSwitch, Action onExit, OverlayItem? currentGame, IEnumerable<RunningApp> runningApps, IEnumerable<OverlayItem> recentGames, IEnumerable<AudioDevice>? audioDevices = null, Action<string, Action<bool>>? onAudioDeviceChanged = null)
+    public OverlayWindow(Action onSwitch, Action onExit, OverlayItem? currentGame, IEnumerable<RunningApp> runningApps, IEnumerable<OverlayItem> recentGames, IEnumerable<AudioDevice>? audioDevices = null, Action<string, Action<bool>>? onAudioDeviceChanged = null, GameVolumeService? gameVolumeService = null, int? currentGameProcessId = null)
     {
         InitializeComponent();
         this.onSwitch = onSwitch;
         this.onExit = onExit;
         this.onAudioDeviceChanged = onAudioDeviceChanged;
+        this.gameVolumeService = gameVolumeService;
+        this.currentGameProcessId = currentGameProcessId;
         this.items = new List<OverlayItem>(recentGames);
         this.runningApps = new List<RunningApp>(runningApps);
 
@@ -125,6 +130,9 @@ public partial class OverlayWindow : Window
 
         // Setup audio devices section
         SetupAudioDevices(audioDevices);
+
+        VolumeSlider.ValueChanged += OnVolumeSliderChanged;
+        MuteBtn.Click += OnMuteBtnClick;
 
         // Initial focus - section level on first visible section
         Dispatcher.BeginInvoke(() => FocusFirstVisibleSection(), DispatcherPriority.Loaded);
@@ -387,6 +395,8 @@ public partial class OverlayWindow : Window
         {
             case NavigationTarget.SwitchButton:
             case NavigationTarget.ExitButton:
+            case NavigationTarget.VolumeSlider:
+            case NavigationTarget.MuteBtn:
             case NavigationTarget.AudioDeviceCombo:
                 section = NavigationTarget.CurrentGameSection;
                 break;
@@ -399,7 +409,7 @@ public partial class OverlayWindow : Window
             default:
                 return;
         }
-        
+
         FocusSection(section);
     }
 
@@ -445,9 +455,41 @@ public partial class OverlayWindow : Window
 
         RunningAppsList.SelectedIndex = -1;
         RecentList.SelectedIndex = -1;
-        
+
         navigationTarget = NavigationTarget.AudioDeviceCombo;
         AudioDeviceCombo.Focus();
+        CurrentGameSection.BringIntoView();
+    }
+
+    private void FocusVolumeSlider()
+    {
+        if (!Dispatcher.CheckAccess())
+        {
+            Dispatcher.Invoke(FocusVolumeSlider);
+            return;
+        }
+
+        RunningAppsList.SelectedIndex = -1;
+        RecentList.SelectedIndex = -1;
+
+        navigationTarget = NavigationTarget.VolumeSlider;
+        VolumeSlider.Focus();
+        CurrentGameSection.BringIntoView();
+    }
+
+    private void FocusMuteBtn()
+    {
+        if (!Dispatcher.CheckAccess())
+        {
+            Dispatcher.Invoke(FocusMuteBtn);
+            return;
+        }
+
+        RunningAppsList.SelectedIndex = -1;
+        RecentList.SelectedIndex = -1;
+
+        navigationTarget = NavigationTarget.MuteBtn;
+        MuteBtn.Focus();
         CurrentGameSection.BringIntoView();
     }
 
@@ -543,15 +585,30 @@ public partial class OverlayWindow : Window
                     // Already at top of CurrentGameSection, exit to section level
                     ExitToSectionLevel();
                     break;
-                    
+
                 case NavigationTarget.ExitButton:
                     FocusSwitchButton();
                     break;
-                    
-                case NavigationTarget.AudioDeviceCombo:
+
+                case NavigationTarget.VolumeSlider:
                     FocusExitButton();
                     break;
-                    
+
+                case NavigationTarget.MuteBtn:
+                    FocusVolumeSlider();
+                    break;
+
+                case NavigationTarget.AudioDeviceCombo:
+                    if (VolumeControls.Visibility == Visibility.Visible)
+                    {
+                        FocusMuteBtn();
+                    }
+                    else
+                    {
+                        FocusExitButton();
+                    }
+                    break;
+
                 case NavigationTarget.RunningAppItem:
                     if (runningAppSelectedIndex <= 0)
                     {
@@ -562,7 +619,7 @@ public partial class OverlayWindow : Window
                         FocusRunningAppItem(runningAppSelectedIndex - 1);
                     }
                     break;
-                    
+
                 case NavigationTarget.RecentGameItem:
                     if (selectedIndex <= 0)
                     {
@@ -596,8 +653,29 @@ public partial class OverlayWindow : Window
                 case NavigationTarget.SwitchButton:
                     FocusExitButton();
                     break;
-                    
+
                 case NavigationTarget.ExitButton:
+                    // Check if volume controls are visible, if so go there
+                    if (VolumeControls.Visibility == Visibility.Visible)
+                    {
+                        FocusVolumeSlider();
+                    }
+                    else if (AudioDeviceCombo.Visibility == Visibility.Visible)
+                    {
+                        FocusAudioCombo();
+                    }
+                    else
+                    {
+                        // At bottom of CurrentGameSection, exit to section level
+                        ExitToSectionLevel();
+                    }
+                    break;
+
+                case NavigationTarget.VolumeSlider:
+                    FocusMuteBtn();
+                    break;
+
+                case NavigationTarget.MuteBtn:
                     // Check if audio combo is visible, if so go there
                     if (AudioDeviceCombo.Visibility == Visibility.Visible)
                     {
@@ -609,12 +687,12 @@ public partial class OverlayWindow : Window
                         ExitToSectionLevel();
                     }
                     break;
-                    
+
                 case NavigationTarget.AudioDeviceCombo:
                     // At bottom of CurrentGameSection, exit to section level
                     ExitToSectionLevel();
                     break;
-                    
+
                 case NavigationTarget.RunningAppItem:
                     if (runningAppSelectedIndex >= runningApps.Count - 1)
                     {
@@ -625,7 +703,7 @@ public partial class OverlayWindow : Window
                         FocusRunningAppItem(runningAppSelectedIndex + 1);
                     }
                     break;
-                    
+
                 case NavigationTarget.RecentGameItem:
                     if (selectedIndex >= items.Count - 1)
                     {
@@ -644,13 +722,29 @@ public partial class OverlayWindow : Window
     {
         if (isInsideSection)
         {
-            if (navigationTarget == NavigationTarget.ExitButton)
+            if (navigationTarget == NavigationTarget.VolumeSlider)
+            {
+                // Adjust volume down by 5
+                VolumeSlider.Value = Math.Max(0, VolumeSlider.Value - 5);
+            }
+            else if (navigationTarget == NavigationTarget.ExitButton)
             {
                 FocusSwitchButton();
             }
+            else if (navigationTarget == NavigationTarget.MuteBtn)
+            {
+                FocusVolumeSlider();
+            }
             else if (navigationTarget == NavigationTarget.AudioDeviceCombo)
             {
-                FocusExitButton();
+                if (VolumeControls.Visibility == Visibility.Visible)
+                {
+                    FocusMuteBtn();
+                }
+                else
+                {
+                    FocusExitButton();
+                }
             }
         }
     }
@@ -659,11 +753,21 @@ public partial class OverlayWindow : Window
     {
         if (isInsideSection)
         {
-            if (navigationTarget == NavigationTarget.SwitchButton)
+            if (navigationTarget == NavigationTarget.VolumeSlider)
+            {
+                // Adjust volume up by 5
+                VolumeSlider.Value = Math.Min(100, VolumeSlider.Value + 5);
+            }
+            else if (navigationTarget == NavigationTarget.SwitchButton)
             {
                 FocusExitButton();
             }
             else if (navigationTarget == NavigationTarget.ExitButton &&
+                     VolumeControls.Visibility == Visibility.Visible)
+            {
+                FocusVolumeSlider();
+            }
+            else if (navigationTarget == NavigationTarget.MuteBtn &&
                      AudioDeviceCombo.Visibility == Visibility.Visible)
             {
                 FocusAudioCombo();
@@ -688,6 +792,12 @@ public partial class OverlayWindow : Window
                     break;
                 case NavigationTarget.ExitButton:
                     ExitBtn.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                    break;
+                case NavigationTarget.VolumeSlider:
+                    // Volume slider adjustment handled via Left/Right keys
+                    break;
+                case NavigationTarget.MuteBtn:
+                    MuteBtn.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
                     break;
                 case NavigationTarget.AudioDeviceCombo:
                     // Open the ComboBox dropdown when Enter is pressed
@@ -806,17 +916,18 @@ public partial class OverlayWindow : Window
     private void SetupAudioDevices(IEnumerable<AudioDevice>? audioDevices)
     {
         // Only show when CurrentGameSection is visible AND devices available
-        if (CurrentGameSection.Visibility != Visibility.Visible || 
+        if (CurrentGameSection.Visibility != Visibility.Visible ||
             audioDevices == null || !audioDevices.Any())
         {
             AudioDeviceCombo.Visibility = Visibility.Collapsed;
+            VolumeControls.Visibility = Visibility.Collapsed;
             return;
         }
 
         isInitializingAudio = true;
         AudioDeviceCombo.Visibility = Visibility.Visible;
         AudioDeviceCombo.ItemsSource = audioDevices;
-        
+
         // Pre-select current default device
         var defaultDevice = audioDevices.FirstOrDefault(d => d.IsDefault);
         if (defaultDevice != null)
@@ -824,6 +935,48 @@ public partial class OverlayWindow : Window
             AudioDeviceCombo.SelectedItem = defaultDevice;
         }
         isInitializingAudio = false;
+
+        // Also show volume controls when audio devices available
+        if (CurrentGameSection.Visibility == Visibility.Visible &&
+            audioDevices != null && audioDevices.Any() &&
+            gameVolumeService != null && currentGameProcessId.HasValue)
+        {
+            VolumeControls.Visibility = Visibility.Visible;
+            UpdateVolumeDisplay();
+        }
+        else
+        {
+            VolumeControls.Visibility = Visibility.Collapsed;
+        }
+    }
+
+    private void UpdateVolumeDisplay()
+    {
+        if (gameVolumeService == null || !currentGameProcessId.HasValue) return;
+
+        var volume = gameVolumeService.GetVolume(currentGameProcessId.Value);
+        var mute = gameVolumeService.GetMute(currentGameProcessId.Value);
+
+        VolumeSlider.Value = (volume ?? 1.0f) * 100;
+        MuteBtn.Content = mute == true ? "🔇" : "🔊";
+    }
+
+    private void OnVolumeSliderChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+    {
+        if (gameVolumeService == null || !currentGameProcessId.HasValue) return;
+
+        var volume = (float)(e.NewValue / 100.0);
+        gameVolumeService.SetVolume(currentGameProcessId.Value, volume);
+    }
+
+    private void OnMuteBtnClick(object sender, RoutedEventArgs e)
+    {
+        if (gameVolumeService == null || !currentGameProcessId.HasValue) return;
+
+        var currentMute = gameVolumeService.GetMute(currentGameProcessId.Value);
+        var newMute = !(currentMute ?? false);
+        gameVolumeService.SetMute(currentGameProcessId.Value, newMute);
+        MuteBtn.Content = newMute ? "🔇" : "🔊";
     }
 
     private void OnAudioDeviceChanged(object sender, SelectionChangedEventArgs e)
@@ -922,12 +1075,14 @@ public partial class OverlayWindow : Window
         CurrentGameSection,
         RunningAppsSection,
         RecentGamesSection,
-        
+
         // Item-level (Level 2) - inside CurrentGameSection
         SwitchButton,
         ExitButton,
+        VolumeSlider,
+        MuteBtn,
         AudioDeviceCombo,
-        
+
         // Item-level (Level 2) - inside list sections
         RunningAppItem,
         RecentGameItem,
