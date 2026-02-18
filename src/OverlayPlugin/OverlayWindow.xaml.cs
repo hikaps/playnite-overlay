@@ -227,12 +227,13 @@ public partial class OverlayWindow : Window
             case Key.Right:
                 NavigateRight();
                 break;
+            case Key.Tab:
+                NavigateTab(e.KeyboardDevice.Modifiers == ModifierKeys.Shift);
+                break;
             case Key.Enter:
                 PerformAccept();
                 break;
             case Key.Space:
-                // Let WPF handle Space for button activation, don't mark as handled
-                // The key still won't pass to the game because the overlay has focus
                 return;
         }
         
@@ -602,7 +603,7 @@ public partial class OverlayWindow : Window
                     break;
 
                 case NavigationTarget.MuteBtn:
-                    FocusVolumeSlider();
+                    FocusExitButton();
                     break;
 
                 case NavigationTarget.AudioDeviceCombo:
@@ -655,7 +656,6 @@ public partial class OverlayWindow : Window
                     break;
 
                 case NavigationTarget.ExitButton:
-                    // Check if audio combo is visible, if so go there first
                     if (AudioDeviceCombo.Visibility == Visibility.Visible)
                     {
                         FocusAudioCombo();
@@ -666,29 +666,32 @@ public partial class OverlayWindow : Window
                     }
                     else
                     {
-                        // At bottom of CurrentGameSection, exit to section level
                         ExitToSectionLevel();
                     }
                     break;
 
                 case NavigationTarget.VolumeSlider:
-                    FocusMuteBtn();
-                    break;
-
-                case NavigationTarget.MuteBtn:
-                    // At bottom of CurrentGameSection, exit to section level
                     ExitToSectionLevel();
                     break;
 
-                case NavigationTarget.AudioDeviceCombo:
-                    // Check if volume controls are visible, if so go there
+                case NavigationTarget.MuteBtn:
                     if (VolumeControls.Visibility == Visibility.Visible)
                     {
                         FocusVolumeSlider();
                     }
                     else
                     {
-                        // At bottom of CurrentGameSection, exit to section level
+                        ExitToSectionLevel();
+                    }
+                    break;
+
+                case NavigationTarget.AudioDeviceCombo:
+                    if (VolumeControls.Visibility == Visibility.Visible)
+                    {
+                        FocusVolumeSlider();
+                    }
+                    else
+                    {
                         ExitToSectionLevel();
                     }
                     break;
@@ -771,6 +774,53 @@ public partial class OverlayWindow : Window
                      AudioDeviceCombo.Visibility == Visibility.Visible)
             {
                 FocusAudioCombo();
+            }
+        }
+    }
+
+    private void NavigateTab(bool isShift)
+    {
+        if (!isInsideSection) return;
+        
+        if (isShift)
+        {
+            switch (navigationTarget)
+            {
+                case NavigationTarget.MuteBtn:
+                    FocusAudioCombo();
+                    break;
+                case NavigationTarget.VolumeSlider:
+                    if (AudioControlsRow.Visibility == Visibility.Visible)
+                    {
+                        FocusMuteBtn();
+                    }
+                    else
+                    {
+                        FocusAudioCombo();
+                    }
+                    break;
+            }
+        }
+        else
+        {
+            switch (navigationTarget)
+            {
+                case NavigationTarget.AudioDeviceCombo:
+                    if (AudioControlsRow.Visibility == Visibility.Visible)
+                    {
+                        FocusMuteBtn();
+                    }
+                    else if (VolumeControls.Visibility == Visibility.Visible)
+                    {
+                        FocusVolumeSlider();
+                    }
+                    break;
+                case NavigationTarget.MuteBtn:
+                    if (VolumeControls.Visibility == Visibility.Visible)
+                    {
+                        FocusVolumeSlider();
+                    }
+                    break;
             }
         }
     }
@@ -915,11 +965,11 @@ public partial class OverlayWindow : Window
 
     private void SetupAudioDevices(IEnumerable<AudioDevice>? audioDevices)
     {
-        // Only show when CurrentGameSection is visible AND devices available
         if (CurrentGameSection.Visibility != Visibility.Visible ||
             audioDevices == null || !audioDevices.Any())
         {
             AudioDeviceCombo.Visibility = Visibility.Collapsed;
+            AudioControlsRow.Visibility = Visibility.Collapsed;
             VolumeControls.Visibility = Visibility.Collapsed;
             return;
         }
@@ -928,7 +978,6 @@ public partial class OverlayWindow : Window
         AudioDeviceCombo.Visibility = Visibility.Visible;
         AudioDeviceCombo.ItemsSource = audioDevices;
 
-        // Pre-select current default device
         var defaultDevice = audioDevices.FirstOrDefault(d => d.IsDefault);
         if (defaultDevice != null)
         {
@@ -936,10 +985,10 @@ public partial class OverlayWindow : Window
         }
         isInitializingAudio = false;
 
-        // Also show volume controls when audio devices available
-        if (CurrentGameSection.Visibility == Visibility.Visible &&
-            audioDevices != null && audioDevices.Any() &&
-            gameVolumeService != null && currentGameProcessId.HasValue)
+        var canControlVolume = gameVolumeService != null && currentGameProcessId.HasValue;
+        AudioControlsRow.Visibility = canControlVolume ? Visibility.Visible : Visibility.Collapsed;
+        
+        if (canControlVolume)
         {
             VolumeControls.Visibility = Visibility.Visible;
             UpdateVolumeDisplay();
