@@ -109,9 +109,10 @@ public sealed class GameVolumeService : IDisposable
             return null;
         }
 
+        AudioSessionControl? session = null;
         try
         {
-            var session = GetAudioSession(processId);
+            session = GetAudioSession(processId);
             if (session == null)
             {
                 return null;
@@ -133,6 +134,10 @@ public sealed class GameVolumeService : IDisposable
             logger.Debug(ex, $"Error getting volume for process {processId}");
             return null;
         }
+        finally
+        {
+            session?.Dispose();
+        }
     }
 
     /// <summary>
@@ -149,9 +154,10 @@ public sealed class GameVolumeService : IDisposable
 
         volume = Math.Max(0.0f, Math.Min(1.0f, volume));
 
+        AudioSessionControl? session = null;
         try
         {
-            var session = GetAudioSession(processId);
+            session = GetAudioSession(processId);
             if (session == null)
             {
                 return false;
@@ -173,6 +179,10 @@ public sealed class GameVolumeService : IDisposable
             logger.Debug(ex, $"Error setting volume for process {processId}");
             return false;
         }
+        finally
+        {
+            session?.Dispose();
+        }
     }
 
     /// <summary>
@@ -187,9 +197,10 @@ public sealed class GameVolumeService : IDisposable
             return null;
         }
 
+        AudioSessionControl? session = null;
         try
         {
-            var session = GetAudioSession(processId);
+            session = GetAudioSession(processId);
             if (session == null)
             {
                 return null;
@@ -211,6 +222,10 @@ public sealed class GameVolumeService : IDisposable
             logger.Debug(ex, $"Error getting mute state for process {processId}");
             return null;
         }
+        finally
+        {
+            session?.Dispose();
+        }
     }
 
     /// <summary>
@@ -225,9 +240,10 @@ public sealed class GameVolumeService : IDisposable
             return false;
         }
 
+        AudioSessionControl? session = null;
         try
         {
-            var session = GetAudioSession(processId);
+            session = GetAudioSession(processId);
             if (session == null)
             {
                 return false;
@@ -248,6 +264,10 @@ public sealed class GameVolumeService : IDisposable
         {
             logger.Debug(ex, $"Error setting mute state for process {processId}");
             return false;
+        }
+        finally
+        {
+            session?.Dispose();
         }
     }
 

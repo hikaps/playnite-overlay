@@ -1019,8 +1019,10 @@ public partial class OverlayWindow : Window
 
         var currentMute = gameVolumeService.GetMute(currentGameProcessId.Value);
         var newMute = !(currentMute ?? false);
-        gameVolumeService.SetMute(currentGameProcessId.Value, newMute);
-        MuteBtn.Content = newMute ? "🔇" : "🔊";
+        if (gameVolumeService.SetMute(currentGameProcessId.Value, newMute))
+        {
+            MuteBtn.Content = newMute ? "🔇" : "🔊";
+        }
     }
 
     private void OnAudioDeviceChanged(object sender, SelectionChangedEventArgs e)

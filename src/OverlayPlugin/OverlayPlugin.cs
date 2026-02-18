@@ -423,6 +423,7 @@ public class OverlayPlugin : GenericPlugin
         input.Stop();
         overlay.Hide();
         audioDeviceService?.Dispose();
+        gameVolumeService?.Dispose();
 
         base.Dispose();
     }
