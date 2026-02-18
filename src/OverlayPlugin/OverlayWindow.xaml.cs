@@ -591,7 +591,14 @@ public partial class OverlayWindow : Window
                     break;
 
                 case NavigationTarget.VolumeSlider:
-                    FocusExitButton();
+                    if (AudioDeviceCombo.Visibility == Visibility.Visible)
+                    {
+                        FocusAudioCombo();
+                    }
+                    else
+                    {
+                        FocusExitButton();
+                    }
                     break;
 
                 case NavigationTarget.MuteBtn:
@@ -599,14 +606,7 @@ public partial class OverlayWindow : Window
                     break;
 
                 case NavigationTarget.AudioDeviceCombo:
-                    if (VolumeControls.Visibility == Visibility.Visible)
-                    {
-                        FocusMuteBtn();
-                    }
-                    else
-                    {
-                        FocusExitButton();
-                    }
+                    FocusExitButton();
                     break;
 
                 case NavigationTarget.RunningAppItem:
@@ -655,14 +655,14 @@ public partial class OverlayWindow : Window
                     break;
 
                 case NavigationTarget.ExitButton:
-                    // Check if volume controls are visible, if so go there
-                    if (VolumeControls.Visibility == Visibility.Visible)
-                    {
-                        FocusVolumeSlider();
-                    }
-                    else if (AudioDeviceCombo.Visibility == Visibility.Visible)
+                    // Check if audio combo is visible, if so go there first
+                    if (AudioDeviceCombo.Visibility == Visibility.Visible)
                     {
                         FocusAudioCombo();
+                    }
+                    else if (VolumeControls.Visibility == Visibility.Visible)
+                    {
+                        FocusVolumeSlider();
                     }
                     else
                     {
@@ -676,21 +676,21 @@ public partial class OverlayWindow : Window
                     break;
 
                 case NavigationTarget.MuteBtn:
-                    // Check if audio combo is visible, if so go there
-                    if (AudioDeviceCombo.Visibility == Visibility.Visible)
+                    // At bottom of CurrentGameSection, exit to section level
+                    ExitToSectionLevel();
+                    break;
+
+                case NavigationTarget.AudioDeviceCombo:
+                    // Check if volume controls are visible, if so go there
+                    if (VolumeControls.Visibility == Visibility.Visible)
                     {
-                        FocusAudioCombo();
+                        FocusVolumeSlider();
                     }
                     else
                     {
                         // At bottom of CurrentGameSection, exit to section level
                         ExitToSectionLevel();
                     }
-                    break;
-
-                case NavigationTarget.AudioDeviceCombo:
-                    // At bottom of CurrentGameSection, exit to section level
-                    ExitToSectionLevel();
                     break;
 
                 case NavigationTarget.RunningAppItem:
