@@ -20,8 +20,16 @@
                           Focusable="False">
                 <StackPanel>
                     <!-- Header -->
-                    <TextBlock Text="Playnite Overlay" FontSize="24" FontWeight="SemiBold" 
-                               Foreground="#EEEEEE" Margin="0,0,0,20"/>
+                    <Grid Margin="0,0,0,20">
+                        <TextBlock Text="Playnite Overlay" FontSize="24" FontWeight="SemiBold" 
+                                   Foreground="#EEEEEE" HorizontalAlignment="Left" VerticalAlignment="Bottom"/>
+                        <StackPanel HorizontalAlignment="Right" VerticalAlignment="Bottom" Orientation="Vertical">
+                            <TextBlock x:Name="TimeDisplay" Text="" FontSize="14" FontWeight="Medium"
+                                       Foreground="#AAAAAA" TextAlignment="Right"/>
+                            <TextBlock x:Name="PlaytimeDisplay" Text="" FontSize="11"
+                                       Foreground="#888888" TextAlignment="Right" Visibility="Collapsed"/>
+                        </StackPanel>
+                    </Grid>
                     
                     <!-- Current Game Section (collapsed when no game running) -->
                     <Border x:Name="CurrentGameSection" Background="#252525" CornerRadius="8" 

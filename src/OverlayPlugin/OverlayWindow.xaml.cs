@@ -33,6 +33,9 @@ public partial class OverlayWindow : Window
     private readonly int? currentGameProcessId;
     private readonly List<OverlayItem> items;
     private readonly List<RunningApp> runningApps;
+    private readonly GameSwitcher? gameSwitcher;
+    private readonly OverlayItem? currentGameField;
+    private readonly DispatcherTimer timeTimer;
     
     // Two-level navigation state
     private NavigationTarget navigationTarget = NavigationTarget.CurrentGameSection;
@@ -46,7 +49,7 @@ public partial class OverlayWindow : Window
     private static readonly SolidColorBrush HighlightBrush = new(Color.FromRgb(0xFF, 0xFF, 0xFF));
     private static readonly SolidColorBrush TransparentBrush = new(Colors.Transparent);
 
-    public OverlayWindow(Action onSwitch, Action onExit, OverlayItem? currentGame, IEnumerable<RunningApp> runningApps, IEnumerable<OverlayItem> recentGames, IEnumerable<AudioDevice>? audioDevices = null, Action<string, Action<bool>>? onAudioDeviceChanged = null, GameVolumeService? gameVolumeService = null, int? currentGameProcessId = null)
+    public OverlayWindow(Action onSwitch, Action onExit, OverlayItem? currentGame, IEnumerable<RunningApp> runningApps, IEnumerable<OverlayItem> recentGames, IEnumerable<AudioDevice>? audioDevices = null, Action<string, Action<bool>>? onAudioDeviceChanged = null, GameVolumeService? gameVolumeService = null, int? currentGameProcessId = null, GameSwitcher? gameSwitcher = null)
     {
         InitializeComponent();
         this.onSwitch = onSwitch;
@@ -54,8 +57,18 @@ public partial class OverlayWindow : Window
         this.onAudioDeviceChanged = onAudioDeviceChanged;
         this.gameVolumeService = gameVolumeService;
         this.currentGameProcessId = currentGameProcessId;
+        this.gameSwitcher = gameSwitcher;
+        this.currentGameField = currentGame;
         this.items = new List<OverlayItem>(recentGames);
         this.runningApps = new List<RunningApp>(runningApps);
+
+        // Initialize time display timer (updates every second)
+        timeTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
+        timeTimer.Tick += TimeTimer_Tick;
+        timeTimer.Start();
+
+        // Update immediately on load
+        UpdateTimeDisplay();
 
         // Setup current game section
         if (currentGame != null)
@@ -956,6 +969,29 @@ public partial class OverlayWindow : Window
 
     #endregion
 
+    private void TimeTimer_Tick(object? sender, EventArgs e)
+    {
+        UpdateTimeDisplay();
+    }
+
+    private void UpdateTimeDisplay()
+    {
+        // Update current time (12-hour format)
+        TimeDisplay.Text = DateTime.Now.ToString("h:mm tt");
+
+        // Update playtime display if game is active
+        if (currentGameField?.ActivatedTime.HasValue == true && gameSwitcher != null)
+        {
+            var duration = gameSwitcher.GetSessionDuration(currentGameField.ActivatedTime);
+            PlaytimeDisplay.Text = $"Playing for {duration}";
+            PlaytimeDisplay.Visibility = Visibility.Visible;
+        }
+        else
+        {
+            PlaytimeDisplay.Visibility = Visibility.Collapsed;
+        }
+    }
+
     #region Audio Device Setup
 
     private void SetupAudioDevices(IEnumerable<AudioDevice>? audioDevices)
@@ -1089,6 +1125,7 @@ public partial class OverlayWindow : Window
             return;
         }
         e.Cancel = true;
+        timeTimer.Stop();
         isClosing = true;
         try
         {
