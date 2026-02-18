@@ -727,7 +727,6 @@ public partial class OverlayWindow : Window
         {
             if (navigationTarget == NavigationTarget.VolumeSlider)
             {
-                // Adjust volume down by 5
                 VolumeSlider.Value = Math.Max(0, VolumeSlider.Value - 5);
             }
             else if (navigationTarget == NavigationTarget.ExitButton)
@@ -736,18 +735,11 @@ public partial class OverlayWindow : Window
             }
             else if (navigationTarget == NavigationTarget.MuteBtn)
             {
-                FocusVolumeSlider();
+                FocusAudioCombo();
             }
             else if (navigationTarget == NavigationTarget.AudioDeviceCombo)
             {
-                if (VolumeControls.Visibility == Visibility.Visible)
-                {
-                    FocusMuteBtn();
-                }
-                else
-                {
-                    FocusExitButton();
-                }
+                FocusExitButton();
             }
         }
     }
@@ -758,22 +750,25 @@ public partial class OverlayWindow : Window
         {
             if (navigationTarget == NavigationTarget.VolumeSlider)
             {
-                // Adjust volume up by 5
                 VolumeSlider.Value = Math.Min(100, VolumeSlider.Value + 5);
             }
             else if (navigationTarget == NavigationTarget.SwitchButton)
             {
                 FocusExitButton();
             }
-            else if (navigationTarget == NavigationTarget.ExitButton &&
-                     VolumeControls.Visibility == Visibility.Visible)
+            else if (navigationTarget == NavigationTarget.ExitButton)
             {
-                FocusVolumeSlider();
+                if (AudioControlsRow.Visibility == Visibility.Visible)
+                {
+                    FocusAudioCombo();
+                }
             }
-            else if (navigationTarget == NavigationTarget.MuteBtn &&
-                     AudioControlsRow.Visibility == Visibility.Visible)
+            else if (navigationTarget == NavigationTarget.AudioDeviceCombo)
             {
-                FocusAudioCombo();
+                if (MuteBtn.Visibility == Visibility.Visible)
+                {
+                    FocusMuteBtn();
+                }
             }
         }
     }
