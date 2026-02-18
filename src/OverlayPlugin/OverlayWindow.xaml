@@ -20,8 +20,16 @@
                           Focusable="False">
                 <StackPanel>
                     <!-- Header -->
-                    <TextBlock Text="Playnite Overlay" FontSize="24" FontWeight="SemiBold" 
-                               Foreground="#EEEEEE" Margin="0,0,0,20"/>
+                    <Grid Margin="0,0,0,20">
+                        <TextBlock Text="Playnite Overlay" FontSize="24" FontWeight="SemiBold" 
+                                   Foreground="#EEEEEE" HorizontalAlignment="Left" VerticalAlignment="Bottom"/>
+                        <StackPanel HorizontalAlignment="Right" VerticalAlignment="Bottom" Orientation="Vertical">
+                            <TextBlock x:Name="TimeDisplay" Text="" FontSize="14" FontWeight="Medium"
+                                       Foreground="#AAAAAA" TextAlignment="Right"/>
+                            <TextBlock x:Name="PlaytimeDisplay" Text="" FontSize="11"
+                                       Foreground="#888888" TextAlignment="Right" Visibility="Collapsed"/>
+                        </StackPanel>
+                    </Grid>
                     
                     <!-- Current Game Section (collapsed when no game running) -->
                     <Border x:Name="CurrentGameSection" Background="#252525" CornerRadius="8" 
@@ -130,117 +138,273 @@
                                 </StackPanel>
                             </StackPanel>
                             
-                            <!-- Audio Device Selector (Top-Right Corner) -->
-                            <StackPanel Grid.Column="3" Grid.Row="0" 
-                                        VerticalAlignment="Top" HorizontalAlignment="Right" 
-                                        Margin="12,0,0,0">
-                                <ComboBox x:Name="AudioDeviceCombo"
-                                          Background="#2A2A2A"
-                                          Foreground="#EEEEEE"
-                                          BorderBrush="#3A3A3A"
-                                          BorderThickness="2"
-                                          FontSize="11"
-                                          Padding="8,6"
-                                          MinWidth="160"
-                                          MaxWidth="200"
-                                          Visibility="Collapsed"
-                                          Focusable="True"
-                                          SelectionChanged="OnAudioDeviceChanged">
-                                    <ComboBox.Style>
-                                        <Style TargetType="ComboBox">
-                                            <Setter Property="Template">
-                                                <Setter.Value>
-                                                    <ControlTemplate TargetType="ComboBox">
-                                                        <Grid>
-                                                            <ToggleButton x:Name="ToggleButton"
-                                                                          Background="{TemplateBinding Background}"
-                                                                          BorderBrush="{TemplateBinding BorderBrush}"
-                                                                          BorderThickness="{TemplateBinding BorderThickness}"
-                                                                          Focusable="False"
-                                                                          IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}"
-                                                                          ClickMode="Press"/>
-                                                            <ContentPresenter Content="{TemplateBinding SelectionBoxItem}"
-                                                                            ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}"
-                                                                            Margin="8,6,28,6"
-                                                                            VerticalAlignment="Center"
-                                                                            HorizontalAlignment="Left"
-                                                                            IsHitTestVisible="False"/>
-                                                            <Path Data="M 0 0 L 4 4 L 8 0 Z"
-                                                                  Fill="#EEEEEE"
-                                                                  HorizontalAlignment="Right"
-                                                                  VerticalAlignment="Center"
-                                                                  Margin="0,0,10,0"
-                                                                  IsHitTestVisible="False"/>
-                                                            <Popup IsOpen="{TemplateBinding IsDropDownOpen}"
-                                                                   Placement="Bottom"
-                                                                   AllowsTransparency="True"
-                                                                   Focusable="False">
-                                                                <Border Background="#252525"
-                                                                        BorderBrush="#3A3A3A"
-                                                                        BorderThickness="1"
-                                                                        MinWidth="{TemplateBinding ActualWidth}"
-                                                                        MaxHeight="200">
-                                                                    <ScrollViewer>
-                                                                        <StackPanel IsItemsHost="True"/>
-                                                                    </ScrollViewer>
-                                                                </Border>
-                                                            </Popup>
-                                                        </Grid>
-                                                        <ControlTemplate.Triggers>
-                                                            <Trigger Property="IsKeyboardFocused" Value="True">
-                                                                <Setter TargetName="ToggleButton" Property="BorderBrush" Value="#FFFFFF"/>
-                                                            </Trigger>
-                                                        </ControlTemplate.Triggers>
-                                                    </ControlTemplate>
-                                                </Setter.Value>
-                                            </Setter>
-                                        </Style>
-                                    </ComboBox.Style>
-                                    <ComboBox.ItemContainerStyle>
-                                        <Style TargetType="ComboBoxItem">
-                                            <Setter Property="Background" Value="#2A2A2A"/>
-                                            <Setter Property="Foreground" Value="#EEEEEE"/>
-                                            <Setter Property="Padding" Value="8,6"/>
-                                            <Setter Property="Template">
-                                                <Setter.Value>
-                                                    <ControlTemplate TargetType="ComboBoxItem">
-                                                        <Border x:Name="ItemBorder"
-                                                                Background="{TemplateBinding Background}"
-                                                                Padding="{TemplateBinding Padding}">
-                                                            <ContentPresenter/>
-                                                        </Border>
-                                                        <ControlTemplate.Triggers>
-                                                            <Trigger Property="IsHighlighted" Value="True">
-                                                                <Setter TargetName="ItemBorder" Property="Background" Value="#3A3A3A"/>
-                                                            </Trigger>
-                                                            <Trigger Property="IsSelected" Value="True">
-                                                                <Setter TargetName="ItemBorder" Property="Background" Value="#4A4A4A"/>
-                                                            </Trigger>
-                                                        </ControlTemplate.Triggers>
-                                                    </ControlTemplate>
-                                                </Setter.Value>
-                                            </Setter>
-                                        </Style>
-                                    </ComboBox.ItemContainerStyle>
-                                    <ComboBox.ItemTemplate>
-                                        <DataTemplate>
-                                            <StackPanel Orientation="Horizontal">
-                                                <TextBlock Text="🔊 " FontSize="12" 
-                                                           VerticalAlignment="Center" Margin="0,0,6,0"/>
-                                                <TextBlock Text="{Binding Name}" FontSize="11" 
-                                                           VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
-                                                <TextBlock x:Name="DefaultIndicator" Text=" •" 
-                                                           FontSize="11" Foreground="#4A90E2" 
-                                                           VerticalAlignment="Center" Visibility="Collapsed"/>
-                                            </StackPanel>
-                                            <DataTemplate.Triggers>
-                                                <DataTrigger Binding="{Binding IsDefault}" Value="True">
-                                                    <Setter TargetName="DefaultIndicator" Property="Visibility" Value="Visible"/>
-                                                </DataTrigger>
-                                            </DataTemplate.Triggers>
-                                        </DataTemplate>
-                                    </ComboBox.ItemTemplate>
-                                </ComboBox>
+                             <!-- Audio Device Selector (Top-Right Corner) -->
+                             <StackPanel Grid.Column="3" Grid.Row="0" 
+                                         VerticalAlignment="Top" HorizontalAlignment="Right" 
+                                         Margin="12,0,0,0">
+                                <!-- Audio Controls Row: Combo + Mute Button -->
+                                <Grid x:Name="AudioControlsRow" Visibility="Collapsed">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <ComboBox x:Name="AudioDeviceCombo"
+                                              Grid.Column="0"
+                                              Background="#2A2A2A"
+                                              Foreground="#EEEEEE"
+                                              BorderBrush="#3A3A3A"
+                                              BorderThickness="2"
+                                              FontSize="11"
+                                              Padding="8,6"
+                                              MinWidth="130"
+                                              Visibility="Visible"
+                                              Focusable="True"
+                                              SelectionChanged="OnAudioDeviceChanged">
+                                        <ComboBox.Style>
+                                            <Style TargetType="ComboBox">
+                                                <Setter Property="Template">
+                                                    <Setter.Value>
+                                                        <ControlTemplate TargetType="ComboBox">
+                                                            <Grid>
+                                                                <ToggleButton x:Name="ToggleButton"
+                                                                              Background="{TemplateBinding Background}"
+                                                                              BorderBrush="{TemplateBinding BorderBrush}"
+                                                                              BorderThickness="{TemplateBinding BorderThickness}"
+                                                                              Focusable="False"
+                                                                              IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}"
+                                                                              ClickMode="Press"/>
+                                                                <ContentPresenter Content="{TemplateBinding SelectionBoxItem}"
+                                                                                ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}"
+                                                                                Margin="8,6,28,6"
+                                                                                VerticalAlignment="Center"
+                                                                                HorizontalAlignment="Left"
+                                                                                IsHitTestVisible="False"/>
+                                                                <Path Data="M 0 0 L 4 4 L 8 0 Z"
+                                                                      Fill="#EEEEEE"
+                                                                      HorizontalAlignment="Right"
+                                                                      VerticalAlignment="Center"
+                                                                      Margin="0,0,10,0"
+                                                                      IsHitTestVisible="False"/>
+                                                                <Popup IsOpen="{TemplateBinding IsDropDownOpen}"
+                                                                       Placement="Bottom"
+                                                                       AllowsTransparency="True"
+                                                                       Focusable="False">
+                                                                    <Border Background="#252525"
+                                                                            BorderBrush="#3A3A3A"
+                                                                            BorderThickness="1"
+                                                                            MinWidth="{TemplateBinding ActualWidth}"
+                                                                            MaxHeight="200">
+                                                                        <ScrollViewer>
+                                                                            <StackPanel IsItemsHost="True"/>
+                                                                        </ScrollViewer>
+                                                                    </Border>
+                                                                </Popup>
+                                                            </Grid>
+                                                            <ControlTemplate.Triggers>
+                                                                <Trigger Property="IsKeyboardFocused" Value="True">
+                                                                    <Setter TargetName="ToggleButton" Property="BorderBrush" Value="#FFFFFF"/>
+                                                                </Trigger>
+                                                            </ControlTemplate.Triggers>
+                                                        </ControlTemplate>
+                                                    </Setter.Value>
+                                                </Setter>
+                                            </Style>
+                                        </ComboBox.Style>
+                                        <ComboBox.ItemContainerStyle>
+                                            <Style TargetType="ComboBoxItem">
+                                                <Setter Property="Background" Value="#2A2A2A"/>
+                                                <Setter Property="Foreground" Value="#EEEEEE"/>
+                                                <Setter Property="Padding" Value="8,6"/>
+                                                <Setter Property="Template">
+                                                    <Setter.Value>
+                                                        <ControlTemplate TargetType="ComboBoxItem">
+                                                            <Border x:Name="ItemBorder"
+                                                                    Background="{TemplateBinding Background}"
+                                                                    Padding="{TemplateBinding Padding}">
+                                                                <ContentPresenter/>
+                                                            </Border>
+                                                            <ControlTemplate.Triggers>
+                                                                <Trigger Property="IsHighlighted" Value="True">
+                                                                    <Setter TargetName="ItemBorder" Property="Background" Value="#3A3A3A"/>
+                                                                </Trigger>
+                                                                <Trigger Property="IsSelected" Value="True">
+                                                                    <Setter TargetName="ItemBorder" Property="Background" Value="#4A4A4A"/>
+                                                                </Trigger>
+                                                            </ControlTemplate.Triggers>
+                                                        </ControlTemplate>
+                                                    </Setter.Value>
+                                                </Setter>
+                                            </Style>
+                                        </ComboBox.ItemContainerStyle>
+                                        <ComboBox.ItemTemplate>
+                                            <DataTemplate>
+                                                <StackPanel Orientation="Horizontal">
+                                                    <TextBlock Text="🔊 " FontSize="12" 
+                                                               VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                                    <TextBlock Text="{Binding Name}" FontSize="11" 
+                                                               VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+                                                    <TextBlock x:Name="DefaultIndicator" Text=" •" 
+                                                               FontSize="11" Foreground="#4A90E2" 
+                                                               VerticalAlignment="Center" Visibility="Collapsed"/>
+                                                </StackPanel>
+                                                <DataTemplate.Triggers>
+                                                    <DataTrigger Binding="{Binding IsDefault}" Value="True">
+                                                        <Setter TargetName="DefaultIndicator" Property="Visibility" Value="Visible"/>
+                                                    </DataTrigger>
+                                                </DataTemplate.Triggers>
+                                            </DataTemplate>
+                                        </ComboBox.ItemTemplate>
+                                    </ComboBox>
+                                    <Button x:Name="MuteBtn"
+                                            Grid.Column="1"
+                                            Content="🔊"
+                                            Width="28"
+                                            Height="24"
+                                            Margin="4,0,0,0"
+                                            Background="#3A3A3A"
+                                            Foreground="#EEEEEE"
+                                            BorderThickness="0"
+                                            FontSize="12"
+                                            Cursor="Hand"
+                                            Padding="0"
+                                            Focusable="True"
+                                            VerticalAlignment="Center">
+                                        <Button.Style>
+                                            <Style TargetType="Button">
+                                                <Setter Property="Template">
+                                                    <Setter.Value>
+                                                        <ControlTemplate TargetType="Button">
+                                                            <Border x:Name="ButtonBorder"
+                                                                    Background="{TemplateBinding Background}" 
+                                                                    BorderBrush="Transparent"
+                                                                    BorderThickness="2"
+                                                                    CornerRadius="5">
+                                                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                            </Border>
+                                                            <ControlTemplate.Triggers>
+                                                                <Trigger Property="IsMouseOver" Value="True">
+                                                                    <Setter TargetName="ButtonBorder" Property="Background" Value="#4A4A4A"/>
+                                                                </Trigger>
+                                                                <Trigger Property="IsPressed" Value="True">
+                                                                    <Setter TargetName="ButtonBorder" Property="Background" Value="#2A2A2A"/>
+                                                                </Trigger>
+                                                                <Trigger Property="IsKeyboardFocused" Value="True">
+                                                                    <Setter TargetName="ButtonBorder" Property="BorderBrush" Value="#FFFFFF"/>
+                                                                </Trigger>
+                                                            </ControlTemplate.Triggers>
+                                                        </ControlTemplate>
+                                                    </Setter.Value>
+                                                </Setter>
+                                            </Style>
+                                        </Button.Style>
+                                    </Button>
+                                </Grid>
+                                <!-- Volume Slider (full width, below) -->
+                                <Border x:Name="VolumeControls"
+                                        Background="#2A2A2A"
+                                        BorderBrush="#3A3A3A"
+                                        BorderThickness="2"
+                                        CornerRadius="5"
+                                        Height="28"
+                                        Margin="0,6,0,0"
+                                        Visibility="Collapsed"
+                                        Focusable="False">
+                                    <Slider x:Name="VolumeSlider"
+                                            Minimum="0"
+                                            Maximum="100"
+                                            Value="100"
+                                            Focusable="True"
+                                            VerticalAlignment="Center"
+                                            Margin="8,0"
+                                            Foreground="#4A90E2"
+                                            Background="#4A4A4A"
+                                            BorderBrush="Transparent">
+                                        <Slider.Style>
+                                            <Style TargetType="Slider">
+                                                <Setter Property="Template">
+                                                    <Setter.Value>
+                                                        <ControlTemplate TargetType="Slider">
+                                                            <Border x:Name="SliderBorder"
+                                                                    Background="Transparent"
+                                                                    BorderBrush="Transparent"
+                                                                    BorderThickness="2"
+                                                                    CornerRadius="3">
+                                                                <Track x:Name="PART_Track">
+                                                                    <Track.DecreaseRepeatButton>
+                                                                        <RepeatButton Command="Slider.DecreaseLarge" 
+                                                                                      Background="#4A90E2"
+                                                                                      Height="6"
+                                                                                      VerticalAlignment="Center">
+                                                                            <RepeatButton.Style>
+                                                                                <Style TargetType="RepeatButton">
+                                                                                    <Setter Property="Template">
+                                                                                        <Setter.Value>
+                                                                                            <ControlTemplate TargetType="RepeatButton">
+                                                                                                <Border Background="{TemplateBinding Background}" 
+                                                                                                        CornerRadius="3"/>
+                                                                                            </ControlTemplate>
+                                                                                        </Setter.Value>
+                                                                                    </Setter>
+                                                                                </Style>
+                                                                            </RepeatButton.Style>
+                                                                        </RepeatButton>
+                                                                    </Track.DecreaseRepeatButton>
+                                                                    <Track.IncreaseRepeatButton>
+                                                                        <RepeatButton Command="Slider.IncreaseLarge"
+                                                                                      Background="#4A4A4A"
+                                                                                      Height="6"
+                                                                                      VerticalAlignment="Center">
+                                                                            <RepeatButton.Style>
+                                                                                <Style TargetType="RepeatButton">
+                                                                                    <Setter Property="Template">
+                                                                                        <Setter.Value>
+                                                                                            <ControlTemplate TargetType="RepeatButton">
+                                                                                                <Border Background="{TemplateBinding Background}" 
+                                                                                                        CornerRadius="3"/>
+                                                                                            </ControlTemplate>
+                                                                                        </Setter.Value>
+                                                                                    </Setter>
+                                                                                </Style>
+                                                                            </RepeatButton.Style>
+                                                                        </RepeatButton>
+                                                                    </Track.IncreaseRepeatButton>
+                                                                    <Track.Thumb>
+                                                                        <Thumb Width="14" Height="18"
+                                                                               Background="#EEEEEE"
+                                                                               BorderBrush="#CCCCCC"
+                                                                               BorderThickness="1"
+                                                                               Cursor="Hand"
+                                                                               VerticalAlignment="Center">
+                                                                            <Thumb.Style>
+                                                                                <Style TargetType="Thumb">
+                                                                                    <Setter Property="Template">
+                                                                                        <Setter.Value>
+                                                                                            <ControlTemplate TargetType="Thumb">
+                                                                                                <Border Background="{TemplateBinding Background}"
+                                                                                                        BorderBrush="{TemplateBinding BorderBrush}"
+                                                                                                        BorderThickness="{TemplateBinding BorderThickness}"
+                                                                                                        CornerRadius="3"/>
+                                                                                            </ControlTemplate>
+                                                                                        </Setter.Value>
+                                                                                    </Setter>
+                                                                                </Style>
+                                                                            </Thumb.Style>
+                                                                        </Thumb>
+                                                                    </Track.Thumb>
+                                                                </Track>
+                                                            </Border>
+                                                            <ControlTemplate.Triggers>
+                                                                <Trigger Property="IsKeyboardFocused" Value="True">
+                                                                    <Setter TargetName="SliderBorder" Property="BorderBrush" Value="#FFFFFF"/>
+                                                                </Trigger>
+                                                            </ControlTemplate.Triggers>
+                                                        </ControlTemplate>
+                                                    </Setter.Value>
+                                                </Setter>
+                                            </Style>
+                                        </Slider.Style>
+                                    </Slider>
+                                </Border>
                             </StackPanel>
                         </Grid>
                     </Border>

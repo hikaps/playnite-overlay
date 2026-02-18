@@ -10,6 +10,7 @@ public sealed class OverlayItem
     public string? SecondaryText { get; set; }    // "2h ago" or "Playing for 45m"
     public bool IsCurrentGame { get; set; }       // For styling/behavior
     public Action? OnSelect { get; set; }
+    public DateTime? ActivatedTime { get; set; }
 
     // Achievement data (only populated for current game when SuccessStory is available)
     public GameAchievementSummary? Achievements { get; set; }
@@ -50,7 +51,8 @@ public sealed class OverlayItem
                     ImagePath = imagePath,
                     SecondaryText = $"Playing for {sessionDuration}",
                     IsCurrentGame = true,
-                    OnSelect = null  // Can't switch to self
+                    OnSelect = null,  // Can't switch to self
+                    ActivatedTime = app.ActivatedTime
                 };
             }
         }
@@ -63,7 +65,8 @@ public sealed class OverlayItem
             ImagePath = app.ImagePath,
             SecondaryText = $"Active for {sessionDuration}",
             IsCurrentGame = true,
-            OnSelect = null  // Can't switch to self
+            OnSelect = null,  // Can't switch to self
+            ActivatedTime = app.ActivatedTime
         };
     }
 
