@@ -119,6 +119,23 @@ Access settings through: **Playnite Menu** → **Add-ons** → **Extension setti
 - **Show Generic Apps**: Include non-game applications in RUNNING APPS section
 - **Max Running Apps**: Limit number of apps displayed (1-50, default: 10)
 
+### Screen Capture
+
+**Screenshot and Recording Support**
+- 📸 **Screenshot Button**: Capture screenshots directly from the overlay (PNG format)
+- 🔴 **Record Button**: Record gameplay with system audio (MP4/H.264 format)
+- Quick Actions row in the overlay UI for instant access
+
+**Capture Settings**
+- **Output Folder**: Configure where screenshots and recordings are saved
+- **Screenshot Format**: PNG (lossless) or JPEG (compressed)
+- **Video Quality**: Low, Medium, or High
+
+**Requirements**
+- **Windows 8+**: Screen capture uses Desktop Duplication API
+- **FFmpeg**: Required for video recording (install and add to system PATH)
+- Note: Screen capture may not work in exclusive fullscreen mode
+
 ## Requirements
 
 - **Playnite**: Version compatible with PlayniteSDK 6.12.0+
