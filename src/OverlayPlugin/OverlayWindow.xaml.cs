@@ -94,8 +94,19 @@ public partial class OverlayWindow : Window
             // Setup achievements section
             SetupAchievementsDisplay(currentGame.Achievements);
 
-            // Setup Quick Actions Row (screenshot/record)
-            QuickActionsRow.Visibility = (captureService != null && captureService.IsAvailable) ? Visibility.Visible : Visibility.Collapsed;
+            // Initialize capture service for the game's monitor
+            if (captureService != null && captureService.IsAvailable)
+            {
+                var monitorHandle = Monitors.GetForegroundWindowMonitorHandle();
+                captureService.Initialize(monitorHandle);
+            }
+
+            // Setup Shortcuts section (screenshot/record) - only show if capture available
+            var canScreenshot = captureService != null && captureService.IsAvailable;
+            var canRecord = canScreenshot && FfmpegDetector.IsAvailable;
+            ShortcutsSection.Visibility = (canScreenshot || canRecord) ? Visibility.Visible : Visibility.Collapsed;
+            ScreenshotBtn.Visibility = canScreenshot ? Visibility.Visible : Visibility.Collapsed;
+            RecordBtn.Visibility = canRecord ? Visibility.Visible : Visibility.Collapsed;
         }
         else
         {
@@ -278,6 +289,10 @@ public partial class OverlayWindow : Window
         {
             FocusSection(NavigationTarget.CurrentGameSection);
         }
+        else if (ShortcutsSection.Visibility == Visibility.Visible)
+        {
+            FocusSection(NavigationTarget.ShortcutsSection);
+        }
         else if (RunningAppsSection.Visibility == Visibility.Visible)
         {
             FocusSection(NavigationTarget.RunningAppsSection);
@@ -376,6 +391,11 @@ public partial class OverlayWindow : Window
                 CurrentGameSection.BringIntoView();
                 Keyboard.Focus(CurrentGameSection);
                 break;
+            case NavigationTarget.ShortcutsSection:
+                ShortcutsSection.BorderBrush = HighlightBrush;
+                ShortcutsSection.BringIntoView();
+                Keyboard.Focus(ShortcutsSection);
+                break;
             case NavigationTarget.RunningAppsSection:
                 RunningAppsSection.BorderBrush = HighlightBrush;
                 RunningAppsSection.BringIntoView();
@@ -392,6 +412,7 @@ public partial class OverlayWindow : Window
     private void ClearSectionHighlights()
     {
         CurrentGameSection.BorderBrush = TransparentBrush;
+        ShortcutsSection.BorderBrush = TransparentBrush;
         RunningAppsSection.BorderBrush = TransparentBrush;
         RecentGamesSection.BorderBrush = TransparentBrush;
     }
@@ -404,19 +425,29 @@ public partial class OverlayWindow : Window
                 // Wrap to last visible section
                 if (items.Count > 0) return NavigationTarget.RecentGamesSection;
                 if (runningApps.Count > 0) return NavigationTarget.RunningAppsSection;
-                return null; // Only one section visible
-                
+                if (ShortcutsSection.Visibility == Visibility.Visible) return NavigationTarget.ShortcutsSection;
+                return null;
+
+            case NavigationTarget.ShortcutsSection:
+                if (CurrentGameSection.Visibility == Visibility.Visible) return NavigationTarget.CurrentGameSection;
+                // Wrap
+                if (items.Count > 0) return NavigationTarget.RecentGamesSection;
+                if (runningApps.Count > 0) return NavigationTarget.RunningAppsSection;
+                return null;
+
             case NavigationTarget.RunningAppsSection:
+                if (ShortcutsSection.Visibility == Visibility.Visible) return NavigationTarget.ShortcutsSection;
                 if (CurrentGameSection.Visibility == Visibility.Visible) return NavigationTarget.CurrentGameSection;
                 // Wrap
                 if (items.Count > 0) return NavigationTarget.RecentGamesSection;
                 return null;
-                
+
             case NavigationTarget.RecentGamesSection:
                 if (runningApps.Count > 0) return NavigationTarget.RunningAppsSection;
+                if (ShortcutsSection.Visibility == Visibility.Visible) return NavigationTarget.ShortcutsSection;
                 if (CurrentGameSection.Visibility == Visibility.Visible) return NavigationTarget.CurrentGameSection;
                 return null;
-                
+
             default:
                 return null;
         }
@@ -427,22 +458,32 @@ public partial class OverlayWindow : Window
         switch (current)
         {
             case NavigationTarget.CurrentGameSection:
+                if (ShortcutsSection.Visibility == Visibility.Visible) return NavigationTarget.ShortcutsSection;
                 if (runningApps.Count > 0) return NavigationTarget.RunningAppsSection;
                 if (items.Count > 0) return NavigationTarget.RecentGamesSection;
-                return null; // Only one section visible
-                
-            case NavigationTarget.RunningAppsSection:
+                return null;
+
+            case NavigationTarget.ShortcutsSection:
+                if (runningApps.Count > 0) return NavigationTarget.RunningAppsSection;
                 if (items.Count > 0) return NavigationTarget.RecentGamesSection;
                 // Wrap
                 if (CurrentGameSection.Visibility == Visibility.Visible) return NavigationTarget.CurrentGameSection;
                 return null;
-                
+
+            case NavigationTarget.RunningAppsSection:
+                if (items.Count > 0) return NavigationTarget.RecentGamesSection;
+                // Wrap
+                if (CurrentGameSection.Visibility == Visibility.Visible) return NavigationTarget.CurrentGameSection;
+                if (ShortcutsSection.Visibility == Visibility.Visible) return NavigationTarget.ShortcutsSection;
+                return null;
+
             case NavigationTarget.RecentGamesSection:
                 // Wrap to first visible section
                 if (CurrentGameSection.Visibility == Visibility.Visible) return NavigationTarget.CurrentGameSection;
+                if (ShortcutsSection.Visibility == Visibility.Visible) return NavigationTarget.ShortcutsSection;
                 if (runningApps.Count > 0) return NavigationTarget.RunningAppsSection;
                 return null;
-                
+
             default:
                 return null;
         }
@@ -456,12 +497,16 @@ public partial class OverlayWindow : Window
     {
         isInsideSection = true;
         ClearSectionHighlights();
-        
+
         switch (section)
         {
             case NavigationTarget.CurrentGameSection:
                 navigationTarget = NavigationTarget.SwitchButton;
                 FocusSwitchButton();
+                break;
+            case NavigationTarget.ShortcutsSection:
+                navigationTarget = NavigationTarget.ScreenshotButton;
+                FocusScreenshotButton();
                 break;
             case NavigationTarget.RunningAppsSection:
                 navigationTarget = NavigationTarget.RunningAppItem;
@@ -478,7 +523,6 @@ public partial class OverlayWindow : Window
 
     private void ExitToSectionLevel()
     {
-        // Determine which section we're in based on current navigation target
         NavigationTarget section;
         switch (navigationTarget)
         {
@@ -488,6 +532,10 @@ public partial class OverlayWindow : Window
             case NavigationTarget.MuteBtn:
             case NavigationTarget.AudioDeviceCombo:
                 section = NavigationTarget.CurrentGameSection;
+                break;
+            case NavigationTarget.ScreenshotButton:
+            case NavigationTarget.RecordButton:
+                section = NavigationTarget.ShortcutsSection;
                 break;
             case NavigationTarget.RunningAppItem:
                 section = NavigationTarget.RunningAppsSection;
@@ -1301,17 +1349,20 @@ public partial class OverlayWindow : Window
     {
         // Section-level (Level 1)
         CurrentGameSection,
+        ShortcutsSection,
         RunningAppsSection,
         RecentGamesSection,
 
         // Item-level (Level 2) - inside CurrentGameSection
         SwitchButton,
         ExitButton,
-        ScreenshotButton,
-        RecordButton,
         VolumeSlider,
         MuteBtn,
         AudioDeviceCombo,
+
+        // Item-level (Level 2) - inside ShortcutsSection
+        ScreenshotButton,
+        RecordButton,
 
         // Item-level (Level 2) - inside list sections
         RunningAppItem,
