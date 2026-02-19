@@ -35,6 +35,7 @@ public partial class OverlayWindow : Window
     private readonly List<RunningApp> runningApps;
     private readonly GameSwitcher? gameSwitcher;
     private readonly OverlayItem? currentGameField;
+    private readonly CaptureService? captureService;
     private readonly DispatcherTimer timeTimer;
     
     // Two-level navigation state
@@ -49,7 +50,7 @@ public partial class OverlayWindow : Window
     private static readonly SolidColorBrush HighlightBrush = new(Color.FromRgb(0xFF, 0xFF, 0xFF));
     private static readonly SolidColorBrush TransparentBrush = new(Colors.Transparent);
 
-    public OverlayWindow(Action onSwitch, Action onExit, OverlayItem? currentGame, IEnumerable<RunningApp> runningApps, IEnumerable<OverlayItem> recentGames, IEnumerable<AudioDevice>? audioDevices = null, Action<string, Action<bool>>? onAudioDeviceChanged = null, GameVolumeService? gameVolumeService = null, int? currentGameProcessId = null, GameSwitcher? gameSwitcher = null)
+    public OverlayWindow(Action onSwitch, Action onExit, OverlayItem? currentGame, IEnumerable<RunningApp> runningApps, IEnumerable<OverlayItem> recentGames, IEnumerable<AudioDevice>? audioDevices = null, Action<string, Action<bool>>? onAudioDeviceChanged = null, GameVolumeService? gameVolumeService = null, int? currentGameProcessId = null, GameSwitcher? gameSwitcher = null, CaptureService? captureService = null)
     {
         InitializeComponent();
         this.onSwitch = onSwitch;
@@ -58,6 +59,7 @@ public partial class OverlayWindow : Window
         this.gameVolumeService = gameVolumeService;
         this.currentGameProcessId = currentGameProcessId;
         this.gameSwitcher = gameSwitcher;
+        this.captureService = captureService;
         this.currentGameField = currentGame;
         this.items = new List<OverlayItem>(recentGames);
         this.runningApps = new List<RunningApp>(runningApps);
@@ -91,6 +93,9 @@ public partial class OverlayWindow : Window
 
             // Setup achievements section
             SetupAchievementsDisplay(currentGame.Achievements);
+
+            // Setup Quick Actions Row (screenshot/record)
+            QuickActionsRow.Visibility = (captureService != null && captureService.IsAvailable) ? Visibility.Visible : Visibility.Collapsed;
         }
         else
         {
@@ -175,7 +180,77 @@ public partial class OverlayWindow : Window
             this.Closed += closed;
             this.Close();
         };
-        
+
+        ScreenshotBtn.Click += (_, __) =>
+        {
+            if (captureService == null || !captureService.IsAvailable)
+            {
+                return;
+            }
+
+            var gameName = currentGameField?.Title ?? null;
+
+            EventHandler? closed = null;
+            closed = (s, e2) =>
+            {
+                this.Closed -= closed;
+                try
+                {
+                    captureService.TakeScreenshot(null, gameName);
+                }
+                catch { }
+            };
+            this.Closed += closed;
+            this.Close();
+        };
+
+        RecordBtn.Click += (_, __) =>
+        {
+            if (captureService == null || !captureService.IsAvailable)
+            {
+                return;
+            }
+
+            var gameName = currentGameField?.Title ?? null;
+
+            if (captureService.IsRecording)
+            {
+                RecordBtn.Content = "🔴 Record";
+                RecordBtn.Background = new SolidColorBrush(Color.FromRgb(0x3A, 0x3A, 0x3A));
+
+                EventHandler? closed = null;
+                closed = (s, e2) =>
+                {
+                    this.Closed -= closed;
+                    try
+                    {
+                        captureService.StopRecording();
+                    }
+                    catch { }
+                };
+                this.Closed += closed;
+                this.Close();
+            }
+            else
+            {
+                RecordBtn.Content = "⏹️ Stop";
+                RecordBtn.Background = new SolidColorBrush(Color.FromRgb(0xD3, 0x2F, 0x2F));
+
+                EventHandler? closed = null;
+                closed = (s, e2) =>
+                {
+                    this.Closed -= closed;
+                    try
+                    {
+                        captureService.StartRecording(null, gameName);
+                    }
+                    catch { }
+                };
+                this.Closed += closed;
+                this.Close();
+            }
+        };
+
         Backdrop.MouseLeftButtonDown += (_, __) => this.Close();
         PreviewKeyDown += OnPreviewKeyDown;
         
@@ -453,9 +528,41 @@ public partial class OverlayWindow : Window
 
         RunningAppsList.SelectedIndex = -1;
         RecentList.SelectedIndex = -1;
-        
+
         navigationTarget = NavigationTarget.ExitButton;
         ExitBtn.Focus();
+        CurrentGameSection.BringIntoView();
+    }
+
+    private void FocusScreenshotButton()
+    {
+        if (!Dispatcher.CheckAccess())
+        {
+            Dispatcher.Invoke(FocusScreenshotButton);
+            return;
+        }
+
+        RunningAppsList.SelectedIndex = -1;
+        RecentList.SelectedIndex = -1;
+
+        navigationTarget = NavigationTarget.ScreenshotButton;
+        ScreenshotBtn.Focus();
+        CurrentGameSection.BringIntoView();
+    }
+
+    private void FocusRecordButton()
+    {
+        if (!Dispatcher.CheckAccess())
+        {
+            Dispatcher.Invoke(FocusRecordButton);
+            return;
+        }
+
+        RunningAppsList.SelectedIndex = -1;
+        RecentList.SelectedIndex = -1;
+
+        navigationTarget = NavigationTarget.RecordButton;
+        RecordBtn.Focus();
         CurrentGameSection.BringIntoView();
     }
 
@@ -604,6 +711,14 @@ public partial class OverlayWindow : Window
                     FocusSwitchButton();
                     break;
 
+                case NavigationTarget.ScreenshotButton:
+                    FocusExitButton();
+                    break;
+
+                case NavigationTarget.RecordButton:
+                    FocusScreenshotButton();
+                    break;
+
                 case NavigationTarget.VolumeSlider:
                     if (AudioControlsRow.Visibility == Visibility.Visible)
                     {
@@ -669,6 +784,14 @@ public partial class OverlayWindow : Window
                     break;
 
                 case NavigationTarget.ExitButton:
+                    FocusScreenshotButton();
+                    break;
+
+                case NavigationTarget.ScreenshotButton:
+                    FocusRecordButton();
+                    break;
+
+                case NavigationTarget.RecordButton:
                     if (AudioControlsRow.Visibility == Visibility.Visible)
                     {
                         FocusAudioCombo();
@@ -746,13 +869,21 @@ public partial class OverlayWindow : Window
             {
                 FocusSwitchButton();
             }
+            else if (navigationTarget == NavigationTarget.ScreenshotButton)
+            {
+                FocusExitButton();
+            }
+            else if (navigationTarget == NavigationTarget.RecordButton)
+            {
+                FocusScreenshotButton();
+            }
             else if (navigationTarget == NavigationTarget.MuteBtn)
             {
                 FocusAudioCombo();
             }
             else if (navigationTarget == NavigationTarget.AudioDeviceCombo)
             {
-                FocusExitButton();
+                FocusRecordButton();
             }
         }
     }
@@ -770,6 +901,14 @@ public partial class OverlayWindow : Window
                 FocusExitButton();
             }
             else if (navigationTarget == NavigationTarget.ExitButton)
+            {
+                FocusScreenshotButton();
+            }
+            else if (navigationTarget == NavigationTarget.ScreenshotButton)
+            {
+                FocusRecordButton();
+            }
+            else if (navigationTarget == NavigationTarget.RecordButton)
             {
                 if (AudioControlsRow.Visibility == Visibility.Visible)
                 {
@@ -850,6 +989,12 @@ public partial class OverlayWindow : Window
                     break;
                 case NavigationTarget.ExitButton:
                     ExitBtn.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                    break;
+                case NavigationTarget.ScreenshotButton:
+                    ScreenshotBtn.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                    break;
+                case NavigationTarget.RecordButton:
+                    RecordBtn.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
                     break;
                 case NavigationTarget.VolumeSlider:
                     // Volume slider adjustment handled via Left/Right keys
@@ -1162,6 +1307,8 @@ public partial class OverlayWindow : Window
         // Item-level (Level 2) - inside CurrentGameSection
         SwitchButton,
         ExitButton,
+        ScreenshotButton,
+        RecordButton,
         VolumeSlider,
         MuteBtn,
         AudioDeviceCombo,

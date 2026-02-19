@@ -1,9 +1,14 @@
 using MVVM = CommunityToolkit.Mvvm.ComponentModel;
+using PlayniteOverlay.Models;
 
 namespace PlayniteOverlay;
 
 public class OverlaySettings : MVVM.ObservableObject
 {
+    public OverlaySettings()
+    {
+        Capture = new CaptureSettings();
+    }
     private bool useControllerToOpen = true;
     public bool UseControllerToOpen
     {
@@ -124,5 +129,15 @@ public class OverlaySettings : MVVM.ObservableObject
     {
         get => maxLockedAchievements;
         set => SetProperty(ref maxLockedAchievements, value);
+    }
+
+    private CaptureSettings? capture;
+    /// <summary>
+    /// Settings for screen capture functionality (screenshots and video).
+    /// </summary>
+    public CaptureSettings? Capture
+    {
+        get => capture;
+        set => SetProperty(ref capture, value);
     }
 }

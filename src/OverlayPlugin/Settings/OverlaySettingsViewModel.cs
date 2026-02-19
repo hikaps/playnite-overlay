@@ -67,6 +67,30 @@ public class OverlaySettingsViewModel : MVVM.ObservableObject, ISettings
             errors.Add("Borderless delay must be between 1000 and 30000 ms.");
         }
 
+        if (Settings.Capture != null)
+        {
+            var outputPath = Settings.Capture.OutputPath?.Trim() ?? string.Empty;
+            if (string.IsNullOrWhiteSpace(outputPath))
+            {
+                errors.Add("Capture output path cannot be empty.");
+            }
+            else
+            {
+                try
+                {
+                    var expanded = System.Environment.ExpandEnvironmentVariables(outputPath);
+                    if (string.IsNullOrWhiteSpace(expanded) || expanded.IndexOfAny(System.IO.Path.GetInvalidPathChars()) >= 0)
+                    {
+                        errors.Add("Capture output path contains invalid characters.");
+                    }
+                }
+                catch
+                {
+                    errors.Add("Capture output path is invalid.");
+                }
+            }
+        }
+
         return errors.Count == 0;
     }
 }
