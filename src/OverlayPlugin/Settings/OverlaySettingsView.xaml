@@ -3,6 +3,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:Models="clr-namespace:PlayniteOverlay.Models"
              mc:Ignorable="d"
              d:DesignWidth="540" d:DesignHeight="320">
     <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
@@ -117,6 +118,42 @@
                     <TextBlock Margin="0,8,0,0" TextWrapping="Wrap"
                                Foreground="Orange"
                                Text="Note: This only works for games running in windowed mode. For games in true exclusive fullscreen, you'll need to change the game's display settings to Windowed or Borderless."/>
+                </StackPanel>
+            </GroupBox>
+
+            <GroupBox Header="Capture">
+                <StackPanel Margin="10">
+                    <TextBlock Text="Configure screenshot and video capture settings." TextWrapping="Wrap"/>
+                    <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                        <TextBlock Text="Output folder:" VerticalAlignment="Center"/>
+                        <TextBox Width="280"
+                                 Margin="8,0,0,0"
+                                 Text="{Binding Settings.Capture.OutputPath, UpdateSourceTrigger=PropertyChanged}"
+                                 ToolTip="Directory where captured screenshots and videos are saved"/>
+                        <Button Margin="8,0,0,0" Content="Browse..." Click="BrowseOutputPath_Click"/>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                        <TextBlock Text="Screenshot format:" VerticalAlignment="Center"/>
+                        <ComboBox Width="120" Margin="8,0,0,0"
+                                  SelectedValuePath="Tag"
+                                  SelectedValue="{Binding Settings.Capture.ScreenshotFormat}">
+                            <ComboBoxItem Content="PNG" Tag="{x:Static Member=Models:ScreenshotFormat.Png}"/>
+                            <ComboBoxItem Content="JPEG" Tag="{x:Static Member=Models:ScreenshotFormat.Jpeg}"/>
+                        </ComboBox>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                        <TextBlock Text="Video quality:" VerticalAlignment="Center"/>
+                        <ComboBox Width="120" Margin="8,0,0,0"
+                                  SelectedValuePath="Tag"
+                                  SelectedValue="{Binding Settings.Capture.VideoQuality}">
+                            <ComboBoxItem Content="Low" Tag="{x:Static Member=Models:VideoQuality.Low}"/>
+                            <ComboBoxItem Content="Medium" Tag="{x:Static Member=Models:VideoQuality.Medium}"/>
+                            <ComboBoxItem Content="High" Tag="{x:Static Member=Models:VideoQuality.High}"/>
+                        </ComboBox>
+                    </StackPanel>
+                    <TextBlock Margin="0,6,0,0" TextWrapping="Wrap"
+                               Foreground="Gray"
+                               Text="Screenshots and videos are saved to the output folder. Environment variables like %USERPROFILE% are supported."/>
                 </StackPanel>
             </GroupBox>
         </StackPanel>

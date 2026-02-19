@@ -24,6 +24,7 @@ public class OverlayPlugin : GenericPlugin
     private readonly SuccessStoryIntegration successStory;
     private readonly AudioDeviceService? audioDeviceService;
     private readonly GameVolumeService? gameVolumeService;
+    private readonly CaptureService? captureService;
     private readonly OverlaySettingsViewModel settings;
     private readonly Dictionary<Guid, BorderlessHelper.WindowState> borderlessStates = new Dictionary<Guid, BorderlessHelper.WindowState>();
     private bool isDisposed;
@@ -58,6 +59,17 @@ public class OverlayPlugin : GenericPlugin
         {
             logger.Warn(ex, "Failed to initialize GameVolumeService - volume control will be disabled");
             gameVolumeService = null;
+        }
+
+        // Initialize capture service (optional - may fail if Desktop Duplication unavailable)
+        try
+        {
+            captureService = new CaptureService(api, settings.Settings.Capture ?? new Models.CaptureSettings());
+        }
+        catch (Exception ex)
+        {
+            logger.Warn(ex, "Failed to initialize CaptureService - screenshot/recording will be disabled");
+            captureService = null;
         }
 
         Properties = new GenericPluginProperties
@@ -281,7 +293,8 @@ public class OverlayPlugin : GenericPlugin
             SwitchAudioDevice,
             gameVolumeService,
             switcher.ActiveApp?.ProcessId,
-            switcher);
+            switcher,
+            captureService);
     }
 
     private void HandleExitGame()

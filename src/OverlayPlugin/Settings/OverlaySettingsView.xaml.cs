@@ -1,5 +1,6 @@
 using System.Windows.Controls;
 using System.Windows.Input;
+using WinForms = System.Windows.Forms;
 
 namespace PlayniteOverlay;
 
@@ -59,6 +60,36 @@ public partial class OverlaySettingsView : UserControl
         {
             Model.CustomHotkey = string.Empty;
             Model.EnableCustomHotkey = false;
+        }
+    }
+
+    private void BrowseOutputPath_Click(object sender, System.Windows.RoutedEventArgs e)
+    {
+        if (Model?.Capture == null) return;
+
+        using (var dialog = new WinForms.FolderBrowserDialog())
+        {
+            dialog.Description = "Select output folder for captures";
+            dialog.ShowNewFolderButton = true;
+
+            // Try to set initial directory to current path (expanded)
+            try
+            {
+                var expandedPath = System.Environment.ExpandEnvironmentVariables(Model.Capture.OutputPath);
+                if (System.IO.Directory.Exists(expandedPath))
+                {
+                    dialog.SelectedPath = expandedPath;
+                }
+            }
+            catch
+            {
+                // Ignore if path is invalid
+            }
+
+            if (dialog.ShowDialog() == WinForms.DialogResult.OK)
+            {
+                Model.Capture.OutputPath = dialog.SelectedPath;
+            }
         }
     }
 }
