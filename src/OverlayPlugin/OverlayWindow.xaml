@@ -136,77 +136,6 @@
                                         </Button.Style>
                                     </Button>
                                 </StackPanel>
-                                
-                                <!-- Quick Actions Row -->
-                                <StackPanel x:Name="QuickActionsRow" Orientation="Horizontal" 
-                                            Visibility="Collapsed" Margin="0,12,0,0">
-                                    <Button x:Name="ScreenshotBtn" Content="📷 Screenshot" 
-                                            Margin="0,0,12,0" Padding="16,8" MinWidth="130"
-                                            Background="#3A3A3A" Foreground="White" BorderThickness="0"
-                                            FontSize="13" FontWeight="Medium" Cursor="Hand">
-                                        <Button.Style>
-                                            <Style TargetType="Button">
-                                                <Setter Property="Template">
-                                                    <Setter.Value>
-                                                        <ControlTemplate TargetType="Button">
-                                                            <Border x:Name="ButtonBorder"
-                                                                    Background="{TemplateBinding Background}" 
-                                                                    BorderBrush="Transparent"
-                                                                    BorderThickness="2"
-                                                                    CornerRadius="5" Padding="{TemplateBinding Padding}">
-                                                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                                            </Border>
-                                                            <ControlTemplate.Triggers>
-                                                                <Trigger Property="IsMouseOver" Value="True">
-                                                                    <Setter TargetName="ButtonBorder" Property="Background" Value="#4A4A4A"/>
-                                                                </Trigger>
-                                                                <Trigger Property="IsPressed" Value="True">
-                                                                    <Setter TargetName="ButtonBorder" Property="Background" Value="#2A2A2A"/>
-                                                                </Trigger>
-                                                                <Trigger Property="IsKeyboardFocused" Value="True">
-                                                                    <Setter TargetName="ButtonBorder" Property="BorderBrush" Value="#FFFFFF"/>
-                                                                </Trigger>
-                                                            </ControlTemplate.Triggers>
-                                                        </ControlTemplate>
-                                                    </Setter.Value>
-                                                </Setter>
-                                            </Style>
-                                        </Button.Style>
-                                    </Button>
-                                    <Button x:Name="RecordBtn" Content="🔴 Record" 
-                                            Padding="16,8" MinWidth="110"
-                                            Background="#3A3A3A" Foreground="White" BorderThickness="0"
-                                            FontSize="13" FontWeight="Medium" Cursor="Hand">
-                                        <Button.Style>
-                                            <Style TargetType="Button">
-                                                <Setter Property="Template">
-                                                    <Setter.Value>
-                                                        <ControlTemplate TargetType="Button">
-                                                            <Border x:Name="ButtonBorder"
-                                                                    Background="{TemplateBinding Background}" 
-                                                                    BorderBrush="Transparent"
-                                                                    BorderThickness="2"
-                                                                    CornerRadius="5" Padding="{TemplateBinding Padding}">
-                                                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                                            </Border>
-                                                            <ControlTemplate.Triggers>
-                                                                <Trigger Property="IsMouseOver" Value="True">
-                                                                    <Setter TargetName="ButtonBorder" Property="Background" Value="#4A4A4A"/>
-                                                                </Trigger>
-                                                                <Trigger Property="IsPressed" Value="True">
-                                                                    <Setter TargetName="ButtonBorder" Property="Background" Value="#2A2A2A"/>
-                                                                </Trigger>
-                                                                <Trigger Property="IsKeyboardFocused" Value="True">
-                                                                    <Setter TargetName="ButtonBorder" Property="BorderBrush" Value="#FFFFFF"/>
-                                                                </Trigger>
-                                                            </ControlTemplate.Triggers>
-                                                        </ControlTemplate>
-                                                    </Setter.Value>
-                                                </Setter>
-                                            </Style>
-                                        </Button.Style>
-                                    </Button>
-                                </StackPanel>
                             </StackPanel>
                             
                              <!-- Audio Device Selector (Top-Right Corner) -->
@@ -479,7 +408,85 @@
                             </StackPanel>
                         </Grid>
                     </Border>
-                    
+
+                    <!-- Shortcuts Section -->
+                    <Border x:Name="ShortcutsSection" Background="#252525" CornerRadius="8"
+                            Padding="16" Margin="0,0,0,20" Visibility="Collapsed"
+                            BorderThickness="2" BorderBrush="Transparent" Focusable="True">
+                        <StackPanel>
+                            <TextBlock Text="SHORTCUTS" FontSize="10" FontWeight="Bold"
+                                       Foreground="#888888" Margin="0,0,0,10"/>
+                            <StackPanel x:Name="QuickActionsRow" Orientation="Horizontal">
+                                <Button x:Name="ScreenshotBtn" Content="📷 Screenshot"
+                                        Margin="0,0,12,0" Padding="16,8" MinWidth="130"
+                                        Background="#3A3A3A" Foreground="White" BorderThickness="0"
+                                        FontSize="13" FontWeight="Medium" Cursor="Hand">
+                                    <Button.Style>
+                                        <Style TargetType="Button">
+                                            <Setter Property="Template">
+                                                <Setter.Value>
+                                                    <ControlTemplate TargetType="Button">
+                                                        <Border x:Name="ButtonBorder"
+                                                                Background="{TemplateBinding Background}"
+                                                                BorderBrush="Transparent"
+                                                                BorderThickness="2"
+                                                                CornerRadius="5" Padding="{TemplateBinding Padding}">
+                                                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                        </Border>
+                                                        <ControlTemplate.Triggers>
+                                                            <Trigger Property="IsMouseOver" Value="True">
+                                                                <Setter TargetName="ButtonBorder" Property="Background" Value="#4A4A4A"/>
+                                                            </Trigger>
+                                                            <Trigger Property="IsPressed" Value="True">
+                                                                <Setter TargetName="ButtonBorder" Property="Background" Value="#2A2A2A"/>
+                                                            </Trigger>
+                                                            <Trigger Property="IsKeyboardFocused" Value="True">
+                                                                <Setter TargetName="ButtonBorder" Property="BorderBrush" Value="#FFFFFF"/>
+                                                            </Trigger>
+                                                        </ControlTemplate.Triggers>
+                                                    </ControlTemplate>
+                                                </Setter.Value>
+                                            </Setter>
+                                        </Style>
+                                    </Button.Style>
+                                </Button>
+                                <Button x:Name="RecordBtn" Content="🔴 Record"
+                                        Padding="16,8" MinWidth="110"
+                                        Background="#3A3A3A" Foreground="White" BorderThickness="0"
+                                        FontSize="13" FontWeight="Medium" Cursor="Hand">
+                                    <Button.Style>
+                                        <Style TargetType="Button">
+                                            <Setter Property="Template">
+                                                <Setter.Value>
+                                                    <ControlTemplate TargetType="Button">
+                                                        <Border x:Name="ButtonBorder"
+                                                                Background="{TemplateBinding Background}"
+                                                                BorderBrush="Transparent"
+                                                                BorderThickness="2"
+                                                                CornerRadius="5" Padding="{TemplateBinding Padding}">
+                                                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                        </Border>
+                                                        <ControlTemplate.Triggers>
+                                                            <Trigger Property="IsMouseOver" Value="True">
+                                                                <Setter TargetName="ButtonBorder" Property="Background" Value="#4A4A4A"/>
+                                                            </Trigger>
+                                                            <Trigger Property="IsPressed" Value="True">
+                                                                <Setter TargetName="ButtonBorder" Property="Background" Value="#2A2A2A"/>
+                                                            </Trigger>
+                                                            <Trigger Property="IsKeyboardFocused" Value="True">
+                                                                <Setter TargetName="ButtonBorder" Property="BorderBrush" Value="#FFFFFF"/>
+                                                            </Trigger>
+                                                        </ControlTemplate.Triggers>
+                                                    </ControlTemplate>
+                                                </Setter.Value>
+                                            </Setter>
+                                        </Style>
+                                    </Button.Style>
+                                </Button>
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+
                     <!-- Running Apps Section (shown when other apps detected) -->
                     <Border x:Name="RunningAppsSection" Background="#252525" CornerRadius="8" 
                             Padding="16" Margin="0,0,0,20" Visibility="Collapsed"

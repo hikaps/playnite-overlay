@@ -55,6 +55,15 @@ internal static class Monitors
     }
 
     /// <summary>
+    /// Gets the monitor handle for the current foreground window (typically the game).
+    /// </summary>
+    public static IntPtr GetForegroundWindowMonitorHandle()
+    {
+        var foreground = GetForegroundWindow();
+        return MonitorFromWindow(foreground, MONITOR_DEFAULTTONEAREST);
+    }
+
+    /// <summary>
     /// Gets the monitor bounds for the current foreground window (typically the game).
     /// </summary>
     public static Rect GetForegroundWindowMonitorBounds()
