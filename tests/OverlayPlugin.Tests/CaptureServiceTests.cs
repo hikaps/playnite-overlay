@@ -154,8 +154,9 @@ public class CaptureServiceTests : IDisposable
         var result = service.TakeScreenshot(testOutputDirectory, null);
 
         Assert.NotNull(result);
-        Assert.DoesNotContain("_", Path.GetFileNameWithoutExtension(result));
         Assert.StartsWith("Capture_", Path.GetFileNameWithoutExtension(result));
+        // Filename format: Capture_YYYYMMDD_HHMMSS
+        Assert.Matches(@"Capture_\d{8}_\d{6}", Path.GetFileNameWithoutExtension(result));
 
         if (File.Exists(result!))
         {
