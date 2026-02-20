@@ -1,9 +1,15 @@
+using System.Collections.ObjectModel;
 using MVVM = CommunityToolkit.Mvvm.ComponentModel;
 
 namespace PlayniteOverlay;
 
 public class OverlaySettings : MVVM.ObservableObject
 {
+    public OverlaySettings()
+    {
+        shortcuts = new ObservableCollection<Models.OverlayShortcut>();
+    }
+
     private bool useControllerToOpen = true;
     public bool UseControllerToOpen
     {
@@ -126,11 +132,11 @@ public class OverlaySettings : MVVM.ObservableObject
         set => SetProperty(ref maxLockedAchievements, value);
     }
 
-    private System.Collections.Generic.List<Models.OverlayShortcut> shortcuts = new System.Collections.Generic.List<Models.OverlayShortcut>();
+    private ObservableCollection<Models.OverlayShortcut> shortcuts;
     /// <summary>
     /// User-defined keyboard shortcuts that can be triggered from the overlay.
     /// </summary>
-    public System.Collections.Generic.List<Models.OverlayShortcut> Shortcuts
+    public ObservableCollection<Models.OverlayShortcut> Shortcuts
     {
         get => shortcuts;
         set => SetProperty(ref shortcuts, value);
