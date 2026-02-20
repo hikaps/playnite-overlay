@@ -102,11 +102,10 @@ public partial class OverlayWindow : Window
             }
 
             // Setup Shortcuts section (screenshot/record) - only show if capture available
-            var canScreenshot = captureService != null && captureService.IsAvailable;
-            var canRecord = canScreenshot && FfmpegDetector.IsAvailable;
-            ShortcutsSection.Visibility = (canScreenshot || canRecord) ? Visibility.Visible : Visibility.Collapsed;
-            ScreenshotBtn.Visibility = canScreenshot ? Visibility.Visible : Visibility.Collapsed;
-            RecordBtn.Visibility = canRecord ? Visibility.Visible : Visibility.Collapsed;
+            var canCapture = captureService != null && captureService.IsAvailable;
+            ShortcutsSection.Visibility = canCapture ? Visibility.Visible : Visibility.Collapsed;
+            ScreenshotBtn.Visibility = canCapture ? Visibility.Visible : Visibility.Collapsed;
+            RecordBtn.Visibility = canCapture ? Visibility.Visible : Visibility.Collapsed;
         }
         else
         {
@@ -207,6 +206,9 @@ public partial class OverlayWindow : Window
                 this.Closed -= closed;
                 try
                 {
+                    // Add delay after overlay closes to allow game to render a new frame
+                    // Desktop Duplication may return stale/cached frames otherwise
+                    System.Threading.Thread.Sleep(150);
                     captureService.TakeScreenshot(null, gameName);
                 }
                 catch { }
@@ -595,7 +597,7 @@ public partial class OverlayWindow : Window
 
         navigationTarget = NavigationTarget.ScreenshotButton;
         ScreenshotBtn.Focus();
-        CurrentGameSection.BringIntoView();
+        ShortcutsSection.BringIntoView();
     }
 
     private void FocusRecordButton()
@@ -611,7 +613,7 @@ public partial class OverlayWindow : Window
 
         navigationTarget = NavigationTarget.RecordButton;
         RecordBtn.Focus();
-        CurrentGameSection.BringIntoView();
+        ShortcutsSection.BringIntoView();
     }
 
     private void FocusAudioCombo()
@@ -760,7 +762,8 @@ public partial class OverlayWindow : Window
                     break;
 
                 case NavigationTarget.ScreenshotButton:
-                    FocusExitButton();
+                    // Already at top of ShortcutsSection, exit to section level
+                    ExitToSectionLevel();
                     break;
 
                 case NavigationTarget.RecordButton:
@@ -832,7 +835,7 @@ public partial class OverlayWindow : Window
                     break;
 
                 case NavigationTarget.ExitButton:
-                    FocusScreenshotButton();
+                    FocusVolumeSlider();
                     break;
 
                 case NavigationTarget.ScreenshotButton:
@@ -840,18 +843,8 @@ public partial class OverlayWindow : Window
                     break;
 
                 case NavigationTarget.RecordButton:
-                    if (AudioControlsRow.Visibility == Visibility.Visible)
-                    {
-                        FocusAudioCombo();
-                    }
-                    else if (VolumeControls.Visibility == Visibility.Visible)
-                    {
-                        FocusVolumeSlider();
-                    }
-                    else
-                    {
-                        ExitToSectionLevel();
-                    }
+                    // Already at bottom of ShortcutsSection, exit to section level
+                    ExitToSectionLevel();
                     break;
 
                 case NavigationTarget.VolumeSlider:
@@ -917,10 +910,6 @@ public partial class OverlayWindow : Window
             {
                 FocusSwitchButton();
             }
-            else if (navigationTarget == NavigationTarget.ScreenshotButton)
-            {
-                FocusExitButton();
-            }
             else if (navigationTarget == NavigationTarget.RecordButton)
             {
                 FocusScreenshotButton();
@@ -928,10 +917,6 @@ public partial class OverlayWindow : Window
             else if (navigationTarget == NavigationTarget.MuteBtn)
             {
                 FocusAudioCombo();
-            }
-            else if (navigationTarget == NavigationTarget.AudioDeviceCombo)
-            {
-                FocusRecordButton();
             }
         }
     }
@@ -948,20 +933,9 @@ public partial class OverlayWindow : Window
             {
                 FocusExitButton();
             }
-            else if (navigationTarget == NavigationTarget.ExitButton)
-            {
-                FocusScreenshotButton();
-            }
             else if (navigationTarget == NavigationTarget.ScreenshotButton)
             {
                 FocusRecordButton();
-            }
-            else if (navigationTarget == NavigationTarget.RecordButton)
-            {
-                if (AudioControlsRow.Visibility == Visibility.Visible)
-                {
-                    FocusAudioCombo();
-                }
             }
             else if (navigationTarget == NavigationTarget.AudioDeviceCombo)
             {

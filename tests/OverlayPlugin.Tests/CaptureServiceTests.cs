@@ -176,29 +176,6 @@ public class CaptureServiceTests : IDisposable
     }
 
     [Fact]
-    public void StartRecording_ReturnsFalse_WhenFfmpegNotFound()
-    {
-        var mockCapture = CreateSupportedCaptureMock();
-        using var service = new CaptureService(mockApi.Object, settings, mockCapture.Object);
-        service.Initialize(IntPtr.Zero);
-
-        var result = service.StartRecording(testOutputDirectory, "TestGame");
-
-        if (!FfmpegDetector.IsAvailable)
-        {
-            Assert.False(result);
-            Assert.Contains("FFmpeg", service.LastError);
-        }
-        else
-        {
-            if (result)
-            {
-                service.CancelRecording();
-            }
-        }
-    }
-
-    [Fact]
     public void StartRecording_ReturnsFalse_WhenCaptureNotAvailable()
     {
         var mockCapture = new Mock<ICapture>();
@@ -211,29 +188,6 @@ public class CaptureServiceTests : IDisposable
 
         Assert.False(result);
         Assert.False(service.IsAvailable);
-    }
-
-    [Fact]
-    public void StartRecording_ReturnsTrue_WhenAlreadyRecording()
-    {
-        var mockCapture = CreateSupportedCaptureMock();
-        using var service = new CaptureService(mockApi.Object, settings, mockCapture.Object);
-        service.Initialize(IntPtr.Zero);
-
-        if (FfmpegDetector.IsAvailable)
-        {
-            return;
-        }
-
-        var isRecordingField = typeof(CaptureService).GetField("isRecording",
-            BindingFlags.NonPublic | BindingFlags.Instance);
-        isRecordingField?.SetValue(service, true);
-
-        var result = service.StartRecording(testOutputDirectory, "TestGame");
-
-        Assert.True(result);
-
-        isRecordingField?.SetValue(service, false);
     }
 
     [Fact]
