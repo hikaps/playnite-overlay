@@ -123,7 +123,7 @@
             <GroupBox Header="Shortcuts">
                 <StackPanel Margin="10">
                     <TextBlock Text="Configure custom shortcut buttons that appear in the overlay." TextWrapping="Wrap" Margin="0,0,0,10"/>
-                    <ScrollViewer MaxHeight="200" VerticalScrollBarVisibility="Auto">
+                    <ScrollViewer MaxHeight="200" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto">
                         <ItemsControl x:Name="ShortcutsList" ItemsSource="{Binding Settings.Shortcuts}">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
@@ -139,7 +139,7 @@
                                                 <TextBlock Grid.Column="1" Text="{Binding Command}" TextTrimming="CharacterEllipsis" Margin="8,0,0,0"/>
                                             </Grid>
                                         </Expander.Header>
-                                        <Grid Margin="10,5,10,5">
+                                        <Grid Margin="10,5,15,5">
                                             <Grid.RowDefinitions>
                                                 <RowDefinition Height="Auto"/>
                                                 <RowDefinition Height="Auto"/>
@@ -152,29 +152,49 @@
                                                 <ColumnDefinition Width="Auto"/>
                                             </Grid.ColumnDefinitions>
 
-                                            <TextBlock Grid.Row="0" Grid.Column="0" Text="Label:" VerticalAlignment="Center"/>
+                                            <TextBlock Grid.Row="0" Grid.Column="0" Text="Label:" VerticalAlignment="Center" Foreground="{DynamicResource TextBrush}"/>
                                             <TextBox Grid.Row="0" Grid.Column="1" Grid.ColumnSpan="2"
                                                      Text="{Binding Label, UpdateSourceTrigger=PropertyChanged}"
-                                                     Margin="0,0,0,6"/>
+                                                     Margin="0,0,0,6"
+                                                     Foreground="{DynamicResource TextBrush}"
+                                                     Background="{DynamicResource ControlBackgroundBrush}"
+                                                     BorderBrush="{DynamicResource NormalBorderBrush}"
+                                                     BorderThickness="{DynamicResource ControlBorderThickness}"/>
 
-                                            <TextBlock Grid.Row="1" Grid.Column="0" Text="Command:" VerticalAlignment="Center"/>
+                                            <TextBlock Grid.Row="1" Grid.Column="0" Text="Command:" VerticalAlignment="Center" Foreground="{DynamicResource TextBrush}"/>
                                             <TextBox Grid.Row="1" Grid.Column="1"
                                                      Text="{Binding Command, UpdateSourceTrigger=PropertyChanged}"
-                                                     Margin="0,0,0,6"/>
+                                                     Margin="0,0,0,6"
+                                                     Foreground="{DynamicResource TextBrush}"
+                                                     Background="{DynamicResource ControlBackgroundBrush}"
+                                                     BorderBrush="{DynamicResource NormalBorderBrush}"
+                                                     BorderThickness="{DynamicResource ControlBorderThickness}"/>
                                             <Button Grid.Row="1" Grid.Column="2" Content="Browse"
-                                                    Width="60" Margin="5,0,0,6"
+                                                    MinWidth="80" Margin="5,0,0,6"
                                                     Click="ShortcutBrowse_Click"
-                                                    Tag="{Binding}"/>
+                                                    Tag="{Binding}"
+                                                    Foreground="{DynamicResource GlyphBrush}"
+                                                    Background="{DynamicResource ButtonBackgroundBrush}"
+                                                    BorderBrush="{DynamicResource NormalBorderBrush}"
+                                                    BorderThickness="{DynamicResource ControlBorderThickness}"/>
 
-                                            <TextBlock Grid.Row="2" Grid.Column="0" Text="Arguments:" VerticalAlignment="Center"/>
+                                            <TextBlock Grid.Row="2" Grid.Column="0" Text="Arguments:" VerticalAlignment="Center" Foreground="{DynamicResource TextBrush}"/>
                                             <TextBox Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="2"
                                                      Text="{Binding Arguments, UpdateSourceTrigger=PropertyChanged}"
-                                                     Margin="0,0,0,6"/>
+                                                     Margin="0,0,0,6"
+                                                     Foreground="{DynamicResource TextBrush}"
+                                                     Background="{DynamicResource ControlBackgroundBrush}"
+                                                     BorderBrush="{DynamicResource NormalBorderBrush}"
+                                                     BorderThickness="{DynamicResource ControlBorderThickness}"/>
 
                                             <Button Grid.Row="3" Grid.Column="2" Content="Delete"
-                                                    Width="60" HorizontalAlignment="Right"
+                                                    MinWidth="80" HorizontalAlignment="Right"
                                                     Click="ShortcutDelete_Click"
-                                                    Tag="{Binding}"/>
+                                                    Tag="{Binding}"
+                                                    Foreground="{DynamicResource GlyphBrush}"
+                                                    Background="{DynamicResource ButtonBackgroundBrush}"
+                                                    BorderBrush="{DynamicResource NormalBorderBrush}"
+                                                    BorderThickness="{DynamicResource ControlBorderThickness}"/>
                                         </Grid>
                                     </Expander>
                                 </DataTemplate>
@@ -183,7 +203,11 @@
                     </ScrollViewer>
                     <Button x:Name="AddShortcutBtn" Content="+ Add Shortcut"
                             HorizontalAlignment="Left" Margin="0,10,0,0"
-                            Click="AddShortcutBtn_Click"/>
+                            Click="AddShortcutBtn_Click"
+                            Foreground="{DynamicResource GlyphBrush}"
+                            Background="{DynamicResource ButtonBackgroundBrush}"
+                            BorderBrush="{DynamicResource NormalBorderBrush}"
+                            BorderThickness="{DynamicResource ControlBorderThickness}"/>
                     <TextBlock Text="Maximum 10 shortcuts" FontSize="10" Foreground="Gray" Margin="0,5,0,0"/>
                 </StackPanel>
             </GroupBox>
