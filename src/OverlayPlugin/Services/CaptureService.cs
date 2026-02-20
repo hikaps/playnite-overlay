@@ -1,15 +1,12 @@
 using System;
-using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.IO;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using FFMpegCore;
-using FFMpegCore.Enums;
 using Playnite.SDK;
 using PlayniteOverlay.Models;
+
 namespace PlayniteOverlay.Services;
 
 /// <summary>
@@ -20,6 +17,8 @@ public sealed class CaptureService : IDisposable
 {
     private static readonly ILogger logger = LogManager.GetLogger();
     private const string NotificationSource = "CaptureService";
+    private const int WavHeaderSize = 44;
+    private const int AudioChunkSize = 64 * 1024;
 
     private readonly IPlayniteAPI api;
     private readonly CaptureSettings settings;
@@ -29,7 +28,10 @@ public sealed class CaptureService : IDisposable
     private bool isRecording;
     private bool disposed;
     private string? currentRecordingPath;
-    private List<string> framePaths;
+    private MediaFoundationEncoder? encoder;
+    private int videoWidth;
+    private int videoHeight;
+    private int frameCount;
     private CancellationTokenSource? recordingCts;
     private Task? recordingTask;
     private IntPtr targetMonitorHandle;
@@ -61,7 +63,6 @@ public sealed class CaptureService : IDisposable
     {
         this.api = api ?? throw new ArgumentNullException(nameof(api));
         this.settings = settings ?? throw new ArgumentNullException(nameof(settings));
-        framePaths = new List<string>();
 
         try
         {
@@ -154,41 +155,80 @@ public sealed class CaptureService : IDisposable
             return null;
         }
 
+        const int maxRetries = 3;
+        Bitmap? lastBitmap = null;
+        var blackFrameCount = 0;
+
         try
         {
-            var bitmap = capture.CaptureFrame();
-            if (bitmap == null)
+            for (var attempt = 0; attempt < maxRetries; attempt++)
             {
-                var reason = capture.LastError ?? "Failed to capture frame";
+                var bitmap = capture.CaptureFrame();
+                if (bitmap == null)
+                {
+                    var reason = capture.LastError ?? "Failed to capture frame";
+                    LastError = reason;
+                    logger.Warn(LastError);
+
+                    if (reason.IndexOf("fullscreen", StringComparison.OrdinalIgnoreCase) >= 0)
+                    {
+                        ShowNotification("screenshot-fullscreen", "Capture not available in exclusive fullscreen mode.", NotificationType.Error);
+                        lastBitmap?.Dispose();
+                        return null;
+                    }
+
+                    lastBitmap?.Dispose();
+                    Thread.Sleep(50);
+                    continue;
+                }
+
+                if (IsFrameBlack(bitmap))
+                {
+                    blackFrameCount++;
+                    logger.Debug($"Screenshot attempt {attempt + 1}: captured black frame, retrying...");
+                    lastBitmap?.Dispose();
+                    lastBitmap = bitmap;
+                    Thread.Sleep(50);
+                    continue;
+                }
+
+                try
+                {
+                    var directory = GetOutputDirectory(outputPath);
+                    var filename = GenerateFilename(gameName, "png");
+                    var filePath = Path.Combine(directory, filename);
+
+                    bitmap.Save(filePath, ImageFormat.Png);
+                    logger.Info($"Screenshot saved to: {filePath}");
+                    if (attempt > 0)
+                    {
+                        logger.Debug($"Screenshot succeeded on attempt {attempt + 1}");
+                    }
+                    ShowNotification("screenshot-saved", $"Screenshot saved to {filePath}", NotificationType.Info);
+                    lastBitmap?.Dispose();
+                    return filePath;
+                }
+                finally
+                {
+                    bitmap.Dispose();
+                }
+            }
+
+            if (blackFrameCount == maxRetries)
+            {
+                LastError = "All capture attempts returned black frames";
+                logger.Warn($"Screenshot failed: {blackFrameCount}/{maxRetries} frames were black");
+                ShowNotification("screenshot-black", "Screenshot failed: Could not capture game frame. The game may be loading.", NotificationType.Error);
+            }
+            else
+            {
+                var reason = capture.LastError ?? "Failed to capture frame after retries";
                 LastError = reason;
-                logger.Warn(LastError);
-
-                if (reason.IndexOf("fullscreen", StringComparison.OrdinalIgnoreCase) >= 0)
-                {
-                    ShowNotification("screenshot-fullscreen", "Capture not available in exclusive fullscreen mode.", NotificationType.Error);
-                }
-                else
-                {
-                    ShowNotification("screenshot-failed", $"Screenshot failed: {reason}", NotificationType.Error);
-                }
-                return null;
+                ShowNotification("screenshot-failed", $"Screenshot failed: {reason}", NotificationType.Error);
             }
 
-            try
-            {
-                var directory = GetOutputDirectory(outputPath);
-                var filename = GenerateFilename(gameName, "png");
-                var filePath = Path.Combine(directory, filename);
-
-                bitmap.Save(filePath, ImageFormat.Png);
-                logger.Info($"Screenshot saved to: {filePath}");
-                ShowNotification("screenshot-saved", $"Screenshot saved to {filePath}", NotificationType.Info);
-                return filePath;
-            }
-            finally
-            {
-                bitmap.Dispose();
-            }
+            lastBitmap?.Dispose();
+            return null;
         }
         catch (Exception ex)
         {
@@ -196,6 +236,7 @@ public sealed class CaptureService : IDisposable
             LastError = $"Screenshot error: {ex.Message}";
             var friendlyMessage = GetUserFriendlyErrorMessage(ex, "An unexpected error occurred.");
             ShowNotification("screenshot-error", $"Screenshot failed: {friendlyMessage}", NotificationType.Error);
+            lastBitmap?.Dispose();
             return null;
         }
     }
@@ -228,21 +269,15 @@ public sealed class CaptureService : IDisposable
             return true;
         }
 
-        if (!FfmpegDetector.IsAvailable)
-        {
-            LastError = "FFmpeg is not installed. Please install FFmpeg to enable video recording.";
-            logger.Warn(LastError);
-            ShowNotification("ffmpeg-not-found", "FFmpeg not found. Please install FFmpeg to use recording.", NotificationType.Error);
-            return false;
-        }
-
         try
         {
             var directory = GetOutputDirectory(outputPath);
             var filename = GenerateFilename(gameName, "mp4");
             currentRecordingPath = Path.Combine(directory, filename);
 
-            framePaths = new List<string>();
+            videoWidth = 0;
+            videoHeight = 0;
+            frameCount = 0;
 
             if (audioCapture == null || !audioCapture.StartRecording())
             {
@@ -265,7 +300,7 @@ public sealed class CaptureService : IDisposable
         {
             logger.Error(ex, "Error starting recording");
             LastError = $"Failed to start recording: {ex.Message}";
-            CleanupRecording();
+            CleanupEncoder();
             var friendlyMessage = GetUserFriendlyErrorMessage(ex, "An unexpected error occurred.");
             ShowNotification("record-error", $"Recording failed: {friendlyMessage}", NotificationType.Error);
             return false;
@@ -296,45 +331,81 @@ public sealed class CaptureService : IDisposable
 
             recordingTask?.Wait(TimeSpan.FromSeconds(5));
 
-            string? audioPath = null;
+            byte[]? audioData = null;
             try
             {
-                audioPath = audioCapture?.SaveToTempFile();
-                if (audioPath != null)
+                audioData = audioCapture?.GetWavData();
+                if (audioData != null && audioData.Length > WavHeaderSize)
                 {
-                    logger.Debug($"Audio saved to temp file: {audioPath}");
+                    logger.Debug($"Audio captured: {audioData.Length} bytes");
                 }
             }
             catch (Exception ex)
             {
-                logger.Warn(ex, "Failed to save audio");
+                logger.Warn(ex, "Failed to get audio data");
             }
 
             isRecording = false;
 
-            if (framePaths.Count == 0)
+            if (frameCount == 0)
             {
                 LastError = "No video frames were captured";
                 logger.Warn(LastError);
-                CleanupTempFiles(audioPath);
+                CleanupEncoder();
                 ShowNotification("record-noframes", "Recording failed: No video frames were captured.", NotificationType.Error);
                 return null;
             }
 
-            var result = CreateVideoWithAudio(audioPath);
-
-            CleanupTempFiles(audioPath);
-
-            if (result != null)
+            if (audioData != null && audioData.Length > WavHeaderSize && encoder != null)
             {
-                ShowNotification("record-saved", $"Recording saved to {result}", NotificationType.Info);
-            }
-            else
-            {
-                var friendlyMessage = GetUserFriendlyErrorMessage(null, "Video encoding failed.");
-                ShowNotification("record-failed", $"Recording failed: {friendlyMessage}", NotificationType.Error);
+                try
+                {
+                    var pcmLength = audioData.Length - WavHeaderSize;
+                    var pcmData = new byte[pcmLength];
+                    Buffer.BlockCopy(audioData, WavHeaderSize, pcmData, 0, pcmLength);
+                    
+                    var offset = 0;
+                    while (offset < pcmData.Length)
+                    {
+                        var remaining = pcmData.Length - offset;
+                        var currentChunkSize = Math.Min(remaining, AudioChunkSize);
+                        var chunk = new byte[currentChunkSize];
+                        Buffer.BlockCopy(pcmData, offset, chunk, 0, currentChunkSize);
+                        
+                        if (!encoder.AddAudioFrame(chunk))
+                        {
+                            logger.Warn($"Failed to add audio chunk at offset {offset}: {encoder.LastError}");
+                            break;
+                        }
+                        offset += currentChunkSize;
+                    }
+                    logger.Debug($"Added {pcmData.Length} bytes of audio data");
+                }
+                catch (Exception ex)
+                {
+                    logger.Warn(ex, "Error adding audio to encoder");
+                }
             }
 
+            var result = currentRecordingPath;
+            if (encoder != null)
+            {
+                if (encoder.Finalize())
+                {
+                    logger.Info($"Recording saved to: {result}");
+                    ShowNotification("record-saved", $"Recording saved to {result}", NotificationType.Info);
+                }
+                else
+                {
+                    LastError = encoder.LastError ?? "Video encoding failed";
+                    logger.Error(LastError);
+                    result = null;
+                    var friendlyMessage = GetUserFriendlyErrorMessage(null, "Video encoding failed.");
+                    ShowNotification("record-failed", $"Recording failed: {friendlyMessage}", NotificationType.Error);
+                }
+            }
+
+            CleanupEncoder();
             return result;
         }
         catch (Exception ex)
@@ -342,6 +413,7 @@ public sealed class CaptureService : IDisposable
             logger.Error(ex, "Error stopping recording");
             LastError = $"Failed to stop recording: {ex.Message}";
             isRecording = false;
+            CleanupEncoder();
             var friendlyMessage = GetUserFriendlyErrorMessage(ex, "An unexpected error occurred.");
             ShowNotification("record-stop-error", $"Recording failed: {friendlyMessage}", NotificationType.Error);
             return null;
@@ -370,7 +442,7 @@ public sealed class CaptureService : IDisposable
         }
         finally
         {
-            CleanupTempFiles(null);
+            CleanupEncoder();
             CleanupRecording();
         }
 
@@ -380,10 +452,6 @@ public sealed class CaptureService : IDisposable
     private void CaptureFramesLoop(CancellationToken cancellationToken)
     {
         var frameInterval = TimeSpan.FromSeconds(1.0 / 30.0);
-        var tempDirectory = Path.Combine(Path.GetTempPath(), "PlayniteCapture");
-        Directory.CreateDirectory(tempDirectory);
-
-        var frameIndex = 0;
         var lastCaptureTime = DateTime.MinValue;
 
         while (!cancellationToken.IsCancellationRequested)
@@ -408,10 +476,28 @@ public sealed class CaptureService : IDisposable
 
                 try
                 {
-                    var framePath = Path.Combine(tempDirectory, $"frame_{frameIndex:D8}.png");
-                    bitmap.Save(framePath, ImageFormat.Png);
-                    framePaths.Add(framePath);
-                    frameIndex++;
+                    if (encoder == null)
+                    {
+                        videoWidth = bitmap.Width;
+                        videoHeight = bitmap.Height;
+                        encoder = new MediaFoundationEncoder(currentRecordingPath!, videoWidth, videoHeight, settings.VideoQuality);
+                        
+                        if (!encoder.IsInitialized)
+                        {
+                            LastError = encoder.LastError ?? "Failed to initialize encoder";
+                            logger.Error(LastError);
+                            return;
+                        }
+                    }
+
+                    if (encoder.AddVideoFrame(bitmap))
+                    {
+                        frameCount++;
+                    }
+                    else
+                    {
+                        logger.Warn($"Failed to add video frame: {encoder.LastError}");
+                    }
                 }
                 finally
                 {
@@ -424,61 +510,7 @@ public sealed class CaptureService : IDisposable
             }
         }
 
-        logger.Debug($"Captured {frameIndex} frames");
-    }
-
-    private string? CreateVideoWithAudio(string? audioPath)
-    {
-        if (string.IsNullOrEmpty(currentRecordingPath) || framePaths.Count == 0)
-        {
-            return null;
-        }
-
-        try
-        {
-            var tempVideoPath = Path.Combine(Path.GetTempPath(), $"playnite_video_{Guid.NewGuid():N}.mp4");
-
-            var orderedPaths = framePaths.OrderBy(p => p).ToArray();
-            logger.Debug($"Creating video from {orderedPaths.Length} frames...");
-
-            FFMpeg.JoinImageSequence(tempVideoPath, frameRate: 30, orderedPaths);
-
-            if (!string.IsNullOrEmpty(audioPath) && File.Exists(audioPath))
-            {
-                logger.Debug("Adding audio track to video...");
-
-                FFMpegArguments
-                    .FromFileInput(tempVideoPath)
-                    .AddFileInput(audioPath!)
-                    .OutputToFile(currentRecordingPath!, true, options => options
-                        .WithVideoCodec(VideoCodec.LibX264)
-                        .WithConstantRateFactor(21)
-                        .WithFastStart()
-                        .WithAudioCodec(AudioCodec.Aac)
-                        .WithAudioBitrate(AudioQuality.Good)
-                        .UsingShortest())
-                    .ProcessSynchronously();
-
-                TryDeleteFile(tempVideoPath);
-            }
-            else
-            {
-                if (File.Exists(currentRecordingPath))
-                {
-                    File.Delete(currentRecordingPath);
-                }
-                File.Move(tempVideoPath, currentRecordingPath!);
-            }
-
-            logger.Info($"Video saved to: {currentRecordingPath}");
-            return currentRecordingPath;
-        }
-        catch (Exception ex)
-        {
-            logger.Error(ex, "Error creating video");
-            LastError = $"Failed to create video: {ex.Message}";
-            return null;
-        }
+        logger.Debug($"Captured {frameCount} frames");
     }
 
     private string GetOutputDirectory(string? customPath)
@@ -530,54 +562,26 @@ public sealed class CaptureService : IDisposable
         return string.IsNullOrWhiteSpace(result) ? null : result;
     }
 
-    private void CleanupTempFiles(string? audioPath)
+    private void CleanupEncoder()
     {
-        if (!string.IsNullOrEmpty(audioPath))
-        {
-            TryDeleteFile(audioPath!);
-        }
-
-        foreach (var framePath in framePaths)
-        {
-            TryDeleteFile(framePath);
-        }
-
         try
         {
-            var tempDirectory = Path.Combine(Path.GetTempPath(), "PlayniteCapture");
-            if (Directory.Exists(tempDirectory) && !Directory.EnumerateFileSystemEntries(tempDirectory).Any())
-            {
-                Directory.Delete(tempDirectory);
-            }
+            encoder?.Dispose();
         }
-        catch
+        catch (Exception ex)
         {
+            logger.Debug(ex, "Error disposing encoder");
         }
-
-        framePaths.Clear();
+        encoder = null;
+        currentRecordingPath = null;
     }
 
     private void CleanupRecording()
     {
         isRecording = false;
-        currentRecordingPath = null;
         recordingCts?.Dispose();
         recordingCts = null;
         recordingTask = null;
-    }
-
-    private static void TryDeleteFile(string path)
-    {
-        try
-        {
-            if (File.Exists(path))
-            {
-                File.Delete(path);
-            }
-        }
-        catch
-        {
-        }
     }
 
     private void ShowNotification(string id, string message, NotificationType type)
@@ -607,6 +611,48 @@ public sealed class CaptureService : IDisposable
             OutOfMemoryException => "Not enough memory to complete capture.",
             _ => defaultReason
         };
+    }
+
+    private static bool IsFrameBlack(Bitmap bitmap)
+    {
+        const int blackThreshold = 15;
+        const int sampleStep = 10;
+
+        var bmpData = bitmap.LockBits(
+            new Rectangle(0, 0, bitmap.Width, bitmap.Height),
+            ImageLockMode.ReadOnly,
+            System.Drawing.Imaging.PixelFormat.Format32bppArgb);
+
+        try
+        {
+            var ptr = bmpData.Scan0;
+            var bytes = Math.Abs(bmpData.Stride) * bitmap.Height;
+            var rgbValues = new byte[bytes];
+            System.Runtime.InteropServices.Marshal.Copy(ptr, rgbValues, 0, bytes);
+
+            var nonBlackPixels = 0;
+            var totalSamples = 0;
+
+            for (var i = 0; i < bytes; i += 4 * sampleStep)
+            {
+                var b = rgbValues[i];
+                var g = rgbValues[i + 1];
+                var r = rgbValues[i + 2];
+
+                if (r > blackThreshold || g > blackThreshold || b > blackThreshold)
+                {
+                    nonBlackPixels++;
+                }
+                totalSamples++;
+            }
+
+            var blackRatio = 1.0 - (double)nonBlackPixels / totalSamples;
+            return blackRatio > 0.99;
+        }
+        finally
+        {
+            bitmap.UnlockBits(bmpData);
+        }
     }
 
     /// <summary>

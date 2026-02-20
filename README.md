@@ -133,7 +133,6 @@ Access settings through: **Playnite Menu** → **Add-ons** → **Extension setti
 
 **Requirements**
 - **Windows 8+**: Screen capture uses Desktop Duplication API
-- **FFmpeg**: Required for video recording (install and add to system PATH)
 - Note: Screen capture may not work in exclusive fullscreen mode
 
 ## Requirements
