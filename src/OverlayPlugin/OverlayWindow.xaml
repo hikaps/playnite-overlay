@@ -408,7 +408,18 @@
                             </StackPanel>
                         </Grid>
                     </Border>
-                    
+
+                    <!-- Shortcuts Section (hidden until buttons added) -->
+                    <Border x:Name="ShortcutsSection" Background="#252525" CornerRadius="8"
+                            Padding="16" Margin="0,0,0,20" Visibility="Collapsed"
+                            BorderThickness="2" BorderBrush="Transparent" Focusable="True">
+                        <StackPanel>
+                            <TextBlock Text="SHORTCUTS" FontSize="10" FontWeight="Bold"
+                                       Foreground="#888888" Margin="0,0,0,10"/>
+                            <StackPanel x:Name="ShortcutsPanel" Orientation="Horizontal"/>
+                        </StackPanel>
+                    </Border>
+
                     <!-- Running Apps Section (shown when other apps detected) -->
                     <Border x:Name="RunningAppsSection" Background="#252525" CornerRadius="8" 
                             Padding="16" Margin="0,0,0,20" Visibility="Collapsed"

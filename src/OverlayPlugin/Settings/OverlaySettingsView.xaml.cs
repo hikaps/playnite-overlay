@@ -61,4 +61,49 @@ public partial class OverlaySettingsView : UserControl
             Model.EnableCustomHotkey = false;
         }
     }
+
+    private void AddShortcutBtn_Click(object sender, System.Windows.RoutedEventArgs e)
+    {
+        if (Model != null && Model.Shortcuts.Count >= OverlaySettings.MaxShortcuts)
+        {
+            System.Windows.MessageBox.Show($"Maximum {OverlaySettings.MaxShortcuts} shortcuts allowed.", "Limit Reached", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
+            return;
+        }
+
+        var dialog = new ShortcutDialog();
+        dialog.Owner = System.Windows.Application.Current.MainWindow;
+        if (dialog.ShowDialog() == true && dialog.Shortcut != null && Model != null)
+        {
+            Model.Shortcuts.Add(dialog.Shortcut);
+        }
+    }
+
+    private void EditShortcutBtn_Click(object sender, System.Windows.RoutedEventArgs e)
+    {
+        var selected = ShortcutsList.SelectedItem as Models.OverlayShortcut;
+        if (selected == null || Model == null)
+        {
+            return;
+        }
+
+        var dialog = new ShortcutDialog(selected);
+        dialog.Owner = System.Windows.Application.Current.MainWindow;
+        if (dialog.ShowDialog() == true && dialog.Shortcut != null)
+        {
+            var index = Model.Shortcuts.IndexOf(selected);
+            if (index >= 0)
+            {
+                Model.Shortcuts[index] = dialog.Shortcut;
+            }
+        }
+    }
+
+    private void DeleteShortcutBtn_Click(object sender, System.Windows.RoutedEventArgs e)
+    {
+        var selected = ShortcutsList.SelectedItem as Models.OverlayShortcut;
+        if (selected != null && Model != null)
+        {
+            Model.Shortcuts.Remove(selected);
+        }
+    }
 }
