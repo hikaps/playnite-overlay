@@ -135,8 +135,8 @@
                                                     <ColumnDefinition Width="100"/>
                                                     <ColumnDefinition Width="*"/>
                                                 </Grid.ColumnDefinitions>
-                                                <TextBlock Grid.Column="0" Text="{Binding Label}" FontWeight="Bold" TextTrimming="CharacterEllipsis"/>
-                                                <TextBlock Grid.Column="1" Text="{Binding Command}" TextTrimming="CharacterEllipsis" Margin="8,0,0,0"/>
+                                                <TextBlock Grid.Column="0" Text="{Binding Label}" FontWeight="Bold" TextTrimming="CharacterEllipsis" Foreground="{DynamicResource TextBrush}"/>
+                                                <TextBlock Grid.Column="1" Text="{Binding Command}" TextTrimming="CharacterEllipsis" Margin="8,0,0,0" Foreground="{DynamicResource TextBrush}"/>
                                             </Grid>
                                         </Expander.Header>
                                         <Grid Margin="10,5,15,5">
