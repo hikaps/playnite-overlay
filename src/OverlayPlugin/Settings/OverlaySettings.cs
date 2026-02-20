@@ -125,4 +125,19 @@ public class OverlaySettings : MVVM.ObservableObject
         get => maxLockedAchievements;
         set => SetProperty(ref maxLockedAchievements, value);
     }
+
+    private System.Collections.Generic.List<Models.OverlayShortcut> shortcuts = new System.Collections.Generic.List<Models.OverlayShortcut>();
+    /// <summary>
+    /// User-defined keyboard shortcuts that can be triggered from the overlay.
+    /// </summary>
+    public System.Collections.Generic.List<Models.OverlayShortcut> Shortcuts
+    {
+        get => shortcuts;
+        set => SetProperty(ref shortcuts, value);
+    }
+
+    /// <summary>
+    /// Maximum number of shortcuts allowed.
+    /// </summary>
+    public const int MaxShortcuts = 10;
 }
