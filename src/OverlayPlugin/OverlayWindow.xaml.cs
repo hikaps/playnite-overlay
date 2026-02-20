@@ -36,6 +36,7 @@ public partial class OverlayWindow : Window
     private readonly GameSwitcher? gameSwitcher;
     private readonly OverlayItem? currentGameField;
     private readonly DispatcherTimer timeTimer;
+    private readonly List<Models.OverlayShortcut> shortcuts;
     
     // Two-level navigation state
     private NavigationTarget navigationTarget = NavigationTarget.CurrentGameSection;
@@ -49,7 +50,7 @@ public partial class OverlayWindow : Window
     private static readonly SolidColorBrush HighlightBrush = new(Color.FromRgb(0xFF, 0xFF, 0xFF));
     private static readonly SolidColorBrush TransparentBrush = new(Colors.Transparent);
 
-    public OverlayWindow(Action onSwitch, Action onExit, OverlayItem? currentGame, IEnumerable<RunningApp> runningApps, IEnumerable<OverlayItem> recentGames, IEnumerable<AudioDevice>? audioDevices = null, Action<string, Action<bool>>? onAudioDeviceChanged = null, GameVolumeService? gameVolumeService = null, int? currentGameProcessId = null, GameSwitcher? gameSwitcher = null)
+    public OverlayWindow(Action onSwitch, Action onExit, OverlayItem? currentGame, IEnumerable<RunningApp> runningApps, IEnumerable<OverlayItem> recentGames, IEnumerable<AudioDevice>? audioDevices = null, Action<string, Action<bool>>? onAudioDeviceChanged = null, GameVolumeService? gameVolumeService = null, int? currentGameProcessId = null, GameSwitcher? gameSwitcher = null, IEnumerable<Models.OverlayShortcut>? shortcuts = null)
     {
         InitializeComponent();
         this.onSwitch = onSwitch;
@@ -61,6 +62,7 @@ public partial class OverlayWindow : Window
         this.currentGameField = currentGame;
         this.items = new List<OverlayItem>(recentGames);
         this.runningApps = new List<RunningApp>(runningApps);
+        this.shortcuts = shortcuts != null ? new List<Models.OverlayShortcut>(shortcuts) : new List<Models.OverlayShortcut>();
 
         // Initialize time display timer (updates every second)
         timeTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
@@ -143,6 +145,9 @@ public partial class OverlayWindow : Window
 
         // Setup audio devices section
         SetupAudioDevices(audioDevices);
+
+        // Setup shortcuts section
+        SetupShortcuts();
 
         VolumeSlider.ValueChanged += OnVolumeSliderChanged;
         MuteBtn.Click += OnMuteBtnClick;
@@ -1094,6 +1099,80 @@ public partial class OverlayWindow : Window
                 System.Diagnostics.Debug.WriteLine($"Error changing audio device: {ex.Message}");
             }
         }
+    }
+
+    #endregion
+
+    #region Shortcuts Setup
+
+    private void SetupShortcuts()
+    {
+        ShortcutsPanel.Children.Clear();
+
+        foreach (var shortcut in shortcuts)
+        {
+            var button = new Button
+            {
+                Content = shortcut.Label,
+                Margin = new Thickness(0, 0, 8, 0),
+                Padding = new Thickness(16, 8, 16, 8),
+                MinWidth = 110,
+                Background = new SolidColorBrush(Color.FromRgb(0x3A, 0x3A, 0x3A)),
+                Foreground = new SolidColorBrush(Colors.White),
+                BorderThickness = new Thickness(0),
+                FontSize = 13,
+                FontWeight = FontWeights.Medium,
+                Cursor = Cursors.Hand
+            };
+
+            var style = new Style(typeof(Button));
+            var template = new ControlTemplate(typeof(Button));
+
+            var borderFactory = new FrameworkElementFactory(typeof(Border));
+            borderFactory.Name = "ButtonBorder";
+            borderFactory.SetValue(Border.BackgroundProperty, new TemplateBindingExtension(Button.BackgroundProperty));
+            borderFactory.SetValue(Border.BorderBrushProperty, new TemplateBindingExtension(Button.BorderBrushProperty));
+            borderFactory.SetValue(Border.BorderThicknessProperty, new TemplateBindingExtension(Button.BorderThicknessProperty));
+            borderFactory.SetValue(Border.CornerRadiusProperty, new CornerRadius(5));
+            borderFactory.SetValue(Border.PaddingProperty, new TemplateBindingExtension(Button.PaddingProperty));
+
+            var contentPresenterFactory = new FrameworkElementFactory(typeof(ContentPresenter));
+            contentPresenterFactory.SetValue(ContentPresenter.HorizontalAlignmentProperty, HorizontalAlignment.Center);
+            contentPresenterFactory.SetValue(ContentPresenter.VerticalAlignmentProperty, VerticalAlignment.Center);
+
+            borderFactory.AppendChild(contentPresenterFactory);
+            template.VisualTree = borderFactory;
+
+            style.Setters.Add(new Setter(Button.TemplateProperty, template));
+            style.Triggers.Add(new Trigger { Property = Button.IsMouseOverProperty, Value = true, Setters = { new Setter { Property = Border.BackgroundProperty, Value = new SolidColorBrush(Color.FromRgb(0x4A, 0x4A, 0x4A)) } } });
+            style.Triggers.Add(new Trigger { Property = Button.IsPressedProperty, Value = true, Setters = { new Setter { Property = Border.BackgroundProperty, Value = new SolidColorBrush(Color.FromRgb(0x2A, 0x2A, 0x2A)) } } });
+            style.Triggers.Add(new Trigger { Property = Button.IsKeyboardFocusedProperty, Value = true, Setters = { new Setter { Property = Border.BorderBrushProperty, Value = new SolidColorBrush(Colors.White) } } });
+
+            button.Style = style;
+
+            button.Click += (_, __) =>
+            {
+                EventHandler? closed = null;
+                closed = (s, e2) =>
+                {
+                    this.Closed -= closed;
+                    try
+                    {
+                        System.Diagnostics.Process.Start(shortcut.Command, shortcut.Arguments);
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"Error running shortcut command: {ex.Message}");
+                    }
+                };
+                this.Closed += closed;
+                this.Close();
+            };
+
+            ShortcutsPanel.Children.Add(button);
+        }
+
+        ShortcutsSection.Visibility = shortcuts.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
     }
 
     #endregion
