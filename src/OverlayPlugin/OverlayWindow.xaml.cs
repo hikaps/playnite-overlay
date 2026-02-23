@@ -221,9 +221,6 @@ public partial class OverlayWindow : Window
         {
             FocusSection(NavigationTarget.RecentGamesSection);
         }
-        {
-            FocusSection(NavigationTarget.RecentGamesSection);
-        }
     }
 
     private void OnPreviewKeyDown(object sender, KeyEventArgs e)
