@@ -43,6 +43,7 @@ public partial class OverlayWindow : Window
     private bool isInsideSection = false;
     private int selectedIndex = -1;
     private int runningAppSelectedIndex = -1;
+    private int shortcutsSelectedIndex = -1;
     private bool isClosing;
     private bool isInitializingAudio = false;
     
@@ -208,11 +209,18 @@ public partial class OverlayWindow : Window
         {
             FocusSection(NavigationTarget.CurrentGameSection);
         }
+        else if (ShortcutsSection.Visibility == Visibility.Visible)
+        {
+            FocusSection(NavigationTarget.ShortcutsSection);
+        }
         else if (RunningAppsSection.Visibility == Visibility.Visible)
         {
             FocusSection(NavigationTarget.RunningAppsSection);
         }
         else
+        {
+            FocusSection(NavigationTarget.RecentGamesSection);
+        }
         {
             FocusSection(NavigationTarget.RecentGamesSection);
         }
@@ -306,6 +314,11 @@ public partial class OverlayWindow : Window
                 CurrentGameSection.BringIntoView();
                 Keyboard.Focus(CurrentGameSection);
                 break;
+            case NavigationTarget.ShortcutsSection:
+                ShortcutsSection.BorderBrush = HighlightBrush;
+                ShortcutsSection.BringIntoView();
+                Keyboard.Focus(ShortcutsSection);
+                break;
             case NavigationTarget.RunningAppsSection:
                 RunningAppsSection.BorderBrush = HighlightBrush;
                 RunningAppsSection.BringIntoView();
@@ -322,6 +335,7 @@ public partial class OverlayWindow : Window
     private void ClearSectionHighlights()
     {
         CurrentGameSection.BorderBrush = TransparentBrush;
+        ShortcutsSection.BorderBrush = TransparentBrush;
         RunningAppsSection.BorderBrush = TransparentBrush;
         RecentGamesSection.BorderBrush = TransparentBrush;
     }
@@ -334,9 +348,18 @@ public partial class OverlayWindow : Window
                 // Wrap to last visible section
                 if (items.Count > 0) return NavigationTarget.RecentGamesSection;
                 if (runningApps.Count > 0) return NavigationTarget.RunningAppsSection;
+                if (shortcuts.Count > 0) return NavigationTarget.ShortcutsSection;
                 return null; // Only one section visible
                 
+            case NavigationTarget.ShortcutsSection:
+                if (CurrentGameSection.Visibility == Visibility.Visible) return NavigationTarget.CurrentGameSection;
+                // Wrap
+                if (items.Count > 0) return NavigationTarget.RecentGamesSection;
+                if (runningApps.Count > 0) return NavigationTarget.RunningAppsSection;
+                return null;
+                
             case NavigationTarget.RunningAppsSection:
+                if (ShortcutsSection.Visibility == Visibility.Visible) return NavigationTarget.ShortcutsSection;
                 if (CurrentGameSection.Visibility == Visibility.Visible) return NavigationTarget.CurrentGameSection;
                 // Wrap
                 if (items.Count > 0) return NavigationTarget.RecentGamesSection;
@@ -344,6 +367,7 @@ public partial class OverlayWindow : Window
                 
             case NavigationTarget.RecentGamesSection:
                 if (runningApps.Count > 0) return NavigationTarget.RunningAppsSection;
+                if (ShortcutsSection.Visibility == Visibility.Visible) return NavigationTarget.ShortcutsSection;
                 if (CurrentGameSection.Visibility == Visibility.Visible) return NavigationTarget.CurrentGameSection;
                 return null;
                 
@@ -357,19 +381,29 @@ public partial class OverlayWindow : Window
         switch (current)
         {
             case NavigationTarget.CurrentGameSection:
+                if (shortcuts.Count > 0) return NavigationTarget.ShortcutsSection;
                 if (runningApps.Count > 0) return NavigationTarget.RunningAppsSection;
                 if (items.Count > 0) return NavigationTarget.RecentGamesSection;
                 return null; // Only one section visible
                 
-            case NavigationTarget.RunningAppsSection:
+            case NavigationTarget.ShortcutsSection:
+                if (runningApps.Count > 0) return NavigationTarget.RunningAppsSection;
                 if (items.Count > 0) return NavigationTarget.RecentGamesSection;
                 // Wrap
                 if (CurrentGameSection.Visibility == Visibility.Visible) return NavigationTarget.CurrentGameSection;
                 return null;
                 
+            case NavigationTarget.RunningAppsSection:
+                if (items.Count > 0) return NavigationTarget.RecentGamesSection;
+                // Wrap
+                if (CurrentGameSection.Visibility == Visibility.Visible) return NavigationTarget.CurrentGameSection;
+                if (ShortcutsSection.Visibility == Visibility.Visible) return NavigationTarget.ShortcutsSection;
+                return null;
+                
             case NavigationTarget.RecentGamesSection:
                 // Wrap to first visible section
                 if (CurrentGameSection.Visibility == Visibility.Visible) return NavigationTarget.CurrentGameSection;
+                if (shortcuts.Count > 0) return NavigationTarget.ShortcutsSection;
                 if (runningApps.Count > 0) return NavigationTarget.RunningAppsSection;
                 return null;
                 
@@ -392,6 +426,14 @@ public partial class OverlayWindow : Window
             case NavigationTarget.CurrentGameSection:
                 navigationTarget = NavigationTarget.SwitchButton;
                 FocusSwitchButton();
+                break;
+            case NavigationTarget.ShortcutsSection:
+                if (shortcuts.Count > 0)
+                {
+                    navigationTarget = NavigationTarget.ShortcutItem;
+                    shortcutsSelectedIndex = 0;
+                    FocusShortcutButton(0);
+                }
                 break;
             case NavigationTarget.RunningAppsSection:
                 navigationTarget = NavigationTarget.RunningAppItem;
@@ -418,6 +460,9 @@ public partial class OverlayWindow : Window
             case NavigationTarget.MuteBtn:
             case NavigationTarget.AudioDeviceCombo:
                 section = NavigationTarget.CurrentGameSection;
+                break;
+            case NavigationTarget.ShortcutItem:
+                section = NavigationTarget.ShortcutsSection;
                 break;
             case NavigationTarget.RunningAppItem:
                 section = NavigationTarget.RunningAppsSection;
@@ -580,6 +625,25 @@ public partial class OverlayWindow : Window
         return true;
     }
 
+    private void FocusShortcutButton(int index)
+    {
+        if (!Dispatcher.CheckAccess())
+        {
+            Dispatcher.Invoke(() => FocusShortcutButton(index));
+            return;
+        }
+
+        if (index >= 0 && index < ShortcutsPanel.Children.Count)
+        {
+            var button = ShortcutsPanel.Children[index] as Button;
+            if (button != null)
+            {
+                button.Focus();
+                ShortcutsSection.BringIntoView();
+            }
+        }
+    }
+
     #endregion
 
     #region Navigation Commands
@@ -647,6 +711,17 @@ public partial class OverlayWindow : Window
                     else
                     {
                         FocusRecentGameItem(selectedIndex - 1);
+                    }
+                    break;
+                case NavigationTarget.ShortcutItem:
+                    if (shortcutsSelectedIndex <= 0)
+                    {
+                        ExitToSectionLevel();
+                    }
+                    else
+                    {
+                        shortcutsSelectedIndex = shortcutsSelectedIndex - 1;
+                        FocusShortcutButton(shortcutsSelectedIndex);
                     }
                     break;
             }
@@ -735,6 +810,17 @@ public partial class OverlayWindow : Window
                         FocusRecentGameItem(selectedIndex + 1);
                     }
                     break;
+                case NavigationTarget.ShortcutItem:
+                    if (shortcutsSelectedIndex >= shortcuts.Count - 1)
+                    {
+                        ExitToSectionLevel();
+                    }
+                    else
+                    {
+                        shortcutsSelectedIndex = shortcutsSelectedIndex + 1;
+                        FocusShortcutButton(shortcutsSelectedIndex);
+                    }
+                    break;
             }
         }
     }
@@ -758,6 +844,11 @@ public partial class OverlayWindow : Window
             else if (navigationTarget == NavigationTarget.AudioDeviceCombo)
             {
                 FocusExitButton();
+            }
+            else if (navigationTarget == NavigationTarget.ShortcutItem)
+            {
+                shortcutsSelectedIndex = Math.Max(0, shortcutsSelectedIndex - 1);
+                FocusShortcutButton(shortcutsSelectedIndex);
             }
         }
     }
@@ -787,6 +878,11 @@ public partial class OverlayWindow : Window
                 {
                     FocusMuteBtn();
                 }
+            }
+            else if (navigationTarget == NavigationTarget.ShortcutItem)
+            {
+                shortcutsSelectedIndex = Math.Min(shortcuts.Count - 1, shortcutsSelectedIndex + 1);
+                FocusShortcutButton(shortcutsSelectedIndex);
             }
         }
     }
@@ -880,6 +976,13 @@ public partial class OverlayWindow : Window
                         var item = items[selectedIndex];
                         item.OnSelect?.Invoke();
                         Close();
+                    }
+                    break;
+                case NavigationTarget.ShortcutItem:
+                    if (shortcutsSelectedIndex >= 0 && shortcutsSelectedIndex < ShortcutsPanel.Children.Count)
+                    {
+                        var button = ShortcutsPanel.Children[shortcutsSelectedIndex] as Button;
+                        button?.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
                     }
                     break;
             }
@@ -1122,7 +1225,9 @@ public partial class OverlayWindow : Window
                 BorderThickness = new Thickness(0),
                 FontSize = 13,
                 FontWeight = FontWeights.Medium,
-                Cursor = Cursors.Hand
+                Cursor = Cursors.Hand,
+                Focusable = true,
+                IsTabStop = false
             };
 
             var style = new Style(typeof(Button));
@@ -1235,6 +1340,7 @@ public partial class OverlayWindow : Window
     {
         // Section-level (Level 1)
         CurrentGameSection,
+        ShortcutsSection,
         RunningAppsSection,
         RecentGamesSection,
 
@@ -1246,6 +1352,7 @@ public partial class OverlayWindow : Window
         AudioDeviceCombo,
 
         // Item-level (Level 2) - inside list sections
+        ShortcutItem,
         RunningAppItem,
         RecentGameItem,
     }
