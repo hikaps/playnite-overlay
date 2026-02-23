@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Windows;
@@ -1261,7 +1262,23 @@ public partial class OverlayWindow : Window
                     this.Closed -= closed;
                     try
                     {
-                        System.Diagnostics.Process.Start(shortcut.Command, shortcut.Arguments);
+                        if (!string.IsNullOrWhiteSpace(shortcut.Command))
+                        {
+                            var processStartInfo = new System.Diagnostics.ProcessStartInfo
+                            {
+                                FileName = shortcut.Command,
+                                Arguments = shortcut.Arguments ?? ""
+                            };
+
+                            // Set working directory to command folder when available
+                            var commandDirectory = Path.GetDirectoryName(shortcut.Command);
+                            if (!string.IsNullOrEmpty(commandDirectory))
+                            {
+                                processStartInfo.WorkingDirectory = commandDirectory;
+                            }
+
+                            System.Diagnostics.Process.Start(processStartInfo);
+                        }
                     }
                     catch (Exception ex)
                     {
