@@ -1219,7 +1219,8 @@ public partial class OverlayWindow : Window
                 MinWidth = 110,
                 Background = new SolidColorBrush(Color.FromRgb(0x3A, 0x3A, 0x3A)),
                 Foreground = new SolidColorBrush(Colors.White),
-                BorderThickness = new Thickness(0),
+                BorderBrush = TransparentBrush,
+                BorderThickness = new Thickness(2),
                 FontSize = 13,
                 FontWeight = FontWeights.Medium,
                 Cursor = Cursors.Hand,
@@ -1246,9 +1247,9 @@ public partial class OverlayWindow : Window
             template.VisualTree = borderFactory;
 
             style.Setters.Add(new Setter(Button.TemplateProperty, template));
-            style.Triggers.Add(new Trigger { Property = Button.IsMouseOverProperty, Value = true, Setters = { new Setter { Property = Border.BackgroundProperty, Value = new SolidColorBrush(Color.FromRgb(0x4A, 0x4A, 0x4A)) } } });
-            style.Triggers.Add(new Trigger { Property = Button.IsPressedProperty, Value = true, Setters = { new Setter { Property = Border.BackgroundProperty, Value = new SolidColorBrush(Color.FromRgb(0x2A, 0x2A, 0x2A)) } } });
-            style.Triggers.Add(new Trigger { Property = Button.IsKeyboardFocusedProperty, Value = true, Setters = { new Setter { Property = Border.BorderBrushProperty, Value = new SolidColorBrush(Colors.White) } } });
+            style.Triggers.Add(new Trigger { Property = Button.IsMouseOverProperty, Value = true, Setters = { new Setter { Property = Button.BackgroundProperty, Value = new SolidColorBrush(Color.FromRgb(0x4A, 0x4A, 0x4A)) } } });
+            style.Triggers.Add(new Trigger { Property = Button.IsPressedProperty, Value = true, Setters = { new Setter { Property = Button.BackgroundProperty, Value = new SolidColorBrush(Color.FromRgb(0x2A, 0x2A, 0x2A)) } } });
+            style.Triggers.Add(new Trigger { Property = Button.IsKeyboardFocusedProperty, Value = true, Setters = { new Setter { Property = Button.BorderBrushProperty, Value = new SolidColorBrush(Colors.White) } } });
 
             button.Style = style;
 
