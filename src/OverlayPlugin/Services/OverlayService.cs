@@ -14,6 +14,7 @@ internal sealed class OverlayService
     private readonly object windowLock = new object();
     private readonly InputListener inputListener;
     private OverlayWindow? window;
+    private CaptureManager? captureManager;
 
     public OverlayService(InputListener inputListener)
     {
@@ -25,7 +26,7 @@ internal sealed class OverlayService
         get { lock (windowLock) return window != null; }
     }
 
-    public void Show(Action onSwitch, Action onExit, OverlayItem? currentGame, IEnumerable<RunningApp> runningApps, IEnumerable<OverlayItem> recentGames, IEnumerable<AudioDevice>? audioDevices = null, Action<string, Action<bool>>? onAudioDeviceChanged = null, GameVolumeService? gameVolumeService = null, int? currentGameProcessId = null, GameSwitcher? gameSwitcher = null)
+    public void Show(Action onSwitch, Action onExit, OverlayItem? currentGame, IEnumerable<RunningApp> runningApps, IEnumerable<OverlayItem> recentGames, IEnumerable<AudioDevice>? audioDevices = null, Action<string, Action<bool>>? onAudioDeviceChanged = null, GameVolumeService? gameVolumeService = null, int? currentGameProcessId = null, GameSwitcher? gameSwitcher = null, OverlaySettings? settings = null)
     {
         lock (windowLock)
         {
@@ -36,7 +37,17 @@ internal sealed class OverlayService
 
             Application.Current?.Dispatcher.Invoke(() =>
             {
-                window = new OverlayWindow(onSwitch, onExit, currentGame, runningApps, recentGames, audioDevices, onAudioDeviceChanged, gameVolumeService, currentGameProcessId, gameSwitcher);
+                // Create CaptureManager if capture is enabled
+                CaptureManager? capture = null;
+                if (settings?.EnableCapture == true)
+                {
+                    capture = new CaptureManager(settings);
+                }
+
+                // Store CaptureManager reference for disposal
+                captureManager = capture;
+
+                window = new OverlayWindow(onSwitch, onExit, currentGame, runningApps, recentGames, audioDevices, onAudioDeviceChanged, gameVolumeService, currentGameProcessId, gameSwitcher, capture);
 
                 window.Loaded += (_, _) =>
                 {
@@ -56,7 +67,9 @@ internal sealed class OverlayService
                 {
                     // Disconnect controller navigation
                     inputListener.SetOverlayWindow(null);
-
+                    // Dispose CaptureManager
+                    captureManager?.Dispose();
+                    captureManager = null;
                     lock (windowLock)
                     {
                         window = null;

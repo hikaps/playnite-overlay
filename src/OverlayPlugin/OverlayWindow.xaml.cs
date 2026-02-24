@@ -42,6 +42,7 @@ public partial class OverlayWindow : Window
     private bool isInsideSection = false;
     private int selectedIndex = -1;
     private int runningAppSelectedIndex = -1;
+    private int shortcutSelectedIndex = -1;
     private bool isClosing;
     private bool isInitializingAudio = false;
     
@@ -49,7 +50,7 @@ public partial class OverlayWindow : Window
     private static readonly SolidColorBrush HighlightBrush = new(Color.FromRgb(0xFF, 0xFF, 0xFF));
     private static readonly SolidColorBrush TransparentBrush = new(Colors.Transparent);
 
-    public OverlayWindow(Action onSwitch, Action onExit, OverlayItem? currentGame, IEnumerable<RunningApp> runningApps, IEnumerable<OverlayItem> recentGames, IEnumerable<AudioDevice>? audioDevices = null, Action<string, Action<bool>>? onAudioDeviceChanged = null, GameVolumeService? gameVolumeService = null, int? currentGameProcessId = null, GameSwitcher? gameSwitcher = null)
+    public OverlayWindow(Action onSwitch, Action onExit, OverlayItem? currentGame, IEnumerable<RunningApp> runningApps, IEnumerable<OverlayItem> recentGames, IEnumerable<AudioDevice>? audioDevices = null, Action<string, Action<bool>>? onAudioDeviceChanged = null, GameVolumeService? gameVolumeService = null, int? currentGameProcessId = null, GameSwitcher? gameSwitcher = null, CaptureManager? captureManager = null)
     {
         InitializeComponent();
         this.onSwitch = onSwitch;
@@ -58,6 +59,9 @@ public partial class OverlayWindow : Window
         this.gameVolumeService = gameVolumeService;
         this.currentGameProcessId = currentGameProcessId;
         this.gameSwitcher = gameSwitcher;
+
+        // Store CaptureManager reference for capture functionality
+        this.captureManager = captureManager;
         this.currentGameField = currentGame;
         this.items = new List<OverlayItem>(recentGames);
         this.runningApps = new List<RunningApp>(runningApps);
@@ -179,9 +183,22 @@ public partial class OverlayWindow : Window
         Backdrop.MouseLeftButtonDown += (_, __) => this.Close();
         PreviewKeyDown += OnPreviewKeyDown;
         
-        Loaded += (_, __) =>
+        Loaded += async (_, __) =>
         {
             Activate(); Focus(); Keyboard.Focus(this);
+            // Initialize capture functionality if CaptureManager is provided
+            if (captureManager != null)
+            {
+                try
+                {
+                    await captureManager.DetectBackendsAsync();
+                    SetupCaptureButtons(captureManager);
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"CaptureManager initialization failed: {ex.Message}");
+                }
+            }
             
             try
             {
@@ -206,6 +223,10 @@ public partial class OverlayWindow : Window
         else if (RunningAppsSection.Visibility == Visibility.Visible)
         {
             FocusSection(NavigationTarget.RunningAppsSection);
+        }
+        else if (ShortcutsSection.Visibility == Visibility.Visible)
+        {
+            FocusSection(NavigationTarget.ShortcutsSection);
         }
         else
         {
@@ -306,6 +327,11 @@ public partial class OverlayWindow : Window
                 RunningAppsSection.BringIntoView();
                 Keyboard.Focus(RunningAppsSection);
                 break;
+            case NavigationTarget.ShortcutsSection:
+                ShortcutsSection.BorderBrush = HighlightBrush;
+                ShortcutsSection.BringIntoView();
+                Keyboard.Focus(ShortcutsSection);
+                break;
             case NavigationTarget.RecentGamesSection:
                 RecentGamesSection.BorderBrush = HighlightBrush;
                 RecentGamesSection.BringIntoView();
@@ -318,6 +344,7 @@ public partial class OverlayWindow : Window
     {
         CurrentGameSection.BorderBrush = TransparentBrush;
         RunningAppsSection.BorderBrush = TransparentBrush;
+        ShortcutsSection.BorderBrush = TransparentBrush;
         RecentGamesSection.BorderBrush = TransparentBrush;
     }
 
@@ -328,6 +355,7 @@ public partial class OverlayWindow : Window
             case NavigationTarget.CurrentGameSection:
                 // Wrap to last visible section
                 if (items.Count > 0) return NavigationTarget.RecentGamesSection;
+                if (ShortcutsSection.Visibility == Visibility.Visible) return NavigationTarget.ShortcutsSection;
                 if (runningApps.Count > 0) return NavigationTarget.RunningAppsSection;
                 return null; // Only one section visible
                 
@@ -335,9 +363,18 @@ public partial class OverlayWindow : Window
                 if (CurrentGameSection.Visibility == Visibility.Visible) return NavigationTarget.CurrentGameSection;
                 // Wrap
                 if (items.Count > 0) return NavigationTarget.RecentGamesSection;
+                if (ShortcutsSection.Visibility == Visibility.Visible) return NavigationTarget.ShortcutsSection;
+                return null;
+                
+            case NavigationTarget.ShortcutsSection:
+                if (runningApps.Count > 0) return NavigationTarget.RunningAppsSection;
+                if (CurrentGameSection.Visibility == Visibility.Visible) return NavigationTarget.CurrentGameSection;
+                // Wrap
+                if (items.Count > 0) return NavigationTarget.RecentGamesSection;
                 return null;
                 
             case NavigationTarget.RecentGamesSection:
+                if (ShortcutsSection.Visibility == Visibility.Visible) return NavigationTarget.ShortcutsSection;
                 if (runningApps.Count > 0) return NavigationTarget.RunningAppsSection;
                 if (CurrentGameSection.Visibility == Visibility.Visible) return NavigationTarget.CurrentGameSection;
                 return null;
@@ -353,19 +390,29 @@ public partial class OverlayWindow : Window
         {
             case NavigationTarget.CurrentGameSection:
                 if (runningApps.Count > 0) return NavigationTarget.RunningAppsSection;
+                if (ShortcutsSection.Visibility == Visibility.Visible) return NavigationTarget.ShortcutsSection;
                 if (items.Count > 0) return NavigationTarget.RecentGamesSection;
                 return null; // Only one section visible
                 
             case NavigationTarget.RunningAppsSection:
+                if (ShortcutsSection.Visibility == Visibility.Visible) return NavigationTarget.ShortcutsSection;
                 if (items.Count > 0) return NavigationTarget.RecentGamesSection;
                 // Wrap
                 if (CurrentGameSection.Visibility == Visibility.Visible) return NavigationTarget.CurrentGameSection;
+                return null;
+                
+            case NavigationTarget.ShortcutsSection:
+                if (items.Count > 0) return NavigationTarget.RecentGamesSection;
+                // Wrap
+                if (CurrentGameSection.Visibility == Visibility.Visible) return NavigationTarget.CurrentGameSection;
+                if (runningApps.Count > 0) return NavigationTarget.RunningAppsSection;
                 return null;
                 
             case NavigationTarget.RecentGamesSection:
                 // Wrap to first visible section
                 if (CurrentGameSection.Visibility == Visibility.Visible) return NavigationTarget.CurrentGameSection;
                 if (runningApps.Count > 0) return NavigationTarget.RunningAppsSection;
+                if (ShortcutsSection.Visibility == Visibility.Visible) return NavigationTarget.ShortcutsSection;
                 return null;
                 
             default:
@@ -393,6 +440,10 @@ public partial class OverlayWindow : Window
                 runningAppSelectedIndex = 0;
                 FocusRunningAppItem(0);
                 break;
+            case NavigationTarget.ShortcutsSection:
+                navigationTarget = NavigationTarget.ShortcutItem;
+                FocusFirstShortcutButton();
+                break;
             case NavigationTarget.RecentGamesSection:
                 navigationTarget = NavigationTarget.RecentGameItem;
                 selectedIndex = 0;
@@ -416,6 +467,9 @@ public partial class OverlayWindow : Window
                 break;
             case NavigationTarget.RunningAppItem:
                 section = NavigationTarget.RunningAppsSection;
+                break;
+            case NavigationTarget.ShortcutItem:
+                section = NavigationTarget.ShortcutsSection;
                 break;
             case NavigationTarget.RecentGameItem:
                 section = NavigationTarget.RecentGamesSection;
@@ -505,6 +559,38 @@ public partial class OverlayWindow : Window
         navigationTarget = NavigationTarget.MuteBtn;
         MuteBtn.Focus();
         CurrentGameSection.BringIntoView();
+    }
+
+    private void FocusFirstShortcutButton()
+    {
+        if (ShortcutsPanel == null || ShortcutsPanel.Children.Count == 0) return;
+        FocusShortcutButton(0);
+    }
+
+    private void FocusShortcutButton(int index)
+    {
+        if (!Dispatcher.CheckAccess())
+        {
+            Dispatcher.Invoke(() => FocusShortcutButton(index));
+            return;
+        }
+
+        if (ShortcutsPanel == null || ShortcutsPanel.Children.Count == 0) return;
+
+        index = Math.Max(0, Math.Min(index, ShortcutsPanel.Children.Count - 1));
+
+        RunningAppsList.SelectedIndex = -1;
+        RecentList.SelectedIndex = -1;
+
+        navigationTarget = NavigationTarget.ShortcutItem;
+        shortcutSelectedIndex = index;
+
+        var button = ShortcutsPanel.Children[index] as Button;
+        if (button != null)
+        {
+            button.Focus();
+            ShortcutsSection.BringIntoView();
+        }
     }
 
     private void FocusRunningAppItem(int index)
@@ -634,6 +720,11 @@ public partial class OverlayWindow : Window
                     }
                     break;
 
+                case NavigationTarget.ShortcutItem:
+                    // Up exits to section level for horizontal button layout
+                    ExitToSectionLevel();
+                    break;
+
                 case NavigationTarget.RecentGameItem:
                     if (selectedIndex <= 0)
                     {
@@ -720,6 +811,11 @@ public partial class OverlayWindow : Window
                     }
                     break;
 
+                case NavigationTarget.ShortcutItem:
+                    // Down exits to section level for horizontal button layout
+                    ExitToSectionLevel();
+                    break;
+
                 case NavigationTarget.RecentGameItem:
                     if (selectedIndex >= items.Count - 1)
                     {
@@ -754,6 +850,14 @@ public partial class OverlayWindow : Window
             {
                 FocusExitButton();
             }
+            else if (navigationTarget == NavigationTarget.ShortcutItem)
+            {
+                // Navigate to previous button in horizontal layout
+                if (shortcutSelectedIndex > 0)
+                {
+                    FocusShortcutButton(shortcutSelectedIndex - 1);
+                }
+            }
         }
     }
 
@@ -781,6 +885,14 @@ public partial class OverlayWindow : Window
                 if (MuteBtn.Visibility == Visibility.Visible)
                 {
                     FocusMuteBtn();
+                }
+            }
+            else if (navigationTarget == NavigationTarget.ShortcutItem)
+            {
+                // Navigate to next button in horizontal layout
+                if (ShortcutsPanel != null && shortcutSelectedIndex < ShortcutsPanel.Children.Count - 1)
+                {
+                    FocusShortcutButton(shortcutSelectedIndex + 1);
                 }
             }
         }
@@ -867,6 +979,16 @@ public partial class OverlayWindow : Window
                         var app = runningApps[runningAppSelectedIndex];
                         app.OnSwitch?.Invoke();
                         Close();
+                    }
+                    break;
+                case NavigationTarget.ShortcutItem:
+                    // Click the focused shortcut/capture button
+                    if (ShortcutsPanel != null && shortcutSelectedIndex >= 0 && shortcutSelectedIndex < ShortcutsPanel.Children.Count)
+                    {
+                        if (ShortcutsPanel.Children[shortcutSelectedIndex] is Button button)
+                        {
+                            button.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                        }
                     }
                     break;
                 case NavigationTarget.RecentGameItem:
@@ -1098,6 +1220,187 @@ public partial class OverlayWindow : Window
 
     #endregion
 
+    #region Capture Buttons
+
+    private CaptureManager? captureManager;
+    private Button? screenshotButton;
+    private Button? recordButton;
+
+    /// <summary>
+    /// Sets up capture buttons (screenshot and record) in the ShortcutsPanel.
+    /// Buttons are inserted at the beginning of the panel, before any user shortcuts.
+    /// </summary>
+    public void SetupCaptureButtons(CaptureManager? manager)
+    {
+        captureManager = manager;
+        
+        if (captureManager == null || ShortcutsPanel == null)
+        {
+            return;
+        }
+
+        var hasCaptureButtons = false;
+
+        // Create Screenshot button if capture is available
+        if (captureManager.CanScreenshot)
+        {
+            screenshotButton = CreateCaptureButton("Screenshot", OnScreenshotClick);
+            ShortcutsPanel.Children.Insert(0, screenshotButton);
+            hasCaptureButtons = true;
+        }
+
+        // Create Record button if capture is available
+        if (captureManager.CanRecord)
+        {
+            recordButton = CreateCaptureButton("Record", OnRecordClick);
+            if (captureManager.CanScreenshot && screenshotButton != null)
+            {
+                // Insert after screenshot button (index 1)
+                ShortcutsPanel.Children.Insert(1, recordButton);
+            }
+            else
+            {
+                ShortcutsPanel.Children.Insert(0, recordButton);
+            }
+            hasCaptureButtons = true;
+
+            // Update record button state if already recording
+            UpdateRecordButtonState();
+
+            // Subscribe to recording state changes to update button in real-time
+            captureManager.RecordingStateChanged += (s, isRecording) =>
+            {
+                Dispatcher.Invoke(() => UpdateRecordButtonState());
+            };
+        }
+
+        // Show section if we have capture buttons
+        if (hasCaptureButtons)
+        {
+            ShortcutsSection.Visibility = Visibility.Visible;
+        }
+    }
+
+    private Button CreateCaptureButton(string content, RoutedEventHandler clickHandler)
+    {
+        var button = new Button
+        {
+            Content = content,
+            Margin = new Thickness(0, 0, 12, 0),
+            Padding = new Thickness(16, 8, 16, 8),
+            MinWidth = 110,
+            Background = new SolidColorBrush(Color.FromRgb(0x3A, 0x3A, 0x3A)),
+            Foreground = new SolidColorBrush(Colors.White),
+            BorderThickness = new Thickness(0),
+            FontSize = 13,
+            FontWeight = FontWeights.Medium,
+            Cursor = Cursors.Hand,
+            Focusable = true
+        };
+
+        // Create the same button style as other overlay buttons
+        var style = new Style(typeof(Button));
+        var template = new ControlTemplate(typeof(Button));
+        
+        // Create the border factory
+        var borderFactory = new FrameworkElementFactory(typeof(Border));
+        borderFactory.Name = "ButtonBorder";
+        borderFactory.SetValue(Border.BackgroundProperty, new TemplateBindingExtension(Button.BackgroundProperty));
+        borderFactory.SetValue(Border.BorderBrushProperty, Brushes.Transparent);
+        borderFactory.SetValue(Border.BorderThicknessProperty, new Thickness(2));
+        borderFactory.SetValue(Border.CornerRadiusProperty, new CornerRadius(5));
+        borderFactory.SetValue(Border.PaddingProperty, new TemplateBindingExtension(Button.PaddingProperty));
+        
+        // Create content presenter
+        var contentFactory = new FrameworkElementFactory(typeof(ContentPresenter));
+        contentFactory.SetValue(ContentPresenter.HorizontalAlignmentProperty, HorizontalAlignment.Center);
+        contentFactory.SetValue(ContentPresenter.VerticalAlignmentProperty, VerticalAlignment.Center);
+        
+        borderFactory.AppendChild(contentFactory);
+        template.VisualTree = borderFactory;
+        
+        // Add triggers for hover/press/focus states
+        var hoverTrigger = new Trigger { Property = UIElement.IsMouseOverProperty, Value = true };
+        hoverTrigger.Setters.Add(new Setter(Border.BackgroundProperty, 
+            new SolidColorBrush(Color.FromRgb(0x4A, 0x4A, 0x4A)), "ButtonBorder"));
+        template.Triggers.Add(hoverTrigger);
+        
+        var pressTrigger = new Trigger { Property = Button.IsPressedProperty, Value = true };
+        pressTrigger.Setters.Add(new Setter(Border.BackgroundProperty, 
+            new SolidColorBrush(Color.FromRgb(0x2A, 0x2A, 0x2A)), "ButtonBorder"));
+        template.Triggers.Add(pressTrigger);
+        
+        var focusTrigger = new Trigger { Property = UIElement.IsKeyboardFocusedProperty, Value = true };
+        focusTrigger.Setters.Add(new Setter(Border.BorderBrushProperty, 
+            new SolidColorBrush(Colors.White), "ButtonBorder"));
+        template.Triggers.Add(focusTrigger);
+        
+        style.Setters.Add(new Setter(Button.TemplateProperty, template));
+        button.Style = style;
+        
+        button.Click += clickHandler;
+        
+        return button;
+    }
+
+    private async void OnScreenshotClick(object sender, RoutedEventArgs e)
+    {
+        if (captureManager == null) return;
+
+        // Hide overlay immediately before capture
+        this.Opacity = 0;
+
+        // Allow screen to render without overlay
+        await System.Threading.Tasks.Task.Delay(200);
+
+        // Take screenshot
+        await captureManager.TakeScreenshotAsync();
+
+        // Close overlay
+        this.Close();
+    }
+
+    private async void OnRecordClick(object sender, RoutedEventArgs e)
+    {
+        if (captureManager == null) return;
+
+        if (!captureManager.IsRecording)
+        {
+            // Starting recording: hide overlay → delay → toggle → close overlay
+            this.Opacity = 0;
+            await System.Threading.Tasks.Task.Delay(200);
+            await captureManager.ToggleRecordingAsync();
+            this.Close();
+        }
+        else
+        {
+            // Stopping recording: just toggle, overlay stays visible
+            await captureManager.ToggleRecordingAsync();
+        }
+    }
+
+    /// <summary>
+    /// Updates the record button appearance based on current recording state.
+    /// Called when recording state changes.
+    /// </summary>
+    private void UpdateRecordButtonState()
+    {
+        if (recordButton == null || captureManager == null) return;
+
+        if (captureManager.IsRecording)
+        {
+            recordButton.Content = "● REC";
+            recordButton.Background = new SolidColorBrush(Color.FromRgb(0xCC, 0x33, 0x33));
+        }
+        else
+        {
+            recordButton.Content = "Record";
+            recordButton.Background = new SolidColorBrush(Color.FromRgb(0x3A, 0x3A, 0x3A));
+        }
+    }
+
+    #endregion
+
     #region Window Lifecycle
 
     protected override void OnSourceInitialized(EventArgs e)
@@ -1157,6 +1460,7 @@ public partial class OverlayWindow : Window
         // Section-level (Level 1)
         CurrentGameSection,
         RunningAppsSection,
+        ShortcutsSection,
         RecentGamesSection,
 
         // Item-level (Level 2) - inside CurrentGameSection
@@ -1168,6 +1472,7 @@ public partial class OverlayWindow : Window
 
         // Item-level (Level 2) - inside list sections
         RunningAppItem,
+        ShortcutItem,
         RecentGameItem,
     }
 }
