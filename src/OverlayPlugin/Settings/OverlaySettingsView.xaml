@@ -119,6 +119,37 @@
                                Text="Note: This only works for games running in windowed mode. For games in true exclusive fullscreen, you'll need to change the game's display settings to Windowed or Borderless."/>
                 </StackPanel>
             </GroupBox>
+            <GroupBox Header="Capture">
+                <StackPanel Margin="10">
+                    <CheckBox Content="Enable capture buttons in overlay"
+                              IsChecked="{Binding Settings.EnableCapture}"
+                              ToolTip="When enabled, shows screenshot and record buttons in the overlay."/>
+                    <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                        <TextBlock Text="OBS WebSocket password (if required):" VerticalAlignment="Center"/>
+                        <PasswordBox Width="200"
+                                   Margin="8,0,0,0"
+                                   PasswordChar="*"/>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                        <TextBlock Text="Screenshot hotkey (SendInput fallback):" VerticalAlignment="Center"/>
+                        <TextBox Width="200"
+                                 Margin="8,0,0,0"
+                                 Text="{Binding Settings.ScreenshotHotkey}"
+                                 ToolTip="Hotkey to press when OBS and ShareX are not available (e.g., PrintScreen)"/>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                        <TextBlock Text="Record hotkey (SendInput fallback):" VerticalAlignment="Center"/>
+                        <TextBox Width="200"
+                                 Margin="8,0,0,0"
+                                 Text="{Binding Settings.RecordHotkey}"
+                                 ToolTip="Hotkey to press when OBS and ShareX are not available (e.g., F9)"/>
+                    </StackPanel>
+                    <TextBlock Margin="0,6,0,0" TextWrapping="Wrap"
+                               Foreground="Gray"
+                               Text="OBS and ShareX are auto-detected. Hotkeys are used as fallback when neither is available."/>
+                </StackPanel>
+            </GroupBox>
+
         </StackPanel>
     </ScrollViewer>
 </UserControl>

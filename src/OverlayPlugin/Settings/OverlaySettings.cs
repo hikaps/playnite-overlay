@@ -125,4 +125,44 @@ public class OverlaySettings : MVVM.ObservableObject
         get => maxLockedAchievements;
         set => SetProperty(ref maxLockedAchievements, value);
     }
+
+    private bool enableCapture = true;
+    /// <summary>
+    /// Master toggle for capture functionality.
+    /// </summary>
+    public bool EnableCapture
+    {
+        get => enableCapture;
+        set => SetProperty(ref enableCapture, value);
+    }
+
+    private string obsWebSocketPassword = "";
+    /// <summary>
+    /// OBS WebSocket authentication password.
+    /// </summary>
+    public string ObsWebSocketPassword
+    {
+        get => obsWebSocketPassword;
+        set => SetProperty(ref obsWebSocketPassword, value);
+    }
+
+    private string screenshotHotkey = "PrintScreen";
+    /// <summary>
+    /// SendInput fallback key for screenshots.
+    /// </summary>
+    public string ScreenshotHotkey
+    {
+        get => screenshotHotkey;
+        set => SetProperty(ref screenshotHotkey, value);
+    }
+
+    private string recordHotkey = "F9";
+    /// <summary>
+    /// SendInput fallback key for recording.
+    /// </summary>
+    public string RecordHotkey
+    {
+        get => recordHotkey;
+        set => SetProperty(ref recordHotkey, value);
+    }
 }
