@@ -13,11 +13,33 @@ internal static class NativeInput
 
     private const uint KEYEVENTF_KEYUP = 0x0002;
     private const int INPUT_KEYBOARD = 1;
+
     // Delays for polling-based hotkey detector compatibility (e.g., OBS)
     // OBS polls GetAsyncKeyState every 25ms, so we need delays to ensure
     // the polling thread sees the key down state before key up is processed
     private const int ModifierDelayMs = 10;      // Delay after modifier press/release
     private const int KeyHoldDelayMs = 50;       // How long to hold main key (must be > 25ms for OBS polling)
+
+    // Static constructor to verify struct sizes at startup
+    static NativeInput()
+    {
+        int inputSize = Marshal.SizeOf(typeof(INPUT));
+        int keybdinputSize = Marshal.SizeOf(typeof(KEYBDINPUT));
+        int ptrSize = IntPtr.Size;
+        
+        // Log struct sizes for debugging
+        // Expected on 64-bit: INPUT=32, KEYBDINPUT=24, IntPtr=8
+        // Expected on 32-bit: INPUT=28, KEYBDINPUT=20, IntPtr=4
+        LogManager.GetLogger().Info($"NativeInput struct sizes: INPUT={inputSize}, KEYBDINPUT={keybdinputSize}, IntPtr={ptrSize}");
+        
+        // Verify expected sizes (INPUT should be 32 on 64-bit, 28 on 32-bit)
+        int expectedInputSize = IntPtr.Size == 8 ? 32 : 28;
+        if (inputSize != expectedInputSize)
+        {
+            LogManager.GetLogger().Warn($"NativeInput: INPUT struct size mismatch! Expected {expectedInputSize}, got {inputSize}. SendInput may not work correctly.");
+        }
+    }
+
     public static void SendHotkey(string? gesture)
     {
         if (string.IsNullOrWhiteSpace(gesture))
@@ -58,19 +80,33 @@ internal static class NativeInput
         {
             var inputs = new List<INPUT>();
             int inputSize = Marshal.SizeOf(typeof(INPUT));
+            
+            logger.Debug($"SendHotkeyWithDelays: inputSize={inputSize}, vk=0x{vk:X2}, modifiers={modifiers}");
 
             // 1. Press modifiers
             AddModifierInputs(inputs, modifiers, keyDown: true);
             if (inputs.Count > 0)
             {
-                SendInput((uint)inputs.Count, inputs.ToArray(), inputSize);
+                uint sent = SendInput((uint)inputs.Count, inputs.ToArray(), inputSize);
+                logger.Debug($"SendHotkeyWithDelays: Sent {sent}/{inputs.Count} modifier down events");
+                if (sent == 0)
+                {
+                    var err = Marshal.GetLastWin32Error();
+                    logger.Warn($"SendHotkeyWithDelays: SendInput failed for modifiers, Win32Error={err}");
+                }
                 Thread.Sleep(ModifierDelayMs);
             }
 
             // 2. Press main key
             inputs.Clear();
             inputs.Add(CreateKeyInput(vk, keyUp: false));
-            SendInput(1, inputs.ToArray(), inputSize);
+            uint sentKey = SendInput(1, inputs.ToArray(), inputSize);
+            logger.Debug($"SendHotkeyWithDelays: Sent {sentKey}/1 key down events");
+            if (sentKey == 0)
+            {
+                var err = Marshal.GetLastWin32Error();
+                logger.Warn($"SendHotkeyWithDelays: SendInput failed for key down, Win32Error={err}");
+            }
 
             // 3. Wait long enough for polling detectors to see the key down
             // OBS polls every 25ms, so 50ms ensures at least one poll sees it
@@ -79,7 +115,13 @@ internal static class NativeInput
             // 4. Release main key
             inputs.Clear();
             inputs.Add(CreateKeyInput(vk, keyUp: true));
-            SendInput(1, inputs.ToArray(), inputSize);
+            uint sentKeyUp = SendInput(1, inputs.ToArray(), inputSize);
+            logger.Debug($"SendHotkeyWithDelays: Sent {sentKeyUp}/1 key up events");
+            if (sentKeyUp == 0)
+            {
+                var err = Marshal.GetLastWin32Error();
+                logger.Warn($"SendHotkeyWithDelays: SendInput failed for key up, Win32Error={err}");
+            }
             Thread.Sleep(ModifierDelayMs);
 
             // 5. Release modifiers
@@ -87,7 +129,13 @@ internal static class NativeInput
             AddModifierInputs(inputs, modifiers, keyDown: false);
             if (inputs.Count > 0)
             {
-                SendInput((uint)inputs.Count, inputs.ToArray(), inputSize);
+                uint sentModsUp = SendInput((uint)inputs.Count, inputs.ToArray(), inputSize);
+                logger.Debug($"SendHotkeyWithDelays: Sent {sentModsUp}/{inputs.Count} modifier up events");
+                if (sentModsUp == 0)
+                {
+                    var err = Marshal.GetLastWin32Error();
+                    logger.Warn($"SendHotkeyWithDelays: SendInput failed for modifiers up, Win32Error={err}");
+                }
             }
 
             logger.Info($"SendHotkeyWithDelays: completed for vk=0x{vk:X2}");
@@ -99,7 +147,6 @@ internal static class NativeInput
             SendHotkeyViaKeybdEvent(modifiers, vk);
         }
     }
-
     private static void SendHotkeyViaKeybdEvent(ModifierKeys modifiers, ushort vk)
     {
         try
