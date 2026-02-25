@@ -9,6 +9,8 @@ namespace PlayniteOverlay.Interop;
 internal static class NativeInput
 {
     private static readonly ILogger logger = LogManager.GetLogger();
+    
+    private const uint MAPVK_VK_TO_VSC = 0;
 
     public static void SendHotkey(string? gesture)
     {
@@ -32,14 +34,15 @@ internal static class NativeInput
         }
 
         var vk = (ushort)KeyInterop.VirtualKeyFromKey(key);
-        var inputs = BuildInputs(modifiers, vk);
+        var scan = (ushort)MapVirtualKey(vk, MAPVK_VK_TO_VSC);
+        var inputs = BuildInputs(modifiers, vk, scan);
         if (inputs.Count == 0)
         {
             logger.Warn($"SendHotkey produced no inputs for '{gesture}'.");
             return;
         }
 
-        logger.Info($"SendHotkey: gesture='{gesture}', modifiers={modifiers}, keyToken='{keyToken}', vk=0x{vk:X4}, inputCount={inputs.Count}");
+        logger.Info($"SendHotkey: gesture='{gesture}', modifiers={modifiers}, vk=0x{vk:X2}, scan=0x{scan:X2}, inputCount={inputs.Count}");
 
         var result = SendInput((uint)inputs.Count, inputs.ToArray(), INPUT.Size);
         if (result == 0)
@@ -75,39 +78,42 @@ internal static class NativeInput
         }
     }
 
-    private static List<INPUT> BuildInputs(ModifierKeys modifiers, ushort vk)
+    private static List<INPUT> BuildInputs(ModifierKeys modifiers, ushort vk, ushort scan)
     {
         var inputs = new List<INPUT>();
-        AddModifierInputs(inputs, modifiers, true);
-        inputs.Add(CreateKeyInput(vk, false));
-        inputs.Add(CreateKeyInput(vk, true));
-        AddModifierInputs(inputs, modifiers, false);
+        AddModifierInputs(inputs, modifiers, vk => (ushort)MapVirtualKey(vk, MAPVK_VK_TO_VSC), true);
+        inputs.Add(CreateKeyInput(vk, scan, false));
+        inputs.Add(CreateKeyInput(vk, scan, true));
+        AddModifierInputs(inputs, modifiers, vk => (ushort)MapVirtualKey(vk, MAPVK_VK_TO_VSC), false);
         return inputs;
     }
 
-    private static void AddModifierInputs(List<INPUT> inputs, ModifierKeys modifiers, bool keyDown)
+    private static void AddModifierInputs(List<INPUT> inputs, ModifierKeys modifiers, Func<ushort, ushort> getScan, bool keyDown)
     {
-        // keyDown=true means press (keyUp=false), keyDown=false means release (keyUp=true)
         var keyUp = !keyDown;
         if (modifiers.HasFlag(ModifierKeys.Control))
         {
-            inputs.Add(CreateKeyInput(0x11, keyUp));
+            var vk = (ushort)0x11;
+            inputs.Add(CreateKeyInput(vk, getScan(vk), keyUp));
         }
         if (modifiers.HasFlag(ModifierKeys.Shift))
         {
-            inputs.Add(CreateKeyInput(0x10, keyUp));
+            var vk = (ushort)0x10;
+            inputs.Add(CreateKeyInput(vk, getScan(vk), keyUp));
         }
         if (modifiers.HasFlag(ModifierKeys.Alt))
         {
-            inputs.Add(CreateKeyInput(0x12, keyUp));
+            var vk = (ushort)0x12;
+            inputs.Add(CreateKeyInput(vk, getScan(vk), keyUp));
         }
         if (modifiers.HasFlag(ModifierKeys.Windows))
         {
-            inputs.Add(CreateKeyInput(0x5B, keyUp));
+            var vk = (ushort)0x5B;
+            inputs.Add(CreateKeyInput(vk, getScan(vk), keyUp));
         }
     }
 
-    private static INPUT CreateKeyInput(ushort vk, bool keyUp)
+    private static INPUT CreateKeyInput(ushort vk, ushort scan, bool keyUp)
     {
         return new INPUT
         {
@@ -117,7 +123,7 @@ internal static class NativeInput
                 ki = new KEYBDINPUT
                 {
                     wVk = vk,
-                    wScan = 0,
+                    wScan = scan,
                     dwFlags = keyUp ? 0x0002u : 0u,
                     time = 0,
                     dwExtraInfo = UIntPtr.Zero
@@ -125,6 +131,9 @@ internal static class NativeInput
             }
         };
     }
+
+    [DllImport("user32.dll")]
+    private static extern uint MapVirtualKey(uint uCode, uint uMapType);
 
     [DllImport("user32.dll", SetLastError = true)]
     private static extern uint SendInput(uint nInputs, INPUT[] pInputs, int cbSize);
