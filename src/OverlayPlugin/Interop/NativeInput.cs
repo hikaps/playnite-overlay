@@ -25,17 +25,27 @@ internal static class NativeInput
     {
         int ptrSize = IntPtr.Size;
         int keybdinputSize = Marshal.SizeOf(typeof(KEYBDINPUT));
-        
+        int mouseinputSize = Marshal.SizeOf(typeof(MOUSEINPUT));
+        int input32Size = Marshal.SizeOf(typeof(INPUT32));
+        int input64Size = Marshal.SizeOf(typeof(INPUT64));
+
         // Expected sizes:
-        // 32-bit: KEYBDINPUT = 16 bytes (2+2+4+4+4)
-        // 64-bit: KEYBDINPUT = 24 bytes (2+2+4+4+4padding+8)
+        // 32-bit: KEYBDINPUT = 16, MOUSEINPUT = 24, INPUT = 28
+        // 64-bit: KEYBDINPUT = 24, MOUSEINPUT = 32, INPUT = 40
         int expectedKbSize = ptrSize == 8 ? 24 : 16;
-        
-        logger.Info($"NativeInput: IntPtr={ptrSize}, KEYBDINPUT={keybdinputSize} (expected {expectedKbSize})");
-        
-        if (keybdinputSize != expectedKbSize)
+        int expectedMouseSize = ptrSize == 8 ? 32 : 24;
+        int expectedInputSize = ptrSize == 8 ? 40 : 28;
+
+        logger.Info($"NativeInput: IntPtr={ptrSize}, KEYBDINPUT={keybdinputSize} (expected {expectedKbSize}), MOUSEINPUT={mouseinputSize} (expected {expectedMouseSize}), INPUT32={input32Size}, INPUT64={input64Size}");
+
+        if (keybdinputSize != expectedKbSize || mouseinputSize != expectedMouseSize)
         {
-            logger.Warn($"NativeInput: KEYBDINPUT struct size mismatch! SendInput may not work correctly.");
+            logger.Warn("NativeInput: Input struct size mismatch! SendInput may not work correctly.");
+        }
+
+        if ((ptrSize == 4 && input32Size != expectedInputSize) || (ptrSize == 8 && input64Size != expectedInputSize))
+        {
+            logger.Warn($"NativeInput: INPUT struct size mismatch! Expected {expectedInputSize}.");
         }
     }
 
@@ -105,19 +115,31 @@ internal static class NativeInput
         {
             uint sent = SendInput32((uint)inputs.Count, inputs.ToArray(), inputSize);
             logger.Debug($"SendHotkey32: Sent {sent}/{inputs.Count} modifier down events");
+            if (sent == 0)
+            {
+                logger.Warn($"SendHotkey32: SendInput failed for modifiers, Win32Error={Marshal.GetLastWin32Error()}");
+            }
             Thread.Sleep(ModifierDelayMs);
         }
 
         // 2. Press main key
         inputs.Clear();
         inputs.Add(CreateKeyInput32(vk, keyUp: false));
-        SendInput32(1, inputs.ToArray(), inputSize);
+        uint sentKeyDown = SendInput32(1, inputs.ToArray(), inputSize);
+        if (sentKeyDown == 0)
+        {
+            logger.Warn($"SendHotkey32: SendInput failed for key down, Win32Error={Marshal.GetLastWin32Error()}");
+        }
         Thread.Sleep(KeyHoldDelayMs);
 
         // 3. Release main key
         inputs.Clear();
         inputs.Add(CreateKeyInput32(vk, keyUp: true));
-        SendInput32(1, inputs.ToArray(), inputSize);
+        uint sentKeyUp = SendInput32(1, inputs.ToArray(), inputSize);
+        if (sentKeyUp == 0)
+        {
+            logger.Warn($"SendHotkey32: SendInput failed for key up, Win32Error={Marshal.GetLastWin32Error()}");
+        }
         Thread.Sleep(ModifierDelayMs);
 
         // 4. Release modifiers
@@ -125,7 +147,11 @@ internal static class NativeInput
         AddModifierInputs32(inputs, modifiers, keyDown: false);
         if (inputs.Count > 0)
         {
-            SendInput32((uint)inputs.Count, inputs.ToArray(), inputSize);
+            uint sentModsUp = SendInput32((uint)inputs.Count, inputs.ToArray(), inputSize);
+            if (sentModsUp == 0)
+            {
+                logger.Warn($"SendHotkey32: SendInput failed for modifiers up, Win32Error={Marshal.GetLastWin32Error()}");
+            }
         }
 
         logger.Info($"SendHotkey32: completed for vk=0x{vk:X2}");
@@ -144,19 +170,31 @@ internal static class NativeInput
         {
             uint sent = SendInput64((uint)inputs.Count, inputs.ToArray(), inputSize);
             logger.Debug($"SendHotkey64: Sent {sent}/{inputs.Count} modifier down events");
+            if (sent == 0)
+            {
+                logger.Warn($"SendHotkey64: SendInput failed for modifiers, Win32Error={Marshal.GetLastWin32Error()}");
+            }
             Thread.Sleep(ModifierDelayMs);
         }
 
         // 2. Press main key
         inputs.Clear();
         inputs.Add(CreateKeyInput64(vk, keyUp: false));
-        SendInput64(1, inputs.ToArray(), inputSize);
+        uint sentKeyDown = SendInput64(1, inputs.ToArray(), inputSize);
+        if (sentKeyDown == 0)
+        {
+            logger.Warn($"SendHotkey64: SendInput failed for key down, Win32Error={Marshal.GetLastWin32Error()}");
+        }
         Thread.Sleep(KeyHoldDelayMs);
 
         // 3. Release main key
         inputs.Clear();
         inputs.Add(CreateKeyInput64(vk, keyUp: true));
-        SendInput64(1, inputs.ToArray(), inputSize);
+        uint sentKeyUp = SendInput64(1, inputs.ToArray(), inputSize);
+        if (sentKeyUp == 0)
+        {
+            logger.Warn($"SendHotkey64: SendInput failed for key up, Win32Error={Marshal.GetLastWin32Error()}");
+        }
         Thread.Sleep(ModifierDelayMs);
 
         // 4. Release modifiers
@@ -164,7 +202,11 @@ internal static class NativeInput
         AddModifierInputs64(inputs, modifiers, keyDown: false);
         if (inputs.Count > 0)
         {
-            SendInput64((uint)inputs.Count, inputs.ToArray(), inputSize);
+            uint sentModsUp = SendInput64((uint)inputs.Count, inputs.ToArray(), inputSize);
+            if (sentModsUp == 0)
+            {
+                logger.Warn($"SendHotkey64: SendInput failed for modifiers up, Win32Error={Marshal.GetLastWin32Error()}");
+            }
         }
 
         logger.Info($"SendHotkey64: completed for vk=0x{vk:X2}");
@@ -327,9 +369,9 @@ internal static class NativeInput
 
     #region Native Structures
 
-    // 32-bit INPUT struct (KEYBDINPUT at offset 4)
-    // Size: 4 (type) + 16 (KEYBDINPUT) = 20 bytes
-    [StructLayout(LayoutKind.Explicit, Size = 20)]
+    // 32-bit INPUT struct (union at offset 4)
+    // Size: 4 (type) + 24 (largest union member: MOUSEINPUT) = 28 bytes
+    [StructLayout(LayoutKind.Explicit, Size = 28)]
     private struct INPUT32
     {
         [FieldOffset(0)]
@@ -337,11 +379,17 @@ internal static class NativeInput
 
         [FieldOffset(4)]
         public KEYBDINPUT ki;
+
+        [FieldOffset(4)]
+        public MOUSEINPUT mi;
+
+        [FieldOffset(4)]
+        public HARDWAREINPUT hi;
     }
 
-    // 64-bit INPUT struct (KEYBDINPUT at offset 8)
-    // Size: 4 (type) + 4 (padding) + 24 (KEYBDINPUT) = 32 bytes
-    [StructLayout(LayoutKind.Explicit, Size = 32)]
+    // 64-bit INPUT struct (union at offset 8)
+    // Size: 4 (type) + 4 (padding) + 32 (largest union member: MOUSEINPUT) = 40 bytes
+    [StructLayout(LayoutKind.Explicit, Size = 40)]
     private struct INPUT64
     {
         [FieldOffset(0)]
@@ -349,6 +397,12 @@ internal static class NativeInput
 
         [FieldOffset(8)]
         public KEYBDINPUT ki;
+
+        [FieldOffset(8)]
+        public MOUSEINPUT mi;
+
+        [FieldOffset(8)]
+        public HARDWAREINPUT hi;
     }
 
     // KEYBDINPUT structure
@@ -362,6 +416,30 @@ internal static class NativeInput
         public uint dwFlags;
         public uint time;
         public IntPtr dwExtraInfo;
+    }
+
+    // MOUSEINPUT structure
+    // 32-bit: 4+4+4+4+4+4 = 24 bytes
+    // 64-bit: 4+4+4+4+4+8 = 28 bytes (rounded to 32 due to alignment)
+    [StructLayout(LayoutKind.Sequential)]
+    private struct MOUSEINPUT
+    {
+        public int dx;
+        public int dy;
+        public uint mouseData;
+        public uint dwFlags;
+        public uint time;
+        public IntPtr dwExtraInfo;
+    }
+
+    // HARDWAREINPUT structure
+    // 32/64-bit: 4+2+2 = 8 bytes
+    [StructLayout(LayoutKind.Sequential)]
+    private struct HARDWAREINPUT
+    {
+        public uint uMsg;
+        public ushort wParamL;
+        public ushort wParamH;
     }
 
     #endregion
