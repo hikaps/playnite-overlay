@@ -12,8 +12,7 @@ internal static class NativeInput
     private static readonly ILogger logger = LogManager.GetLogger();
 
     private const uint KEYEVENTF_KEYUP = 0x0002;
-    private const uint INPUT_KEYBOARD = 1;
-
+    private const int INPUT_KEYBOARD = 1;
     // Delays for polling-based hotkey detector compatibility (e.g., OBS)
     // OBS polls GetAsyncKeyState every 25ms, so we need delays to ensure
     // the polling thread sees the key down state before key up is processed
@@ -191,16 +190,13 @@ internal static class NativeInput
         return new INPUT
         {
             type = INPUT_KEYBOARD,
-            U = new InputUnion
+            ki = new KEYBDINPUT
             {
-                ki = new KEYBDINPUT
-                {
-                    wVk = vk,
-                    wScan = 0,
-                    dwFlags = flags,
-                    time = 0,
-                    dwExtraInfo = IntPtr.Zero
-                }
+                wVk = vk,
+                wScan = 0,
+                dwFlags = flags,
+                time = 0,
+                dwExtraInfo = IntPtr.Zero
             }
         };
     }
@@ -215,19 +211,21 @@ internal static class NativeInput
 
     #endregion
 
-    #region Native Structures
+    #region Native Structures (64-bit aligned)
 
-    [StructLayout(LayoutKind.Sequential)]
-    private struct INPUT
-    {
-        public uint type;
-        public InputUnion U;
-    }
+    // On 64-bit Windows, the INPUT struct requires proper alignment:
+    // - type (DWORD, 4 bytes) at offset 0
+    // - 4 bytes of padding (to align union to 8-byte boundary)
+    // - KEYBDINPUT starts at offset 8
+    // This matches Microsoft's PowerToys implementation.
 
     [StructLayout(LayoutKind.Explicit)]
-    private struct InputUnion
+    private struct INPUT
     {
         [FieldOffset(0)]
+        public int type;
+
+        [FieldOffset(8)]  // Offset 8 for 64-bit alignment (4 bytes type + 4 bytes padding)
         public KEYBDINPUT ki;
     }
 
