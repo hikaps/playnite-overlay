@@ -106,8 +106,16 @@ internal static class NativeInput
     {
         var inputs = new List<INPUT32>();
         int inputSize = Marshal.SizeOf(typeof(INPUT32));
+        const int expectedInputSize = 28;
 
         logger.Debug($"SendHotkey32: inputSize={inputSize}, vk=0x{vk:X2}, modifiers={modifiers}");
+
+        if (inputSize != expectedInputSize)
+        {
+            logger.Warn($"SendHotkey32: INPUT size mismatch (expected {expectedInputSize}, got {inputSize}). Falling back to keybd_event.");
+            SendHotkeyViaKeybdEvent(modifiers, vk);
+            return;
+        }
 
         // 1. Press modifiers
         AddModifierInputs32(inputs, modifiers, keyDown: true);
@@ -118,6 +126,8 @@ internal static class NativeInput
             if (sent == 0)
             {
                 logger.Warn($"SendHotkey32: SendInput failed for modifiers, Win32Error={Marshal.GetLastWin32Error()}");
+                SendHotkeyViaKeybdEvent(modifiers, vk);
+                return;
             }
             Thread.Sleep(ModifierDelayMs);
         }
@@ -129,6 +139,8 @@ internal static class NativeInput
         if (sentKeyDown == 0)
         {
             logger.Warn($"SendHotkey32: SendInput failed for key down, Win32Error={Marshal.GetLastWin32Error()}");
+            SendHotkeyViaKeybdEvent(modifiers, vk);
+            return;
         }
         Thread.Sleep(KeyHoldDelayMs);
 
@@ -139,6 +151,8 @@ internal static class NativeInput
         if (sentKeyUp == 0)
         {
             logger.Warn($"SendHotkey32: SendInput failed for key up, Win32Error={Marshal.GetLastWin32Error()}");
+            SendHotkeyViaKeybdEvent(modifiers, vk);
+            return;
         }
         Thread.Sleep(ModifierDelayMs);
 
@@ -151,6 +165,8 @@ internal static class NativeInput
             if (sentModsUp == 0)
             {
                 logger.Warn($"SendHotkey32: SendInput failed for modifiers up, Win32Error={Marshal.GetLastWin32Error()}");
+                SendHotkeyViaKeybdEvent(modifiers, vk);
+                return;
             }
         }
 
@@ -161,8 +177,16 @@ internal static class NativeInput
     {
         var inputs = new List<INPUT64>();
         int inputSize = Marshal.SizeOf(typeof(INPUT64));
+        const int expectedInputSize = 40;
 
         logger.Debug($"SendHotkey64: inputSize={inputSize}, vk=0x{vk:X2}, modifiers={modifiers}");
+
+        if (inputSize != expectedInputSize)
+        {
+            logger.Warn($"SendHotkey64: INPUT size mismatch (expected {expectedInputSize}, got {inputSize}). Falling back to keybd_event.");
+            SendHotkeyViaKeybdEvent(modifiers, vk);
+            return;
+        }
 
         // 1. Press modifiers
         AddModifierInputs64(inputs, modifiers, keyDown: true);
@@ -173,6 +197,8 @@ internal static class NativeInput
             if (sent == 0)
             {
                 logger.Warn($"SendHotkey64: SendInput failed for modifiers, Win32Error={Marshal.GetLastWin32Error()}");
+                SendHotkeyViaKeybdEvent(modifiers, vk);
+                return;
             }
             Thread.Sleep(ModifierDelayMs);
         }
@@ -184,6 +210,8 @@ internal static class NativeInput
         if (sentKeyDown == 0)
         {
             logger.Warn($"SendHotkey64: SendInput failed for key down, Win32Error={Marshal.GetLastWin32Error()}");
+            SendHotkeyViaKeybdEvent(modifiers, vk);
+            return;
         }
         Thread.Sleep(KeyHoldDelayMs);
 
@@ -194,6 +222,8 @@ internal static class NativeInput
         if (sentKeyUp == 0)
         {
             logger.Warn($"SendHotkey64: SendInput failed for key up, Win32Error={Marshal.GetLastWin32Error()}");
+            SendHotkeyViaKeybdEvent(modifiers, vk);
+            return;
         }
         Thread.Sleep(ModifierDelayMs);
 
@@ -206,6 +236,8 @@ internal static class NativeInput
             if (sentModsUp == 0)
             {
                 logger.Warn($"SendHotkey64: SendInput failed for modifiers up, Win32Error={Marshal.GetLastWin32Error()}");
+                SendHotkeyViaKeybdEvent(modifiers, vk);
+                return;
             }
         }
 
