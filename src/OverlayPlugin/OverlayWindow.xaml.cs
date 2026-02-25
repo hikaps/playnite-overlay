@@ -690,7 +690,14 @@ public partial class OverlayWindow : Window
                     break;
 
                 case NavigationTarget.ShortcutItem:
-                    ExitToSectionLevel();
+                    if (shortcutsSelectedIndex <= 0)
+                    {
+                        ExitToSectionLevel();
+                    }
+                    else
+                    {
+                        FocusShortcutButton(shortcutsSelectedIndex - 1);
+                    }
                     break;
 
                 case NavigationTarget.RecentGameItem:
@@ -779,7 +786,18 @@ public partial class OverlayWindow : Window
                     break;
 
                 case NavigationTarget.ShortcutItem:
-                    ExitToSectionLevel();
+                    if (ShortcutsPanel == null || ShortcutsPanel.Children.Count == 0)
+                    {
+                        ExitToSectionLevel();
+                    }
+                    else if (shortcutsSelectedIndex >= ShortcutsPanel.Children.Count - 1)
+                    {
+                        ExitToSectionLevel();
+                    }
+                    else
+                    {
+                        FocusShortcutButton(shortcutsSelectedIndex + 1);
+                    }
                     break;
 
                 case NavigationTarget.RecentGameItem:
