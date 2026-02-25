@@ -86,8 +86,18 @@ public sealed class OverlayShortcut : INotifyPropertyChanged
     }
 }
 
+/// <summary>
+/// Defines the type of action a shortcut can perform.
+/// </summary>
 public enum ShortcutActionType
 {
+    /// <summary>
+    /// Execute a shell command or launch an executable.
+    /// </summary>
     CommandLine,
+    
+    /// <summary>
+    /// Simulate keyboard input (hotkey) using SendInput API.
+    /// </summary>
     SendInput
 }

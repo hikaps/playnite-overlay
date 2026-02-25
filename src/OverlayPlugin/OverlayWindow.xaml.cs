@@ -1260,7 +1260,7 @@ public partial class OverlayWindow : Window
             if (shortcut.ActionType == ShortcutActionType.SendInput)
             {
                 logger.Info($"ExecuteShortcutAction: Sending hotkey '{shortcut.Hotkey}'");
-                NativeInput.SendHotkey(shortcut.Hotkey);
+                System.Threading.Tasks.Task.Run(() => NativeInput.SendHotkey(shortcut.Hotkey));
                 return;
             }
 
@@ -1269,7 +1269,8 @@ public partial class OverlayWindow : Window
                 var processStartInfo = new System.Diagnostics.ProcessStartInfo
                 {
                     FileName = shortcut.Command,
-                    Arguments = shortcut.Arguments ?? string.Empty
+                    Arguments = shortcut.Arguments ?? string.Empty,
+                    UseShellExecute = true
                 };
                 var commandDirectory = Path.GetDirectoryName(shortcut.Command);
                 if (!string.IsNullOrEmpty(commandDirectory))
@@ -1281,7 +1282,7 @@ public partial class OverlayWindow : Window
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"Error running shortcut action: {ex.Message}");
+            logger.Error(ex, $"Failed to execute shortcut action '{shortcut.Label}'");
         }
     }
 
