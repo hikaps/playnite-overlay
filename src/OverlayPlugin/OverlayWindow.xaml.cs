@@ -27,12 +27,6 @@ public partial class OverlayWindow : Window
     private const int GWL_EXSTYLE = -20;
 
     [DllImport("user32.dll")]
-    private static extern IntPtr GetForegroundWindow();
-
-    [DllImport("user32.dll")]
-    private static extern bool SetForegroundWindow(IntPtr hWnd);
-
-    [DllImport("user32.dll")]
     private static extern int SetWindowLong(IntPtr hWnd, int nIndex, int dwNewLong);
 
     private const int WS_EX_TOOLWINDOW = 0x00000080;
@@ -56,7 +50,6 @@ public partial class OverlayWindow : Window
     private int shortcutsSelectedIndex = -1;
     private bool isClosing;
     private bool isInitializingAudio = false;
-    private IntPtr previousForegroundWindow;
     private static readonly SolidColorBrush HighlightBrush = new(Color.FromRgb(0xFF, 0xFF, 0xFF));
     private static readonly SolidColorBrush TransparentBrush = new(Colors.Transparent);
 
@@ -184,10 +177,6 @@ public partial class OverlayWindow : Window
         
         Loaded += async (_, __) =>
         {
-            // Capture previous foreground window BEFORE activating overlay
-            previousForegroundWindow = GetForegroundWindow();
-            logger.Info($"Overlay opened, previous foreground window: 0x{previousForegroundWindow.ToInt64():X8}");
-            
             Activate(); Focus(); Keyboard.Focus(this);
             
             try
@@ -1250,13 +1239,11 @@ public partial class OverlayWindow : Window
             button.Style = style;
             button.Click += (_, __) =>
             {
-                logger.Info($"Shortcut clicked, will restore window: 0x{previousForegroundWindow.ToInt64():X8}");
-                
                 EventHandler? closed = null;
                 closed = (s, e2) =>
                 {
                     this.Closed -= closed;
-                    ExecuteShortcutAction(shortcut, previousForegroundWindow);
+                    ExecuteShortcutAction(shortcut);
                 };
                 this.Closed += closed;
                 this.Close();
@@ -1266,18 +1253,13 @@ public partial class OverlayWindow : Window
         ShortcutsSection.Visibility = shortcuts.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
     }
 
-    private void ExecuteShortcutAction(Models.OverlayShortcut shortcut, IntPtr targetHwnd)
+    private void ExecuteShortcutAction(Models.OverlayShortcut shortcut)
     {
         try
         {
             if (shortcut.ActionType == ShortcutActionType.SendInput)
             {
-                logger.Info($"ExecuteShortcutAction: Sending hotkey '{shortcut.Hotkey}' to window 0x{targetHwnd.ToInt64():X8}");
-                
-                // Restore focus to target window before sending input
-                SetForegroundWindow(targetHwnd);
-                System.Threading.Thread.Sleep(50);
-                
+                logger.Info($"ExecuteShortcutAction: Sending hotkey '{shortcut.Hotkey}'");
                 NativeInput.SendHotkey(shortcut.Hotkey);
                 return;
             }
