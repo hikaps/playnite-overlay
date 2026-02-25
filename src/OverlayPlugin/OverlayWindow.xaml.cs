@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Windows;
@@ -11,12 +12,12 @@ using System.Windows.Media.Imaging;
 using System.Windows.Threading;
 using PlayniteOverlay.Models;
 using PlayniteOverlay.Services;
+using PlayniteOverlay.Interop;
 
 namespace PlayniteOverlay;
 
 public partial class OverlayWindow : Window
 {
-    // P/Invoke for extended window styles (hide from Alt+Tab)
     [DllImport("user32.dll")]
     private static extern int GetWindowLong(IntPtr hWnd, int nIndex);
 
@@ -36,20 +37,20 @@ public partial class OverlayWindow : Window
     private readonly GameSwitcher? gameSwitcher;
     private readonly OverlayItem? currentGameField;
     private readonly DispatcherTimer timeTimer;
+    private readonly List<Models.OverlayShortcut> shortcuts;
     
-    // Two-level navigation state
     private NavigationTarget navigationTarget = NavigationTarget.CurrentGameSection;
     private bool isInsideSection = false;
     private int selectedIndex = -1;
     private int runningAppSelectedIndex = -1;
+    private int shortcutsSelectedIndex = -1;
     private bool isClosing;
     private bool isInitializingAudio = false;
     
-    // Section highlight color
     private static readonly SolidColorBrush HighlightBrush = new(Color.FromRgb(0xFF, 0xFF, 0xFF));
     private static readonly SolidColorBrush TransparentBrush = new(Colors.Transparent);
 
-    public OverlayWindow(Action onSwitch, Action onExit, OverlayItem? currentGame, IEnumerable<RunningApp> runningApps, IEnumerable<OverlayItem> recentGames, IEnumerable<AudioDevice>? audioDevices = null, Action<string, Action<bool>>? onAudioDeviceChanged = null, GameVolumeService? gameVolumeService = null, int? currentGameProcessId = null, GameSwitcher? gameSwitcher = null)
+    public OverlayWindow(Action onSwitch, Action onExit, OverlayItem? currentGame, IEnumerable<RunningApp> runningApps, IEnumerable<OverlayItem> recentGames, IEnumerable<AudioDevice>? audioDevices = null, Action<string, Action<bool>>? onAudioDeviceChanged = null, GameVolumeService? gameVolumeService = null, int? currentGameProcessId = null, GameSwitcher? gameSwitcher = null, IEnumerable<Models.OverlayShortcut>? shortcuts = null)
     {
         InitializeComponent();
         this.onSwitch = onSwitch;
@@ -58,19 +59,18 @@ public partial class OverlayWindow : Window
         this.gameVolumeService = gameVolumeService;
         this.currentGameProcessId = currentGameProcessId;
         this.gameSwitcher = gameSwitcher;
+
         this.currentGameField = currentGame;
         this.items = new List<OverlayItem>(recentGames);
         this.runningApps = new List<RunningApp>(runningApps);
+        this.shortcuts = shortcuts != null ? new List<Models.OverlayShortcut>(shortcuts) : new List<Models.OverlayShortcut>();
 
-        // Initialize time display timer (updates every second)
-        timeTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
+            timeTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
         timeTimer.Tick += TimeTimer_Tick;
         timeTimer.Start();
 
-        // Update immediately on load
         UpdateTimeDisplay();
 
-        // Setup current game section
         if (currentGame != null)
         {
             CurrentGameSection.Visibility = Visibility.Visible;
@@ -85,11 +85,9 @@ public partial class OverlayWindow : Window
                 }
                 catch
                 {
-                    // Cover failed to load, image will remain empty
                 }
             }
 
-            // Setup achievements section
             SetupAchievementsDisplay(currentGame.Achievements);
         }
         else
@@ -97,7 +95,6 @@ public partial class OverlayWindow : Window
             CurrentGameSection.Visibility = Visibility.Collapsed;
         }
 
-        // Setup running apps section
         if (this.runningApps.Count > 0)
         {
             RunningAppsSection.Visibility = Visibility.Visible;
@@ -117,10 +114,8 @@ public partial class OverlayWindow : Window
             }
         };
 
-        // Setup recent games list
         RecentList.ItemsSource = this.items;
         
-        // Show empty state if no recent games
         if (this.items.Count == 0)
         {
             EmptyState.Visibility = Visibility.Visible;
@@ -141,18 +136,17 @@ public partial class OverlayWindow : Window
             }
         };
 
-        // Setup audio devices section
         SetupAudioDevices(audioDevices);
+
+        SetupShortcuts();
 
         VolumeSlider.ValueChanged += OnVolumeSliderChanged;
         MuteBtn.Click += OnMuteBtnClick;
 
-        // Initial focus - section level on first visible section
         Dispatcher.BeginInvoke(() => FocusFirstVisibleSection(), DispatcherPriority.Loaded);
 
         SwitchBtn.Click += (_, __) =>
         {
-            // Close overlay first, then switch/activate Playnite after window fully closed
             EventHandler? closed = null;
             closed = (s, e2) =>
             {
@@ -165,7 +159,6 @@ public partial class OverlayWindow : Window
         
         ExitBtn.Click += (_, __) =>
         {
-            // Close overlay first, then exit game after window fully closed
             EventHandler? closed = null;
             closed = (s, e2) =>
             {
@@ -179,7 +172,7 @@ public partial class OverlayWindow : Window
         Backdrop.MouseLeftButtonDown += (_, __) => this.Close();
         PreviewKeyDown += OnPreviewKeyDown;
         
-        Loaded += (_, __) =>
+        Loaded += async (_, __) =>
         {
             Activate(); Focus(); Keyboard.Focus(this);
             
@@ -192,6 +185,7 @@ public partial class OverlayWindow : Window
                 RootCard.BeginAnimation(UIElement.OpacityProperty, anim);
             }
             catch { }
+
         };
         
         Closing += OnClosingWithFade;
@@ -202,6 +196,10 @@ public partial class OverlayWindow : Window
         if (CurrentGameSection.Visibility == Visibility.Visible)
         {
             FocusSection(NavigationTarget.CurrentGameSection);
+        }
+        else if (ShortcutsSection.Visibility == Visibility.Visible)
+        {
+            FocusSection(NavigationTarget.ShortcutsSection);
         }
         else if (RunningAppsSection.Visibility == Visibility.Visible)
         {
@@ -215,11 +213,9 @@ public partial class OverlayWindow : Window
 
     private void OnPreviewKeyDown(object sender, KeyEventArgs e)
     {
-        // If audio ComboBox dropdown is open, let it handle its own navigation
         if (AudioDeviceCombo.IsDropDownOpen && 
             (e.Key == Key.Up || e.Key == Key.Down || e.Key == Key.Enter))
         {
-            // Don't mark as handled - let the ComboBox receive these keys
             return;
         }
         
@@ -250,7 +246,6 @@ public partial class OverlayWindow : Window
                 return;
         }
         
-        // Consume all other keystrokes - don't pass any input to underlying applications
         e.Handled = true;
     }
 
@@ -285,15 +280,11 @@ public partial class OverlayWindow : Window
         isInsideSection = false;
         navigationTarget = section;
         
-        // Clear all item selections
         RunningAppsList.SelectedIndex = -1;
         RecentList.SelectedIndex = -1;
         
-        // Clear all section highlights
         ClearSectionHighlights();
         
-        // Highlight the target section and move keyboard focus to it
-        // This removes focus from buttons (hiding their borders) while keeping keyboard input working
         switch (section)
         {
             case NavigationTarget.CurrentGameSection:
@@ -301,11 +292,17 @@ public partial class OverlayWindow : Window
                 CurrentGameSection.BringIntoView();
                 Keyboard.Focus(CurrentGameSection);
                 break;
+            case NavigationTarget.ShortcutsSection:
+                ShortcutsSection.BorderBrush = HighlightBrush;
+                ShortcutsSection.BringIntoView();
+                Keyboard.Focus(ShortcutsSection);
+                break;
             case NavigationTarget.RunningAppsSection:
                 RunningAppsSection.BorderBrush = HighlightBrush;
                 RunningAppsSection.BringIntoView();
                 Keyboard.Focus(RunningAppsSection);
                 break;
+
             case NavigationTarget.RecentGamesSection:
                 RecentGamesSection.BorderBrush = HighlightBrush;
                 RecentGamesSection.BringIntoView();
@@ -317,6 +314,7 @@ public partial class OverlayWindow : Window
     private void ClearSectionHighlights()
     {
         CurrentGameSection.BorderBrush = TransparentBrush;
+        ShortcutsSection.BorderBrush = TransparentBrush;
         RunningAppsSection.BorderBrush = TransparentBrush;
         RecentGamesSection.BorderBrush = TransparentBrush;
     }
@@ -326,18 +324,25 @@ public partial class OverlayWindow : Window
         switch (current)
         {
             case NavigationTarget.CurrentGameSection:
-                // Wrap to last visible section
                 if (items.Count > 0) return NavigationTarget.RecentGamesSection;
+                if (ShortcutsSection.Visibility == Visibility.Visible) return NavigationTarget.ShortcutsSection;
                 if (runningApps.Count > 0) return NavigationTarget.RunningAppsSection;
-                return null; // Only one section visible
+                return null;
                 
-            case NavigationTarget.RunningAppsSection:
+            case NavigationTarget.ShortcutsSection:
+                if (runningApps.Count > 0) return NavigationTarget.RunningAppsSection;
                 if (CurrentGameSection.Visibility == Visibility.Visible) return NavigationTarget.CurrentGameSection;
-                // Wrap
                 if (items.Count > 0) return NavigationTarget.RecentGamesSection;
                 return null;
                 
+            case NavigationTarget.RunningAppsSection:
+                if (CurrentGameSection.Visibility == Visibility.Visible) return NavigationTarget.CurrentGameSection;
+                if (items.Count > 0) return NavigationTarget.RecentGamesSection;
+                if (ShortcutsSection.Visibility == Visibility.Visible) return NavigationTarget.ShortcutsSection;
+                return null;
+
             case NavigationTarget.RecentGamesSection:
+                if (ShortcutsSection.Visibility == Visibility.Visible) return NavigationTarget.ShortcutsSection;
                 if (runningApps.Count > 0) return NavigationTarget.RunningAppsSection;
                 if (CurrentGameSection.Visibility == Visibility.Visible) return NavigationTarget.CurrentGameSection;
                 return null;
@@ -353,19 +358,26 @@ public partial class OverlayWindow : Window
         {
             case NavigationTarget.CurrentGameSection:
                 if (runningApps.Count > 0) return NavigationTarget.RunningAppsSection;
+                if (ShortcutsSection.Visibility == Visibility.Visible) return NavigationTarget.ShortcutsSection;
                 if (items.Count > 0) return NavigationTarget.RecentGamesSection;
-                return null; // Only one section visible
+                return null;
+                
+            case NavigationTarget.ShortcutsSection:
+                if (items.Count > 0) return NavigationTarget.RecentGamesSection;
+                if (CurrentGameSection.Visibility == Visibility.Visible) return NavigationTarget.CurrentGameSection;
+                if (runningApps.Count > 0) return NavigationTarget.RunningAppsSection;
+                return null;
                 
             case NavigationTarget.RunningAppsSection:
+                if (ShortcutsSection.Visibility == Visibility.Visible) return NavigationTarget.ShortcutsSection;
                 if (items.Count > 0) return NavigationTarget.RecentGamesSection;
-                // Wrap
                 if (CurrentGameSection.Visibility == Visibility.Visible) return NavigationTarget.CurrentGameSection;
                 return null;
                 
             case NavigationTarget.RecentGamesSection:
-                // Wrap to first visible section
                 if (CurrentGameSection.Visibility == Visibility.Visible) return NavigationTarget.CurrentGameSection;
                 if (runningApps.Count > 0) return NavigationTarget.RunningAppsSection;
+                if (ShortcutsSection.Visibility == Visibility.Visible) return NavigationTarget.ShortcutsSection;
                 return null;
                 
             default:
@@ -388,11 +400,20 @@ public partial class OverlayWindow : Window
                 navigationTarget = NavigationTarget.SwitchButton;
                 FocusSwitchButton();
                 break;
+            case NavigationTarget.ShortcutsSection:
+                if (ShortcutsPanel != null && ShortcutsPanel.Children.Count > 0)
+                {
+                    navigationTarget = NavigationTarget.ShortcutItem;
+                    shortcutsSelectedIndex = 0;
+                    FocusShortcutButton(0);
+                }
+                break;
             case NavigationTarget.RunningAppsSection:
                 navigationTarget = NavigationTarget.RunningAppItem;
                 runningAppSelectedIndex = 0;
                 FocusRunningAppItem(0);
                 break;
+
             case NavigationTarget.RecentGamesSection:
                 navigationTarget = NavigationTarget.RecentGameItem;
                 selectedIndex = 0;
@@ -403,7 +424,6 @@ public partial class OverlayWindow : Window
 
     private void ExitToSectionLevel()
     {
-        // Determine which section we're in based on current navigation target
         NavigationTarget section;
         switch (navigationTarget)
         {
@@ -414,9 +434,13 @@ public partial class OverlayWindow : Window
             case NavigationTarget.AudioDeviceCombo:
                 section = NavigationTarget.CurrentGameSection;
                 break;
+            case NavigationTarget.ShortcutItem:
+                section = NavigationTarget.ShortcutsSection;
+                break;
             case NavigationTarget.RunningAppItem:
                 section = NavigationTarget.RunningAppsSection;
                 break;
+
             case NavigationTarget.RecentGameItem:
                 section = NavigationTarget.RecentGamesSection;
                 break;
@@ -507,6 +531,38 @@ public partial class OverlayWindow : Window
         CurrentGameSection.BringIntoView();
     }
 
+    private void FocusFirstShortcutButton()
+    {
+        if (ShortcutsPanel == null || ShortcutsPanel.Children.Count == 0) return;
+        FocusShortcutButton(0);
+    }
+
+    private void FocusShortcutButton(int index)
+    {
+        if (!Dispatcher.CheckAccess())
+        {
+            Dispatcher.Invoke(() => FocusShortcutButton(index));
+            return;
+        }
+
+        if (ShortcutsPanel == null || ShortcutsPanel.Children.Count == 0) return;
+
+        index = Math.Max(0, Math.Min(index, ShortcutsPanel.Children.Count - 1));
+
+        RunningAppsList.SelectedIndex = -1;
+        RecentList.SelectedIndex = -1;
+
+        navigationTarget = NavigationTarget.ShortcutItem;
+        shortcutsSelectedIndex = index;
+
+        var button = ShortcutsPanel.Children[index] as Button;
+        if (button != null)
+        {
+            button.Focus();
+            ShortcutsSection.BringIntoView();
+        }
+    }
+
     private void FocusRunningAppItem(int index)
     {
         if (!Dispatcher.CheckAccess())
@@ -574,7 +630,9 @@ public partial class OverlayWindow : Window
         container.BringIntoView();
         return true;
     }
+    #endregion
 
+    #region Navigation Commands
     #endregion
 
     #region Navigation Commands
@@ -583,7 +641,6 @@ public partial class OverlayWindow : Window
     {
         if (!isInsideSection)
         {
-            // Section-level: move to previous section
             var prev = GetPreviousVisibleSection(navigationTarget);
             if (prev.HasValue)
             {
@@ -592,11 +649,9 @@ public partial class OverlayWindow : Window
         }
         else
         {
-            // Item-level navigation
             switch (navigationTarget)
             {
                 case NavigationTarget.SwitchButton:
-                    // Already at top of CurrentGameSection, exit to section level
                     ExitToSectionLevel();
                     break;
 
@@ -634,6 +689,10 @@ public partial class OverlayWindow : Window
                     }
                     break;
 
+                case NavigationTarget.ShortcutItem:
+                    ExitToSectionLevel();
+                    break;
+
                 case NavigationTarget.RecentGameItem:
                     if (selectedIndex <= 0)
                     {
@@ -644,6 +703,7 @@ public partial class OverlayWindow : Window
                         FocusRecentGameItem(selectedIndex - 1);
                     }
                     break;
+
             }
         }
     }
@@ -652,7 +712,6 @@ public partial class OverlayWindow : Window
     {
         if (!isInsideSection)
         {
-            // Section-level: move to next section
             var next = GetNextVisibleSection(navigationTarget);
             if (next.HasValue)
             {
@@ -661,7 +720,6 @@ public partial class OverlayWindow : Window
         }
         else
         {
-            // Item-level navigation
             switch (navigationTarget)
             {
                 case NavigationTarget.SwitchButton:
@@ -720,6 +778,10 @@ public partial class OverlayWindow : Window
                     }
                     break;
 
+                case NavigationTarget.ShortcutItem:
+                    ExitToSectionLevel();
+                    break;
+
                 case NavigationTarget.RecentGameItem:
                     if (selectedIndex >= items.Count - 1)
                     {
@@ -730,6 +792,7 @@ public partial class OverlayWindow : Window
                         FocusRecentGameItem(selectedIndex + 1);
                     }
                     break;
+
             }
         }
     }
@@ -753,6 +816,11 @@ public partial class OverlayWindow : Window
             else if (navigationTarget == NavigationTarget.AudioDeviceCombo)
             {
                 FocusExitButton();
+            }
+            else if (navigationTarget == NavigationTarget.ShortcutItem)
+            {
+                shortcutsSelectedIndex = Math.Max(0, shortcutsSelectedIndex - 1);
+                FocusShortcutButton(shortcutsSelectedIndex);
             }
         }
     }
@@ -782,6 +850,11 @@ public partial class OverlayWindow : Window
                 {
                     FocusMuteBtn();
                 }
+            }
+            else if (navigationTarget == NavigationTarget.ShortcutItem)
+            {
+                shortcutsSelectedIndex = Math.Min(ShortcutsPanel.Children.Count - 1, shortcutsSelectedIndex + 1);
+                FocusShortcutButton(shortcutsSelectedIndex);
             }
         }
     }
@@ -837,12 +910,10 @@ public partial class OverlayWindow : Window
     {
         if (!isInsideSection)
         {
-            // Section-level: drill into the section
-            EnterSection(navigationTarget);
+                    EnterSection(navigationTarget);
         }
         else
         {
-            // Item-level: perform action
             switch (navigationTarget)
             {
                 case NavigationTarget.SwitchButton:
@@ -852,13 +923,11 @@ public partial class OverlayWindow : Window
                     ExitBtn.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
                     break;
                 case NavigationTarget.VolumeSlider:
-                    // Volume slider adjustment handled via Left/Right keys
                     break;
                 case NavigationTarget.MuteBtn:
                     MuteBtn.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
                     break;
                 case NavigationTarget.AudioDeviceCombo:
-                    // Open the ComboBox dropdown when Enter is pressed
                     AudioDeviceCombo.IsDropDownOpen = true;
                     break;
                 case NavigationTarget.RunningAppItem:
@@ -869,6 +938,15 @@ public partial class OverlayWindow : Window
                         Close();
                     }
                     break;
+                case NavigationTarget.ShortcutItem:
+                    if (ShortcutsPanel != null && shortcutsSelectedIndex >= 0 && shortcutsSelectedIndex < ShortcutsPanel.Children.Count)
+                    {
+                        if (ShortcutsPanel.Children[shortcutsSelectedIndex] is Button button)
+                        {
+                            button.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                        }
+                    }
+                    break;
                 case NavigationTarget.RecentGameItem:
                     if (selectedIndex >= 0 && selectedIndex < items.Count)
                     {
@@ -877,13 +955,13 @@ public partial class OverlayWindow : Window
                         Close();
                     }
                     break;
+
             }
         }
     }
 
     private void PerformCancel()
     {
-        // If the audio ComboBox dropdown is open, close it first
         if (AudioDeviceCombo.IsDropDownOpen)
         {
             AudioDeviceCombo.IsDropDownOpen = false;
@@ -892,12 +970,10 @@ public partial class OverlayWindow : Window
         
         if (isInsideSection)
         {
-            // Exit to section level
             ExitToSectionLevel();
         }
         else
         {
-            // Close overlay
             Close();
         }
     }
@@ -932,11 +1008,9 @@ public partial class OverlayWindow : Window
 
         AchievementsPanel.Visibility = Visibility.Visible;
 
-        // Display progress: "Achievements: 15/50 (30%)"
         var percentText = achievements.PercentComplete.ToString("F0");
         AchievementsProgress.Text = $"Achievements: {achievements.UnlockedCount}/{achievements.TotalCount} ({percentText}%)";
 
-        // Display recently unlocked achievements
         RecentAchievementsList.Children.Clear();
         foreach (var achievement in achievements.RecentlyUnlocked)
         {
@@ -944,14 +1018,13 @@ public partial class OverlayWindow : Window
             {
                 Text = $"\U0001F3C6 {achievement.Name}",
                 FontSize = 11,
-                Foreground = new SolidColorBrush(Color.FromRgb(0xFF, 0xD7, 0x00)), // Gold color
+                Foreground = new SolidColorBrush(Color.FromRgb(0xFF, 0xD7, 0x00)),
                 Margin = new Thickness(0, 2, 0, 0),
                 TextTrimming = TextTrimming.CharacterEllipsis
             };
             RecentAchievementsList.Children.Add(text);
         }
 
-        // Display locked achievements
         LockedAchievementsList.Children.Clear();
         foreach (var achievement in achievements.LockedToShow)
         {
@@ -959,7 +1032,7 @@ public partial class OverlayWindow : Window
             {
                 Text = $"\U0001F512 {achievement.Name}",
                 FontSize = 11,
-                Foreground = new SolidColorBrush(Color.FromRgb(0x88, 0x88, 0x88)), // Gray color
+                Foreground = new SolidColorBrush(Color.FromRgb(0x88, 0x88, 0x88)),
                 Margin = new Thickness(0, 2, 0, 0),
                 TextTrimming = TextTrimming.CharacterEllipsis
             };
@@ -976,10 +1049,8 @@ public partial class OverlayWindow : Window
 
     private void UpdateTimeDisplay()
     {
-        // Update current time (12-hour format)
         TimeDisplay.Text = DateTime.Now.ToString("h:mm tt");
 
-        // Update playtime display if game is active
         if (currentGameField?.ActivatedTime.HasValue == true && gameSwitcher != null)
         {
             var duration = gameSwitcher.GetSessionDuration(currentGameField.ActivatedTime);
@@ -1063,20 +1134,16 @@ public partial class OverlayWindow : Window
 
     private void OnAudioDeviceChanged(object sender, SelectionChangedEventArgs e)
     {
-        // Skip during initialization to avoid triggering device switch on setup
         if (isInitializingAudio) return;
         
         if (AudioDeviceCombo.SelectedItem is AudioDevice selectedDevice && onAudioDeviceChanged != null)
         {
             try
             {
-                // Call the callback with the device ID and a success handler
                 onAudioDeviceChanged(selectedDevice.Id, (success) =>
                 {
                     if (success)
                     {
-                        // Update IsDefault flags to reflect the new default device
-                        // This will trigger UI refresh thanks to INotifyPropertyChanged
                         if (AudioDeviceCombo.ItemsSource is IEnumerable<AudioDevice> devices)
                         {
                             foreach (var device in devices)
@@ -1085,16 +1152,113 @@ public partial class OverlayWindow : Window
                             }
                         }
                     }
-                    // If not successful, do nothing - the UI stays as-is (fail silently)
                 });
             }
             catch (Exception ex)
             {
-                // Log error but don't crash - this is a non-critical feature
                 System.Diagnostics.Debug.WriteLine($"Error changing audio device: {ex.Message}");
             }
         }
     }
+
+    #endregion
+
+    #region Shortcuts Setup
+    private void SetupShortcuts()
+    {
+        var buttonsToRemove = new List<Button>();
+        foreach (var child in ShortcutsPanel.Children.OfType<Button>())
+        {
+            buttonsToRemove.Add(child);
+        }
+        foreach (var button in buttonsToRemove)
+        {
+            ShortcutsPanel.Children.Remove(button);
+        }
+        foreach (var shortcut in shortcuts)
+        {
+            var button = new Button
+            {
+                Content = shortcut.Label,
+                Margin = new Thickness(0, 0, 8, 0),
+                Padding = new Thickness(16, 8, 16, 8),
+                MinWidth = 110,
+                Background = new SolidColorBrush(Color.FromRgb(0x3A, 0x3A, 0x3A)),
+                Foreground = new SolidColorBrush(Colors.White),
+                BorderBrush = TransparentBrush,
+                BorderThickness = new Thickness(2),
+                FontSize = 13,
+                FontWeight = FontWeights.Medium,
+                Cursor = Cursors.Hand,
+                Focusable = true,
+                IsTabStop = false
+            };
+            var style = new Style(typeof(Button));
+            var template = new ControlTemplate(typeof(Button));
+            var borderFactory = new FrameworkElementFactory(typeof(Border));
+            borderFactory.Name = "ButtonBorder";
+            borderFactory.SetValue(Border.BackgroundProperty, new TemplateBindingExtension(Button.BackgroundProperty));
+            borderFactory.SetValue(Border.BorderBrushProperty, new TemplateBindingExtension(Button.BorderBrushProperty));
+            borderFactory.SetValue(Border.BorderThicknessProperty, new TemplateBindingExtension(Button.BorderThicknessProperty));
+            borderFactory.SetValue(Border.CornerRadiusProperty, new CornerRadius(5));
+            borderFactory.SetValue(Border.PaddingProperty, new TemplateBindingExtension(Button.PaddingProperty));
+            var contentPresenterFactory = new FrameworkElementFactory(typeof(ContentPresenter));
+            contentPresenterFactory.SetValue(ContentPresenter.HorizontalAlignmentProperty, HorizontalAlignment.Center);
+            contentPresenterFactory.SetValue(ContentPresenter.VerticalAlignmentProperty, VerticalAlignment.Center);
+            borderFactory.AppendChild(contentPresenterFactory);
+            template.VisualTree = borderFactory;
+            style.Setters.Add(new Setter(Button.TemplateProperty, template));
+            style.Triggers.Add(new Trigger { Property = Button.IsMouseOverProperty, Value = true, Setters = { new Setter { Property = Border.BackgroundProperty, Value = new SolidColorBrush(Color.FromRgb(0x4A, 0x4A, 0x4A)) } } });
+            style.Triggers.Add(new Trigger { Property = Button.IsPressedProperty, Value = true, Setters = { new Setter { Property = Border.BackgroundProperty, Value = new SolidColorBrush(Color.FromRgb(0x2A, 0x2A, 0x2A)) } } });
+            style.Triggers.Add(new Trigger { Property = Button.IsKeyboardFocusedProperty, Value = true, Setters = { new Setter { Property = Border.BorderBrushProperty, Value = new SolidColorBrush(Colors.White) } } });
+            button.Style = style;
+            button.Click += (_, __) =>
+            {
+                EventHandler? closed = null;
+                closed = (s, e2) =>
+                {
+                    this.Closed -= closed;
+                    ExecuteShortcutAction(shortcut);
+                };
+                this.Closed += closed;
+                this.Close();
+            };
+            ShortcutsPanel.Children.Add(button);
+        }
+        ShortcutsSection.Visibility = shortcuts.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
+    }
+
+    private void ExecuteShortcutAction(Models.OverlayShortcut shortcut)
+    {
+        try
+        {
+            if (shortcut.ActionType == ShortcutActionType.SendInput)
+            {
+                NativeInput.SendHotkey(shortcut.Hotkey);
+                return;
+            }
+
+            if (!string.IsNullOrWhiteSpace(shortcut.Command))
+            {
+                var processStartInfo = new System.Diagnostics.ProcessStartInfo
+                {
+                    FileName = shortcut.Command,
+                    Arguments = shortcut.Arguments ?? string.Empty
+                };
+                var commandDirectory = Path.GetDirectoryName(shortcut.Command);
+                if (!string.IsNullOrEmpty(commandDirectory))
+                {
+                    processStartInfo.WorkingDirectory = commandDirectory;
+                }
+                System.Diagnostics.Process.Start(processStartInfo);
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error running shortcut action: {ex.Message}");
+        }
+    }
+
 
     #endregion
 
@@ -1106,16 +1270,11 @@ public partial class OverlayWindow : Window
 
         var hwnd = new WindowInteropHelper(this).Handle;
 
-        // Hide from Alt+Tab (no WPF alternative for this)
         var exStyle = GetWindowLong(hwnd, GWL_EXSTYLE);
         SetWindowLong(hwnd, GWL_EXSTYLE, exStyle | WS_EX_TOOLWINDOW);
 
-        // Reliably steal focus from the game using AttachThreadInput pattern.
-        // This ensures the overlay receives keyboard/controller input instead of
-        // the input bleeding through to the underlying game.
         Win32Window.ActivateOverlayWindow(hwnd);
 
-        // Topmost is now handled by WPF via Topmost="True" in XAML
     }
 
     private void OnClosingWithFade(object? sender, System.ComponentModel.CancelEventArgs e)
@@ -1135,7 +1294,6 @@ public partial class OverlayWindow : Window
             };
             anim.Completed += (_, __) =>
             {
-                // Detach handler to avoid re-entrancy and blinking
                 this.Closing -= OnClosingWithFade;
                 try { RootCard.Opacity = 0; } catch { }
                 this.Close();
@@ -1144,7 +1302,6 @@ public partial class OverlayWindow : Window
         }
         catch
         {
-            // If animation fails, detach and close immediately
             this.Closing -= OnClosingWithFade;
             this.Close();
         }
@@ -1154,19 +1311,16 @@ public partial class OverlayWindow : Window
 
     private enum NavigationTarget
     {
-        // Section-level (Level 1)
         CurrentGameSection,
+        ShortcutsSection,
         RunningAppsSection,
         RecentGamesSection,
-
-        // Item-level (Level 2) - inside CurrentGameSection
         SwitchButton,
         ExitButton,
         VolumeSlider,
         MuteBtn,
         AudioDeviceCombo,
-
-        // Item-level (Level 2) - inside list sections
+        ShortcutItem,
         RunningAppItem,
         RecentGameItem,
     }

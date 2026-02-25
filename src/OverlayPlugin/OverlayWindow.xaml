@@ -19,7 +19,6 @@
                           HorizontalScrollBarVisibility="Disabled"
                           Focusable="False">
                 <StackPanel>
-                    <!-- Header -->
                     <Grid Margin="0,0,0,20">
                         <TextBlock Text="Playnite Overlay" FontSize="24" FontWeight="SemiBold" 
                                    Foreground="#EEEEEE" HorizontalAlignment="Left" VerticalAlignment="Bottom"/>
@@ -31,7 +30,6 @@
                         </StackPanel>
                     </Grid>
                     
-                    <!-- Current Game Section (collapsed when no game running) -->
                     <Border x:Name="CurrentGameSection" Background="#252525" CornerRadius="8" 
                             Padding="20" Margin="0,0,0,20" Visibility="Collapsed"
                             BorderThickness="2" BorderBrush="Transparent" Focusable="True">
@@ -43,13 +41,11 @@
                                 <ColumnDefinition Width="220"/>
                             </Grid.ColumnDefinitions>
                             
-                            <!-- Cover Image -->
                             <Border Grid.Column="0" Background="#1A1A1A" CornerRadius="6" 
                                     Width="120" Height="160" HorizontalAlignment="Left" VerticalAlignment="Top">
                                 <Image x:Name="CurrentGameCover" Stretch="UniformToFill" ClipToBounds="True"/>
                             </Border>
                             
-                            <!-- Game Info -->
                             <StackPanel Grid.Column="2" VerticalAlignment="Top">
                                 <TextBlock Text="NOW PLAYING" FontSize="10" FontWeight="Bold" 
                                            Foreground="#888888" Margin="0,0,0,10"/>
@@ -59,7 +55,6 @@
                                 <TextBlock x:Name="CurrentGameInfo" FontSize="13" 
                                            Foreground="#AAAAAA" Margin="0,0,0,12" TextWrapping="Wrap"/>
                                 
-                                <!-- Achievements Section (hidden when no data) -->
                                 <StackPanel x:Name="AchievementsPanel" Visibility="Collapsed" Margin="0,0,0,12">
                                     <TextBlock x:Name="AchievementsProgress" FontSize="12" 
                                                Foreground="#AAAAAA" Margin="0,0,0,6"/>
@@ -67,7 +62,6 @@
                                     <StackPanel x:Name="LockedAchievementsList"/>
                                 </StackPanel>
                                 
-                                <!-- Action Buttons -->
                                 <StackPanel Orientation="Horizontal">
                                     <Button x:Name="SwitchBtn" Content="Return to Playnite" 
                                             Margin="0,0,12,0" Padding="16,8" MinWidth="150"
@@ -138,11 +132,9 @@
                                 </StackPanel>
                             </StackPanel>
                             
-                             <!-- Audio Device Selector (Top-Right Corner) -->
                              <StackPanel Grid.Column="3" Grid.Row="0" 
                                          VerticalAlignment="Top" HorizontalAlignment="Right" 
                                          Margin="12,0,0,0">
-                                <!-- Audio Controls Row: Combo + Mute Button -->
                                 <Grid x:Name="AudioControlsRow" Visibility="Collapsed">
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="*"/>
@@ -299,7 +291,6 @@
                                         </Button.Style>
                                     </Button>
                                 </Grid>
-                                <!-- Volume Slider (full width, below) -->
                                 <Border x:Name="VolumeControls"
                                         Background="#2A2A2A"
                                         BorderBrush="#3A3A3A"
@@ -408,8 +399,6 @@
                             </StackPanel>
                         </Grid>
                     </Border>
-                    
-                    <!-- Running Apps Section (shown when other apps detected) -->
                     <Border x:Name="RunningAppsSection" Background="#252525" CornerRadius="8" 
                             Padding="16" Margin="0,0,0,20" Visibility="Collapsed"
                             BorderThickness="2" BorderBrush="Transparent" Focusable="True">
@@ -458,26 +447,22 @@
                                                 <ColumnDefinition Width="Auto"/>
                                             </Grid.ColumnDefinitions>
                                             
-                                            <!-- Small icon/thumbnail -->
                                             <Border Grid.Column="0" Background="#1A1A1A" 
                                                     CornerRadius="4" Width="32" Height="32" 
                                                     Margin="0,0,12,0">
                                                 <Grid>
                                                     <Image Source="{Binding ImagePath}" 
                                                            Stretch="UniformToFill" ClipToBounds="True"/>
-                                                    <!-- Fallback icon -->
                                                     <TextBlock x:Name="NoAppImage" Text="🎮" FontSize="16" 
                                                                HorizontalAlignment="Center" VerticalAlignment="Center"
                                                                Foreground="#555555" Visibility="Collapsed"/>
                                                 </Grid>
                                             </Border>
                                             
-                                            <!-- App title -->
                                             <TextBlock Grid.Column="1" Text="{Binding Title}" 
                                                        FontSize="13" Foreground="#EEEEEE" FontWeight="Medium"
                                                        VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
                                             
-                                            <!-- Switch button -->
                                             <Button Grid.Column="2" Content="↗ Switch" Width="90" 
                                                     Height="30" VerticalAlignment="Center" 
                                                     CommandParameter="{Binding}"
@@ -514,7 +499,6 @@
                                             </Button>
                                         </Grid>
                                         <DataTemplate.Triggers>
-                                            <!-- Show fallback icon if ImagePath is null -->
                                             <DataTrigger Binding="{Binding ImagePath}" Value="{x:Null}">
                                                 <Setter TargetName="NoAppImage" Property="Visibility" Value="Visible"/>
                                             </DataTrigger>
@@ -525,14 +509,23 @@
                         </StackPanel>
                     </Border>
                     
-                    <!-- Recent Games Section -->
+                    <Border x:Name="ShortcutsSection" Background="#252525" CornerRadius="8" 
+                            Padding="16" Margin="0,0,0,20" Visibility="Collapsed"
+                            BorderThickness="2" BorderBrush="Transparent" Focusable="True">
+                        <StackPanel>
+                            <TextBlock Text="QUICK ACTIONS" FontSize="10" FontWeight="Bold" 
+                                       Foreground="#888888" Margin="0,0,0,10"/>
+                            
+                            <StackPanel x:Name="ShortcutsPanel" Orientation="Horizontal" />
+                        </StackPanel>
+                    </Border>
+                    
                     <Border x:Name="RecentGamesSection" Background="#252525" CornerRadius="8"
                             Padding="16" BorderThickness="2" BorderBrush="Transparent" Focusable="True">
                         <StackPanel>
                             <TextBlock Text="RECENT GAMES" FontSize="10" FontWeight="Bold" 
                                        Foreground="#888888" Margin="0,0,0,10"/>
                         
-                            <!-- Empty State (shown when no items) -->
                             <Border x:Name="EmptyState" Background="#1A1A1A" CornerRadius="6" 
                                     Padding="40,32" Visibility="Collapsed">
                             <StackPanel HorizontalAlignment="Center">
@@ -547,7 +540,6 @@
                             </StackPanel>
                         </Border>
                         
-                        <!-- Recent Games List -->
                         <ListBox x:Name="RecentList" Background="Transparent" 
                                  BorderThickness="0" HorizontalContentAlignment="Stretch" 
                                  Focusable="False"
@@ -590,21 +582,18 @@
                                             <ColumnDefinition Width="Auto"/>
                                         </Grid.ColumnDefinitions>
                                         
-                                        <!-- Small thumbnail -->
                                         <Border Grid.Column="0" Background="#1A1A1A" 
                                                 CornerRadius="4" Width="50" Height="68" 
                                                 Margin="0,0,14,0">
                                             <Grid>
                                                 <Image Source="{Binding ImagePath}" 
                                                        Stretch="UniformToFill" ClipToBounds="True"/>
-                                                <!-- Fallback text if no image -->
                                                 <TextBlock x:Name="NoImageText" Text="🎮" FontSize="24" 
                                                            HorizontalAlignment="Center" VerticalAlignment="Center"
                                                            Foreground="#555555" Visibility="Collapsed"/>
                                             </Grid>
                                         </Border>
                                         
-                                        <!-- Game info -->
                                         <StackPanel Grid.Column="1" VerticalAlignment="Center">
                                             <TextBlock Text="{Binding Title}" FontSize="14" 
                                                        Foreground="#EEEEEE" FontWeight="Medium" 
@@ -613,7 +602,6 @@
                                                        FontSize="11" Foreground="#888888"/>
                                         </StackPanel>
                                         
-                                        <!-- Play button -->
                                         <Button Grid.Column="2" Content="▶ Play" Width="90" 
                                                 Height="34" VerticalAlignment="Center" 
                                                 CommandParameter="{Binding}"
@@ -650,7 +638,6 @@
                                         </Button>
                                     </Grid>
                                     <DataTemplate.Triggers>
-                                        <!-- Show fallback icon if ImagePath is null -->
                                         <DataTrigger Binding="{Binding ImagePath}" Value="{x:Null}">
                                             <Setter TargetName="NoImageText" Property="Visibility" Value="Visible"/>
                                         </DataTrigger>
