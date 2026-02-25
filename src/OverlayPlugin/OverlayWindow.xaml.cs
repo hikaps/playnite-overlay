@@ -555,12 +555,24 @@ public partial class OverlayWindow : Window
         navigationTarget = NavigationTarget.ShortcutItem;
         shortcutsSelectedIndex = index;
 
-        var button = ShortcutsPanel.Children[index] as Button;
-        if (button != null)
+        // Use async fallback pattern like FocusRunningAppItem for robustness
+        if (!TryFocusShortcutButton())
         {
-            button.Focus();
-            ShortcutsSection.BringIntoView();
+            Dispatcher.BeginInvoke(() => TryFocusShortcutButton(), DispatcherPriority.Loaded);
         }
+    }
+
+    private bool TryFocusShortcutButton()
+    {
+        if (ShortcutsPanel == null || shortcutsSelectedIndex < 0 || shortcutsSelectedIndex >= ShortcutsPanel.Children.Count)
+            return false;
+
+        var button = ShortcutsPanel.Children[shortcutsSelectedIndex] as Button;
+        if (button == null) return false;
+
+        button.Focus();
+        ShortcutsSection.BringIntoView();
+        return true;
     }
 
     private void FocusRunningAppItem(int index)
@@ -690,14 +702,8 @@ public partial class OverlayWindow : Window
                     break;
 
                 case NavigationTarget.ShortcutItem:
-                    if (shortcutsSelectedIndex <= 0)
-                    {
-                        ExitToSectionLevel();
-                    }
-                    else
-                    {
-                        FocusShortcutButton(shortcutsSelectedIndex - 1);
-                    }
+                    // Shortcuts are horizontal - Up/Down should exit to section level, not change index
+                    ExitToSectionLevel();
                     break;
 
                 case NavigationTarget.RecentGameItem:
@@ -786,18 +792,8 @@ public partial class OverlayWindow : Window
                     break;
 
                 case NavigationTarget.ShortcutItem:
-                    if (ShortcutsPanel == null || ShortcutsPanel.Children.Count == 0)
-                    {
-                        ExitToSectionLevel();
-                    }
-                    else if (shortcutsSelectedIndex >= ShortcutsPanel.Children.Count - 1)
-                    {
-                        ExitToSectionLevel();
-                    }
-                    else
-                    {
-                        FocusShortcutButton(shortcutsSelectedIndex + 1);
-                    }
+                    // Shortcuts are horizontal - Up/Down should exit to section level, not change index
+                    ExitToSectionLevel();
                     break;
 
                 case NavigationTarget.RecentGameItem:
