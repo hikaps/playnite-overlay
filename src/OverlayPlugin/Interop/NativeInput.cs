@@ -251,7 +251,7 @@ internal static class NativeInput
             {
                 ki = new KEYBDINPUT
                 {
-                    wVk = vk,
+                    wVk = 0,
                     wScan = scan,
                     dwFlags = flags,
                     time = 0,
