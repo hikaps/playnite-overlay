@@ -10,6 +10,8 @@ internal static class NativeInput
 {
     private static readonly ILogger logger = LogManager.GetLogger();
 
+    private const uint KEYEVENTF_KEYUP = 0x0002;
+
     public static void SendHotkey(string? gesture)
     {
         if (string.IsNullOrWhiteSpace(gesture))
@@ -45,11 +47,50 @@ internal static class NativeInput
         if (result == 0)
         {
             var error = Marshal.GetLastWin32Error();
-            logger.Warn($"SendHotkey failed for '{gesture}'. Win32Error={error}.");
+            logger.Warn($"SendInput failed for '{gesture}'. Win32Error={error}. Trying keybd_event fallback...");
+
+            // Fallback to keybd_event
+            SendHotkeyViaKeybdEvent(modifiers, vk);
         }
         else
         {
             logger.Info($"SendHotkey success: sent {result} inputs for '{gesture}'");
+        }
+    }
+
+    private static void SendHotkeyViaKeybdEvent(ModifierKeys modifiers, ushort vk)
+    {
+        try
+        {
+            // Press modifiers
+            if (modifiers.HasFlag(ModifierKeys.Control))
+                keybd_event(0x11, 0, 0, 0);
+            if (modifiers.HasFlag(ModifierKeys.Shift))
+                keybd_event(0x10, 0, 0, 0);
+            if (modifiers.HasFlag(ModifierKeys.Alt))
+                keybd_event(0x12, 0, 0, 0);
+            if (modifiers.HasFlag(ModifierKeys.Windows))
+                keybd_event(0x5B, 0, 0, 0);
+
+            // Press and release main key
+            keybd_event((byte)vk, 0, 0, 0);
+            keybd_event((byte)vk, 0, KEYEVENTF_KEYUP, 0);
+
+            // Release modifiers (reverse order)
+            if (modifiers.HasFlag(ModifierKeys.Windows))
+                keybd_event(0x5B, 0, KEYEVENTF_KEYUP, 0);
+            if (modifiers.HasFlag(ModifierKeys.Alt))
+                keybd_event(0x12, 0, KEYEVENTF_KEYUP, 0);
+            if (modifiers.HasFlag(ModifierKeys.Shift))
+                keybd_event(0x10, 0, KEYEVENTF_KEYUP, 0);
+            if (modifiers.HasFlag(ModifierKeys.Control))
+                keybd_event(0x11, 0, KEYEVENTF_KEYUP, 0);
+
+            logger.Info($"SendHotkey: keybd_event fallback completed for vk=0x{vk:X2}");
+        }
+        catch (Exception ex)
+        {
+            logger.Error(ex, $"keybd_event fallback failed: {ex.Message}");
         }
     }
 
@@ -116,7 +157,7 @@ internal static class NativeInput
                 {
                     wVk = vk,
                     wScan = 0,
-                    dwFlags = keyUp ? 0x0002u : 0u,
+                    dwFlags = keyUp ? KEYEVENTF_KEYUP : 0u,
                     time = 0,
                     dwExtraInfo = IntPtr.Zero
                 }
@@ -124,8 +165,17 @@ internal static class NativeInput
         };
     }
 
+    #region Native Methods
+
     [DllImport("user32.dll", SetLastError = true)]
     private static extern uint SendInput(uint nInputs, INPUT[] pInputs, int cbSize);
+
+    [DllImport("user32.dll")]
+    private static extern void keybd_event(byte bVk, byte bScan, uint dwFlags, int dwExtraInfo);
+
+    #endregion
+
+    #region Native Structures
 
     [StructLayout(LayoutKind.Sequential)]
     private struct INPUT
@@ -150,4 +200,6 @@ internal static class NativeInput
         public uint time;
         public IntPtr dwExtraInfo;
     }
+
+    #endregion
 }
