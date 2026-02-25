@@ -39,7 +39,7 @@ internal static class NativeInput
             return;
         }
 
-        var result = SendInput((uint)inputs.Count, inputs.ToArray(), Marshal.SizeOf(typeof(INPUT)));
+        var result = SendInput((uint)inputs.Count, inputs.ToArray(), INPUT.Size);
         if (result == 0)
         {
             var error = Marshal.GetLastWin32Error();
@@ -83,19 +83,19 @@ internal static class NativeInput
     {
         if (modifiers.HasFlag(ModifierKeys.Control))
         {
-            inputs.Add(CreateKeyInput(0x11, !keyDown));
+            inputs.Add(CreateKeyInput(0x11, keyDown));
         }
         if (modifiers.HasFlag(ModifierKeys.Shift))
         {
-            inputs.Add(CreateKeyInput(0x10, !keyDown));
+            inputs.Add(CreateKeyInput(0x10, keyDown));
         }
         if (modifiers.HasFlag(ModifierKeys.Alt))
         {
-            inputs.Add(CreateKeyInput(0x12, !keyDown));
+            inputs.Add(CreateKeyInput(0x12, keyDown));
         }
         if (modifiers.HasFlag(ModifierKeys.Windows))
         {
-            inputs.Add(CreateKeyInput(0x5B, !keyDown));
+            inputs.Add(CreateKeyInput(0x5B, keyDown));
         }
     }
 
@@ -112,7 +112,7 @@ internal static class NativeInput
                     wScan = 0,
                     dwFlags = keyUp ? 0x0002u : 0u,
                     time = 0,
-                    dwExtraInfo = IntPtr.Zero
+                    dwExtraInfo = UIntPtr.Zero
                 }
             }
         };
@@ -126,13 +126,30 @@ internal static class NativeInput
     {
         public uint type;
         public InputUnion U;
+
+        public static readonly int Size = Marshal.SizeOf(typeof(INPUT));
     }
 
     [StructLayout(LayoutKind.Explicit)]
     private struct InputUnion
     {
         [FieldOffset(0)]
+        public MOUSEINPUT mi;
+        [FieldOffset(0)]
         public KEYBDINPUT ki;
+        [FieldOffset(0)]
+        public HARDWAREINPUT hi;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct MOUSEINPUT
+    {
+        public int dx;
+        public int dy;
+        public uint mouseData;
+        public uint dwFlags;
+        public uint time;
+        public UIntPtr dwExtraInfo;
     }
 
     [StructLayout(LayoutKind.Sequential)]
@@ -142,6 +159,14 @@ internal static class NativeInput
         public ushort wScan;
         public uint dwFlags;
         public uint time;
-        public IntPtr dwExtraInfo;
+        public UIntPtr dwExtraInfo;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct HARDWAREINPUT
+    {
+        public uint uMsg;
+        public ushort wParamL;
+        public ushort wParamH;
     }
 }
