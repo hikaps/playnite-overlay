@@ -119,6 +119,31 @@ Access settings through: **Playnite Menu** → **Add-ons** → **Extension setti
 - **Show Generic Apps**: Include non-game applications in RUNNING APPS section
 - **Max Running Apps**: Limit number of apps displayed (1-50, default: 10)
 
+### Shortcuts
+Configure custom shortcut buttons in the overlay that run shell commands:
+- **Add shortcuts** in settings (up to 10)
+- **Shortcuts appear** as buttons in a SHORTCUTS section in the overlay
+- **Click to execute** the configured command
+
+#### Example Configurations
+
+**ShareX Screenshot:**
+- Label: `Screenshot`
+- Command: `C:\Program Files\ShareX\ShareX.exe`
+- Arguments: `-screenshot`
+
+**OBS Recording:**
+- Label: `Record`
+- Command: `C:\Program Files\obs-studio\bin\64bit\obs64.exe`
+- Arguments: `--startrecording`
+
+**Simple Test:**
+- Label: `Notepad`
+- Command: `notepad.exe`
+- Arguments: (leave empty)
+
+> **Note:** Some tools (Steam F12, GeForce Experience Alt+F1, Xbox Game Bar) use hotkeys only and don't support command-line execution.
+
 ## Requirements
 
 - **Playnite**: Version compatible with PlayniteSDK 6.12.0+
