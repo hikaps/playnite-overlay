@@ -3,8 +3,13 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:models="clr-namespace:PlayniteOverlay.Models"
+             xmlns:converters="clr-namespace:PlayniteOverlay.Converters"
              mc:Ignorable="d"
              d:DesignWidth="540" d:DesignHeight="320">
+    <UserControl.Resources>
+        <converters:EnumToVisibilityConverter x:Key="EnumToVisibilityConverter" />
+    </UserControl.Resources>
     <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
         <StackPanel Margin="10" Orientation="Vertical" >
             <TextBlock Text="Overlay Settings" FontSize="16" FontWeight="Bold" Margin="0,0,0,10"/>
@@ -117,6 +122,114 @@
                     <TextBlock Margin="0,8,0,0" TextWrapping="Wrap"
                                Foreground="Orange"
                                Text="Note: This only works for games running in windowed mode. For games in true exclusive fullscreen, you'll need to change the game's display settings to Windowed or Borderless."/>
+                </StackPanel>
+            </GroupBox>
+            <GroupBox Header="Shortcuts">
+                <StackPanel Margin="10">
+                    <TextBlock Text="Configure custom shortcut buttons that appear in the overlay." TextWrapping="Wrap" Margin="0,0,0,10"/>
+                    <ScrollViewer MaxHeight="200" VerticalScrollBarVisibility="Auto">
+                        <ItemsControl x:Name="ShortcutsList" ItemsSource="{Binding Settings.Shortcuts}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Expander x:Name="ShortcutExpander" Margin="0,2,0,2"
+                                              Expanded="ShortcutExpander_Expanded">
+                                        <Expander.Header>
+                                            <Grid Margin="4,2">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="120"/>
+                                                    <ColumnDefinition Width="*"/>
+                                                </Grid.ColumnDefinitions>
+                                                <TextBlock Grid.Column="0" Text="{Binding Label}" FontWeight="Bold" Foreground="{DynamicResource TextBrush}" TextTrimming="None" TextWrapping="Wrap"/>
+                                                <TextBlock Grid.Column="1" Text="{Binding Command}" Foreground="{DynamicResource TextBrush}" TextTrimming="None" TextWrapping="Wrap" Margin="8,0,0,0"/>
+                                            </Grid>
+                                        </Expander.Header>
+                                        <Grid Margin="5,5,5,5">
+                                            <Grid.RowDefinitions>
+                                                <RowDefinition Height="Auto"/>
+                                                <RowDefinition Height="Auto"/>
+                                                <RowDefinition Height="Auto"/>
+                                                <RowDefinition Height="Auto"/>
+                                                <RowDefinition Height="Auto"/>
+                                                <RowDefinition Height="Auto"/>
+                                            </Grid.RowDefinitions>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="70"/>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+
+                                            <TextBlock Grid.Row="0" Grid.Column="0" Text="Label:" VerticalAlignment="Center" Foreground="{DynamicResource TextBrush}"/>
+                                            <TextBox Grid.Row="0" Grid.Column="1" Grid.ColumnSpan="2"
+                                                     Text="{Binding Label, UpdateSourceTrigger=PropertyChanged}"
+                                                     Margin="0,0,0,6"
+                                                     Foreground="{DynamicResource TextBrush}"/>
+
+                                            <TextBlock Grid.Row="1" Grid.Column="0" Text="Action:" VerticalAlignment="Center" Foreground="{DynamicResource TextBrush}"/>
+                                            <ComboBox Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2" Margin="0,0,0,6"
+                                                      SelectedValuePath="Tag"
+                                                      SelectedValue="{Binding ActionType}"
+                                                      Foreground="{DynamicResource TextBrush}">
+                                                <ComboBoxItem Content="CommandLine" Tag="{x:Static models:ShortcutActionType.CommandLine}"/>
+                                                <ComboBoxItem Content="SendInput" Tag="{x:Static models:ShortcutActionType.SendInput}"/>
+                                            </ComboBox>
+
+                                            <TextBlock Grid.Row="2" Grid.Column="0" Text="Command:" VerticalAlignment="Center" Foreground="{DynamicResource TextBrush}"
+                                                       Visibility="{Binding ActionType, Converter={StaticResource EnumToVisibilityConverter}, ConverterParameter={x:Static models:ShortcutActionType.CommandLine}}"/>
+                                            <TextBox Grid.Row="2" Grid.Column="1"
+                                                     Text="{Binding Command, UpdateSourceTrigger=PropertyChanged}"
+                                                     Margin="0,0,0,6"
+                                                     Foreground="{DynamicResource TextBrush}"
+                                                     Visibility="{Binding ActionType, Converter={StaticResource EnumToVisibilityConverter}, ConverterParameter={x:Static models:ShortcutActionType.CommandLine}}"/>
+                                            <Button Grid.Row="2" Grid.Column="2" Content="Browse"
+                                                    MinWidth="70" Margin="5,0,0,6"
+                                                    Click="ShortcutBrowse_Click"
+                                                    Tag="{Binding}"
+                                                    Foreground="{DynamicResource TextBrush}"
+                                                    Visibility="{Binding ActionType, Converter={StaticResource EnumToVisibilityConverter}, ConverterParameter={x:Static models:ShortcutActionType.CommandLine}}"/>
+
+                                            <TextBlock Grid.Row="3" Grid.Column="0" Text="Arguments:" VerticalAlignment="Center" Foreground="{DynamicResource TextBrush}"
+                                                       Visibility="{Binding ActionType, Converter={StaticResource EnumToVisibilityConverter}, ConverterParameter={x:Static models:ShortcutActionType.CommandLine}}"/>
+                                            <TextBox Grid.Row="3" Grid.Column="1" Grid.ColumnSpan="2"
+                                                     Text="{Binding Arguments, UpdateSourceTrigger=PropertyChanged}"
+                                                     Margin="0,0,0,6"
+                                                     Foreground="{DynamicResource TextBrush}"
+                                                     Visibility="{Binding ActionType, Converter={StaticResource EnumToVisibilityConverter}, ConverterParameter={x:Static models:ShortcutActionType.CommandLine}}"/>
+
+                                            <TextBlock Grid.Row="4" Grid.Column="0" Text="Hotkey:" VerticalAlignment="Center" Foreground="{DynamicResource TextBrush}"
+                                                       Visibility="{Binding ActionType, Converter={StaticResource EnumToVisibilityConverter}, ConverterParameter={x:Static models:ShortcutActionType.SendInput}}"/>
+                                            <Grid Grid.Row="4" Grid.Column="1" Grid.ColumnSpan="2" Margin="0,0,0,6"
+                                                  Visibility="{Binding ActionType, Converter={StaticResource EnumToVisibilityConverter}, ConverterParameter={x:Static models:ShortcutActionType.SendInput}}">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*"/>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                </Grid.ColumnDefinitions>
+                                                <TextBox Grid.Column="0"
+                                                         Text="{Binding Hotkey}"
+                                                         IsReadOnly="True"
+                                                         PreviewKeyDown="ShortcutHotkey_PreviewKeyDown"
+                                                         Tag="{Binding}"
+                                                         Foreground="{DynamicResource TextBrush}"/>
+                                                <Button Grid.Column="1" Content="Clear" Margin="6,0,0,0"
+                                                        Click="ShortcutHotkey_Clear_Click"
+                                                        Tag="{Binding}"
+                                                        Foreground="{DynamicResource TextBrush}"/>
+                                            </Grid>
+
+                                            <Button Grid.Row="5" Grid.Column="2" Content="Delete"
+                                                    MinWidth="70" HorizontalAlignment="Right"
+                                                    Click="ShortcutDelete_Click"
+                                                    Tag="{Binding}"
+                                                    Foreground="{DynamicResource TextBrush}"/>
+                                        </Grid>
+                                    </Expander>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+                    <Button x:Name="AddShortcutBtn" Content="+ Add Shortcut"
+                            HorizontalAlignment="Left" Margin="0,10,0,0"
+                            Click="AddShortcutBtn_Click"/>
+                    <TextBlock Text="Maximum 10 shortcuts" FontSize="10" Foreground="Gray" Margin="0,5,0,0"/>
                 </StackPanel>
             </GroupBox>
         </StackPanel>
