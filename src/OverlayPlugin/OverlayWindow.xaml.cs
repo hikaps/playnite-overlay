@@ -1221,10 +1221,21 @@ public partial class OverlayWindow : Window
             contentPresenterFactory.SetValue(ContentPresenter.VerticalAlignmentProperty, VerticalAlignment.Center);
             borderFactory.AppendChild(contentPresenterFactory);
             template.VisualTree = borderFactory;
+            
+            // Add triggers to ControlTemplate (not Style) so we can use TargetName
+            var mouseOverTrigger = new Trigger { Property = Button.IsMouseOverProperty, Value = true };
+            mouseOverTrigger.Setters.Add(new Setter { TargetName = "ButtonBorder", Property = Border.BackgroundProperty, Value = new SolidColorBrush(Color.FromRgb(0x4A, 0x4A, 0x4A)) });
+            template.Triggers.Add(mouseOverTrigger);
+            
+            var pressedTrigger = new Trigger { Property = Button.IsPressedProperty, Value = true };
+            pressedTrigger.Setters.Add(new Setter { TargetName = "ButtonBorder", Property = Border.BackgroundProperty, Value = new SolidColorBrush(Color.FromRgb(0x2A, 0x2A, 0x2A)) });
+            template.Triggers.Add(pressedTrigger);
+            
+            var focusTrigger = new Trigger { Property = Button.IsKeyboardFocusedProperty, Value = true };
+            focusTrigger.Setters.Add(new Setter { TargetName = "ButtonBorder", Property = Border.BorderBrushProperty, Value = new SolidColorBrush(Colors.White) });
+            template.Triggers.Add(focusTrigger);
+            
             style.Setters.Add(new Setter(Button.TemplateProperty, template));
-            style.Triggers.Add(new Trigger { Property = Button.IsMouseOverProperty, Value = true, Setters = { new Setter { Property = Button.BackgroundProperty, Value = new SolidColorBrush(Color.FromRgb(0x4A, 0x4A, 0x4A)) } } });
-            style.Triggers.Add(new Trigger { Property = Button.IsPressedProperty, Value = true, Setters = { new Setter { Property = Button.BackgroundProperty, Value = new SolidColorBrush(Color.FromRgb(0x2A, 0x2A, 0x2A)) } } });
-            style.Triggers.Add(new Trigger { Property = Button.IsKeyboardFocusedProperty, Value = true, Setters = { new Setter { Property = Button.BorderBrushProperty, Value = new SolidColorBrush(Colors.White) } } });
             button.Style = style;
             button.Click += (_, __) =>
             {
