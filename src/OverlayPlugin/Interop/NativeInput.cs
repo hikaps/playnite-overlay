@@ -81,21 +81,23 @@ internal static class NativeInput
 
     private static void AddModifierInputs(List<INPUT> inputs, ModifierKeys modifiers, bool keyDown)
     {
+        // keyDown=true means press (keyUp=false), keyDown=false means release (keyUp=true)
+        var keyUp = !keyDown;
         if (modifiers.HasFlag(ModifierKeys.Control))
         {
-            inputs.Add(CreateKeyInput(0x11, keyDown));
+            inputs.Add(CreateKeyInput(0x11, keyUp));
         }
         if (modifiers.HasFlag(ModifierKeys.Shift))
         {
-            inputs.Add(CreateKeyInput(0x10, keyDown));
+            inputs.Add(CreateKeyInput(0x10, keyUp));
         }
         if (modifiers.HasFlag(ModifierKeys.Alt))
         {
-            inputs.Add(CreateKeyInput(0x12, keyDown));
+            inputs.Add(CreateKeyInput(0x12, keyUp));
         }
         if (modifiers.HasFlag(ModifierKeys.Windows))
         {
-            inputs.Add(CreateKeyInput(0x5B, keyDown));
+            inputs.Add(CreateKeyInput(0x5B, keyUp));
         }
     }
 
