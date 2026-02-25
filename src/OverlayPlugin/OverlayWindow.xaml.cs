@@ -10,6 +10,7 @@ using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
+using Playnite.SDK;
 using PlayniteOverlay.Models;
 using PlayniteOverlay.Services;
 using PlayniteOverlay.Interop;
@@ -18,6 +19,8 @@ namespace PlayniteOverlay;
 
 public partial class OverlayWindow : Window
 {
+    private static readonly ILogger logger = LogManager.GetLogger();
+
     [DllImport("user32.dll")]
     private static extern int GetWindowLong(IntPtr hWnd, int nIndex);
 
@@ -1257,8 +1260,11 @@ public partial class OverlayWindow : Window
     {
         try
         {
-            if (shortcut.ActionType == ShortcutActionType.SendInput)
+        if (shortcut.ActionType == ShortcutActionType.SendInput)
             {
+                logger.Info($"ExecuteShortcutAction: Sending hotkey '{shortcut.Hotkey}'");
+                // Small delay to let focus return to target window after overlay closes
+                System.Threading.Thread.Sleep(100);
                 NativeInput.SendHotkey(shortcut.Hotkey);
                 return;
             }

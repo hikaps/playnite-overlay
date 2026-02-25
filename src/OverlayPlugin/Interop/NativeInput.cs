@@ -39,11 +39,17 @@ internal static class NativeInput
             return;
         }
 
+        logger.Info($"SendHotkey: gesture='{gesture}', modifiers={modifiers}, keyToken='{keyToken}', vk=0x{vk:X4}, inputCount={inputs.Count}");
+
         var result = SendInput((uint)inputs.Count, inputs.ToArray(), INPUT.Size);
         if (result == 0)
         {
             var error = Marshal.GetLastWin32Error();
             logger.Warn($"SendHotkey failed for '{gesture}'. Win32Error={error}.");
+        }
+        else
+        {
+            logger.Info($"SendHotkey success: sent {result} inputs for '{gesture}'");
         }
     }
 
