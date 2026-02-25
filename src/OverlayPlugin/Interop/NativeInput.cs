@@ -23,20 +23,19 @@ internal static class NativeInput
     // Static constructor to verify struct sizes at startup
     static NativeInput()
     {
-        int inputSize = Marshal.SizeOf(typeof(INPUT));
-        int keybdinputSize = Marshal.SizeOf(typeof(KEYBDINPUT));
         int ptrSize = IntPtr.Size;
+        int keybdinputSize = Marshal.SizeOf(typeof(KEYBDINPUT));
         
-        // Log struct sizes for debugging
-        // Expected on 64-bit: INPUT=32, KEYBDINPUT=24, IntPtr=8
-        // Expected on 32-bit: INPUT=28, KEYBDINPUT=20, IntPtr=4
-        LogManager.GetLogger().Info($"NativeInput struct sizes: INPUT={inputSize}, KEYBDINPUT={keybdinputSize}, IntPtr={ptrSize}");
+        // Expected sizes:
+        // 32-bit: KEYBDINPUT = 16 bytes (2+2+4+4+4)
+        // 64-bit: KEYBDINPUT = 24 bytes (2+2+4+4+4padding+8)
+        int expectedKbSize = ptrSize == 8 ? 24 : 16;
         
-        // Verify expected sizes (INPUT should be 32 on 64-bit, 28 on 32-bit)
-        int expectedInputSize = IntPtr.Size == 8 ? 32 : 28;
-        if (inputSize != expectedInputSize)
+        logger.Info($"NativeInput: IntPtr={ptrSize}, KEYBDINPUT={keybdinputSize} (expected {expectedKbSize})");
+        
+        if (keybdinputSize != expectedKbSize)
         {
-            LogManager.GetLogger().Warn($"NativeInput: INPUT struct size mismatch! Expected {expectedInputSize}, got {inputSize}. SendInput may not work correctly.");
+            logger.Warn($"NativeInput: KEYBDINPUT struct size mismatch! SendInput may not work correctly.");
         }
     }
 
@@ -64,9 +63,6 @@ internal static class NativeInput
         var vk = (ushort)KeyInterop.VirtualKeyFromKey(key);
         logger.Info($"SendHotkey: gesture='{gesture}', vk=0x{vk:X2}");
 
-        // Use SendInput with delays between key events for OBS compatibility
-        // OBS polls GetAsyncKeyState every 25ms, so we need delays to ensure
-        // the polling thread sees the key down state before key up is processed
         SendHotkeyWithDelays(modifiers, vk);
     }
 
@@ -78,67 +74,15 @@ internal static class NativeInput
     {
         try
         {
-            var inputs = new List<INPUT>();
-            int inputSize = Marshal.SizeOf(typeof(INPUT));
-            
-            logger.Debug($"SendHotkeyWithDelays: inputSize={inputSize}, vk=0x{vk:X2}, modifiers={modifiers}");
-
-            // 1. Press modifiers
-            AddModifierInputs(inputs, modifiers, keyDown: true);
-            if (inputs.Count > 0)
+            // Use 64-bit or 32-bit code path based on IntPtr size
+            if (IntPtr.Size == 8)
             {
-                uint sent = SendInput((uint)inputs.Count, inputs.ToArray(), inputSize);
-                logger.Debug($"SendHotkeyWithDelays: Sent {sent}/{inputs.Count} modifier down events");
-                if (sent == 0)
-                {
-                    var err = Marshal.GetLastWin32Error();
-                    logger.Warn($"SendHotkeyWithDelays: SendInput failed for modifiers, Win32Error={err}");
-                }
-                Thread.Sleep(ModifierDelayMs);
+                SendHotkey64(modifiers, vk);
             }
-
-            // 2. Press main key
-            inputs.Clear();
-            inputs.Add(CreateKeyInput(vk, keyUp: false));
-            uint sentKey = SendInput(1, inputs.ToArray(), inputSize);
-            logger.Debug($"SendHotkeyWithDelays: Sent {sentKey}/1 key down events");
-            if (sentKey == 0)
+            else
             {
-                var err = Marshal.GetLastWin32Error();
-                logger.Warn($"SendHotkeyWithDelays: SendInput failed for key down, Win32Error={err}");
+                SendHotkey32(modifiers, vk);
             }
-
-            // 3. Wait long enough for polling detectors to see the key down
-            // OBS polls every 25ms, so 50ms ensures at least one poll sees it
-            Thread.Sleep(KeyHoldDelayMs);
-
-            // 4. Release main key
-            inputs.Clear();
-            inputs.Add(CreateKeyInput(vk, keyUp: true));
-            uint sentKeyUp = SendInput(1, inputs.ToArray(), inputSize);
-            logger.Debug($"SendHotkeyWithDelays: Sent {sentKeyUp}/1 key up events");
-            if (sentKeyUp == 0)
-            {
-                var err = Marshal.GetLastWin32Error();
-                logger.Warn($"SendHotkeyWithDelays: SendInput failed for key up, Win32Error={err}");
-            }
-            Thread.Sleep(ModifierDelayMs);
-
-            // 5. Release modifiers
-            inputs.Clear();
-            AddModifierInputs(inputs, modifiers, keyDown: false);
-            if (inputs.Count > 0)
-            {
-                uint sentModsUp = SendInput((uint)inputs.Count, inputs.ToArray(), inputSize);
-                logger.Debug($"SendHotkeyWithDelays: Sent {sentModsUp}/{inputs.Count} modifier up events");
-                if (sentModsUp == 0)
-                {
-                    var err = Marshal.GetLastWin32Error();
-                    logger.Warn($"SendHotkeyWithDelays: SendInput failed for modifiers up, Win32Error={err}");
-                }
-            }
-
-            logger.Info($"SendHotkeyWithDelays: completed for vk=0x{vk:X2}");
         }
         catch (Exception ex)
         {
@@ -147,6 +91,85 @@ internal static class NativeInput
             SendHotkeyViaKeybdEvent(modifiers, vk);
         }
     }
+
+    private static void SendHotkey32(ModifierKeys modifiers, ushort vk)
+    {
+        var inputs = new List<INPUT32>();
+        int inputSize = Marshal.SizeOf(typeof(INPUT32));
+
+        logger.Debug($"SendHotkey32: inputSize={inputSize}, vk=0x{vk:X2}, modifiers={modifiers}");
+
+        // 1. Press modifiers
+        AddModifierInputs32(inputs, modifiers, keyDown: true);
+        if (inputs.Count > 0)
+        {
+            uint sent = SendInput32((uint)inputs.Count, inputs.ToArray(), inputSize);
+            logger.Debug($"SendHotkey32: Sent {sent}/{inputs.Count} modifier down events");
+            Thread.Sleep(ModifierDelayMs);
+        }
+
+        // 2. Press main key
+        inputs.Clear();
+        inputs.Add(CreateKeyInput32(vk, keyUp: false));
+        SendInput32(1, inputs.ToArray(), inputSize);
+        Thread.Sleep(KeyHoldDelayMs);
+
+        // 3. Release main key
+        inputs.Clear();
+        inputs.Add(CreateKeyInput32(vk, keyUp: true));
+        SendInput32(1, inputs.ToArray(), inputSize);
+        Thread.Sleep(ModifierDelayMs);
+
+        // 4. Release modifiers
+        inputs.Clear();
+        AddModifierInputs32(inputs, modifiers, keyDown: false);
+        if (inputs.Count > 0)
+        {
+            SendInput32((uint)inputs.Count, inputs.ToArray(), inputSize);
+        }
+
+        logger.Info($"SendHotkey32: completed for vk=0x{vk:X2}");
+    }
+
+    private static void SendHotkey64(ModifierKeys modifiers, ushort vk)
+    {
+        var inputs = new List<INPUT64>();
+        int inputSize = Marshal.SizeOf(typeof(INPUT64));
+
+        logger.Debug($"SendHotkey64: inputSize={inputSize}, vk=0x{vk:X2}, modifiers={modifiers}");
+
+        // 1. Press modifiers
+        AddModifierInputs64(inputs, modifiers, keyDown: true);
+        if (inputs.Count > 0)
+        {
+            uint sent = SendInput64((uint)inputs.Count, inputs.ToArray(), inputSize);
+            logger.Debug($"SendHotkey64: Sent {sent}/{inputs.Count} modifier down events");
+            Thread.Sleep(ModifierDelayMs);
+        }
+
+        // 2. Press main key
+        inputs.Clear();
+        inputs.Add(CreateKeyInput64(vk, keyUp: false));
+        SendInput64(1, inputs.ToArray(), inputSize);
+        Thread.Sleep(KeyHoldDelayMs);
+
+        // 3. Release main key
+        inputs.Clear();
+        inputs.Add(CreateKeyInput64(vk, keyUp: true));
+        SendInput64(1, inputs.ToArray(), inputSize);
+        Thread.Sleep(ModifierDelayMs);
+
+        // 4. Release modifiers
+        inputs.Clear();
+        AddModifierInputs64(inputs, modifiers, keyDown: false);
+        if (inputs.Count > 0)
+        {
+            SendInput64((uint)inputs.Count, inputs.ToArray(), inputSize);
+        }
+
+        logger.Info($"SendHotkey64: completed for vk=0x{vk:X2}");
+    }
+
     private static void SendHotkeyViaKeybdEvent(ModifierKeys modifiers, ushort vk)
     {
         try
@@ -211,30 +234,30 @@ internal static class NativeInput
         }
     }
 
-    private static void AddModifierInputs(List<INPUT> inputs, ModifierKeys modifiers, bool keyDown)
+    #region 32-bit Helpers
+
+    private static void AddModifierInputs32(List<INPUT32> inputs, ModifierKeys modifiers, bool keyDown)
     {
-        // Note: When keyDown=true, we add key-down inputs
-        // When keyDown=false, we add key-up inputs
         var flags = keyDown ? 0u : KEYEVENTF_KEYUP;
 
         if (modifiers.HasFlag(ModifierKeys.Control))
-            inputs.Add(CreateKeyInputWithFlags(0x11, flags));
+            inputs.Add(CreateKeyInput32WithFlags(0x11, flags));
         if (modifiers.HasFlag(ModifierKeys.Shift))
-            inputs.Add(CreateKeyInputWithFlags(0x10, flags));
+            inputs.Add(CreateKeyInput32WithFlags(0x10, flags));
         if (modifiers.HasFlag(ModifierKeys.Alt))
-            inputs.Add(CreateKeyInputWithFlags(0x12, flags));
+            inputs.Add(CreateKeyInput32WithFlags(0x12, flags));
         if (modifiers.HasFlag(ModifierKeys.Windows))
-            inputs.Add(CreateKeyInputWithFlags(0x5B, flags));
+            inputs.Add(CreateKeyInput32WithFlags(0x5B, flags));
     }
 
-    private static INPUT CreateKeyInput(ushort vk, bool keyUp)
+    private static INPUT32 CreateKeyInput32(ushort vk, bool keyUp)
     {
-        return CreateKeyInputWithFlags(vk, keyUp ? KEYEVENTF_KEYUP : 0u);
+        return CreateKeyInput32WithFlags(vk, keyUp ? KEYEVENTF_KEYUP : 0u);
     }
 
-    private static INPUT CreateKeyInputWithFlags(ushort vk, uint flags)
+    private static INPUT32 CreateKeyInput32WithFlags(ushort vk, uint flags)
     {
-        return new INPUT
+        return new INPUT32
         {
             type = INPUT_KEYBOARD,
             ki = new KEYBDINPUT
@@ -248,34 +271,89 @@ internal static class NativeInput
         };
     }
 
+    #endregion
+
+    #region 64-bit Helpers
+
+    private static void AddModifierInputs64(List<INPUT64> inputs, ModifierKeys modifiers, bool keyDown)
+    {
+        var flags = keyDown ? 0u : KEYEVENTF_KEYUP;
+
+        if (modifiers.HasFlag(ModifierKeys.Control))
+            inputs.Add(CreateKeyInput64WithFlags(0x11, flags));
+        if (modifiers.HasFlag(ModifierKeys.Shift))
+            inputs.Add(CreateKeyInput64WithFlags(0x10, flags));
+        if (modifiers.HasFlag(ModifierKeys.Alt))
+            inputs.Add(CreateKeyInput64WithFlags(0x12, flags));
+        if (modifiers.HasFlag(ModifierKeys.Windows))
+            inputs.Add(CreateKeyInput64WithFlags(0x5B, flags));
+    }
+
+    private static INPUT64 CreateKeyInput64(ushort vk, bool keyUp)
+    {
+        return CreateKeyInput64WithFlags(vk, keyUp ? KEYEVENTF_KEYUP : 0u);
+    }
+
+    private static INPUT64 CreateKeyInput64WithFlags(ushort vk, uint flags)
+    {
+        return new INPUT64
+        {
+            type = INPUT_KEYBOARD,
+            ki = new KEYBDINPUT
+            {
+                wVk = vk,
+                wScan = 0,
+                dwFlags = flags,
+                time = 0,
+                dwExtraInfo = IntPtr.Zero
+            }
+        };
+    }
+
+    #endregion
+
     #region Native Methods
 
-    [DllImport("user32.dll", SetLastError = true)]
-    private static extern uint SendInput(uint nInputs, INPUT[] pInputs, int cbSize);
+    [DllImport("user32.dll", SetLastError = true, EntryPoint = "SendInput")]
+    private static extern uint SendInput32(uint nInputs, INPUT32[] pInputs, int cbSize);
+
+    [DllImport("user32.dll", SetLastError = true, EntryPoint = "SendInput")]
+    private static extern uint SendInput64(uint nInputs, INPUT64[] pInputs, int cbSize);
 
     [DllImport("user32.dll")]
     private static extern void keybd_event(byte bVk, byte bScan, uint dwFlags, int dwExtraInfo);
 
     #endregion
 
-    #region Native Structures (64-bit aligned)
+    #region Native Structures
 
-    // On 64-bit Windows, the INPUT struct requires proper alignment:
-    // - type (DWORD, 4 bytes) at offset 0
-    // - 4 bytes of padding (to align union to 8-byte boundary)
-    // - KEYBDINPUT starts at offset 8
-    // This matches Microsoft's PowerToys implementation.
-
-    [StructLayout(LayoutKind.Explicit)]
-    private struct INPUT
+    // 32-bit INPUT struct (KEYBDINPUT at offset 4)
+    // Size: 4 (type) + 16 (KEYBDINPUT) = 20 bytes
+    [StructLayout(LayoutKind.Explicit, Size = 20)]
+    private struct INPUT32
     {
         [FieldOffset(0)]
         public int type;
 
-        [FieldOffset(8)]  // Offset 8 for 64-bit alignment (4 bytes type + 4 bytes padding)
+        [FieldOffset(4)]
         public KEYBDINPUT ki;
     }
 
+    // 64-bit INPUT struct (KEYBDINPUT at offset 8)
+    // Size: 4 (type) + 4 (padding) + 24 (KEYBDINPUT) = 32 bytes
+    [StructLayout(LayoutKind.Explicit, Size = 32)]
+    private struct INPUT64
+    {
+        [FieldOffset(0)]
+        public int type;
+
+        [FieldOffset(8)]
+        public KEYBDINPUT ki;
+    }
+
+    // KEYBDINPUT structure
+    // 32-bit: 2+2+4+4+4 = 16 bytes
+    // 64-bit: 2+2+4+4+4(padding)+8 = 24 bytes
     [StructLayout(LayoutKind.Sequential)]
     private struct KEYBDINPUT
     {
