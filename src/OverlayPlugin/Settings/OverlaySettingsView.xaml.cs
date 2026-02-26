@@ -122,7 +122,7 @@ public partial class OverlaySettingsView : UserControl
 
     private void ShortcutBrowse_Click(object sender, RoutedEventArgs e)
     {
-        if (sender is Button button && button.Tag is OverlayShortcut shortcut)
+        if (sender is Button { Tag: OverlayShortcut shortcut })
         {
             var dialog = new Microsoft.Win32.OpenFileDialog
             {
@@ -196,7 +196,7 @@ public partial class OverlaySettingsView : UserControl
 
     private void ShortcutHotkey_Clear_Click(object sender, RoutedEventArgs e)
     {
-        if (sender is Button button && button.Tag is OverlayShortcut shortcut)
+        if (sender is Button { Tag: OverlayShortcut shortcut })
         {
             shortcut.Hotkey = string.Empty;
         }

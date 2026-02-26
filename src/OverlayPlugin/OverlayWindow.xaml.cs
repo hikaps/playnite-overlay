@@ -737,8 +737,6 @@ public partial class OverlayWindow : Window
     }
     #endregion
 
-    #region Navigation Commands
-    #endregion
 
     #region Navigation Commands
 
@@ -1037,7 +1035,7 @@ public partial class OverlayWindow : Window
     {
         if (!isInsideSection)
         {
-                    EnterSection(navigationTarget);
+            EnterSection(navigationTarget);
         }
         else
         {
