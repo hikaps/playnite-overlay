@@ -256,6 +256,18 @@ internal sealed class InputListener
 
     private void HandleNavigation(OverlayWindow window, ushort buttons, int controllerIndex)
     {
+        // Clear consumed flag for any navigation buttons that are now released on THIS controller
+        ushort releasedButtons = (ushort)(consumedNavigationButtons[controllerIndex] & ~buttons);
+        consumedNavigationButtons[controllerIndex] = (ushort)(consumedNavigationButtons[controllerIndex] & ~releasedButtons);
+
+        // Calculate newly pressed buttons (pressed but not yet consumed)
+        ushort newlyPressed = (ushort)(buttons & ~consumedNavigationButtons[controllerIndex]);
+
+        // ALWAYS mark all currently pressed navigation buttons as consumed on THIS controller.
+        // This must happen BEFORE checking navigationHandledThisCycle to prevent race conditions
+        // when a single physical controller registers as multiple XInput devices.
+        consumedNavigationButtons[controllerIndex] |= (ushort)(buttons & NavigationButtonsMask);
+
         // Only allow one navigation action per poll cycle (prevents duplicate input from
         // controllers that register as multiple XInput devices)
         if (navigationHandledThisCycle)
@@ -263,52 +275,41 @@ internal sealed class InputListener
             return;
         }
 
-        // Clear consumed flag for any navigation buttons that are now released on THIS controller
-        ushort releasedButtons = (ushort)(consumedNavigationButtons[controllerIndex] & ~buttons);
-        consumedNavigationButtons[controllerIndex] = (ushort)(consumedNavigationButtons[controllerIndex] & ~releasedButtons);
-
-        // Check D-pad directions - only trigger if pressed AND not consumed on THIS controller
-        if (IsNewPress(buttons, XInput.XINPUT_GAMEPAD_DPAD_UP, controllerIndex))
+        // Check D-pad directions using pre-calculated newlyPressed
+        if ((newlyPressed & XInput.XINPUT_GAMEPAD_DPAD_UP) != 0)
         {
-            consumedNavigationButtons[controllerIndex] |= XInput.XINPUT_GAMEPAD_DPAD_UP;
             navigationHandledThisCycle = true;
             Dispatch(window, () => window.ControllerNavigateUp());
         }
-        else if (IsNewPress(buttons, XInput.XINPUT_GAMEPAD_DPAD_DOWN, controllerIndex))
+        else if ((newlyPressed & XInput.XINPUT_GAMEPAD_DPAD_DOWN) != 0)
         {
-            consumedNavigationButtons[controllerIndex] |= XInput.XINPUT_GAMEPAD_DPAD_DOWN;
             navigationHandledThisCycle = true;
             Dispatch(window, () => window.ControllerNavigateDown());
         }
-        else if (IsNewPress(buttons, XInput.XINPUT_GAMEPAD_DPAD_LEFT, controllerIndex))
+        else if ((newlyPressed & XInput.XINPUT_GAMEPAD_DPAD_LEFT) != 0)
         {
-            consumedNavigationButtons[controllerIndex] |= XInput.XINPUT_GAMEPAD_DPAD_LEFT;
             navigationHandledThisCycle = true;
             Dispatch(window, () => window.ControllerNavigateLeft());
         }
-        else if (IsNewPress(buttons, XInput.XINPUT_GAMEPAD_DPAD_RIGHT, controllerIndex))
+        else if ((newlyPressed & XInput.XINPUT_GAMEPAD_DPAD_RIGHT) != 0)
         {
-            consumedNavigationButtons[controllerIndex] |= XInput.XINPUT_GAMEPAD_DPAD_RIGHT;
             navigationHandledThisCycle = true;
             Dispatch(window, () => window.ControllerNavigateRight());
         }
 
         // Check action buttons (A, B, Back)
-        if (IsNewPress(buttons, XInput.XINPUT_GAMEPAD_A, controllerIndex))
+        if ((newlyPressed & XInput.XINPUT_GAMEPAD_A) != 0)
         {
-            consumedNavigationButtons[controllerIndex] |= XInput.XINPUT_GAMEPAD_A;
             navigationHandledThisCycle = true;
             Dispatch(window, () => window.ControllerAccept());
         }
-        else if (IsNewPress(buttons, XInput.XINPUT_GAMEPAD_B, controllerIndex))
+        else if ((newlyPressed & XInput.XINPUT_GAMEPAD_B) != 0)
         {
-            consumedNavigationButtons[controllerIndex] |= XInput.XINPUT_GAMEPAD_B;
             navigationHandledThisCycle = true;
             Dispatch(window, () => window.ControllerCancel());
         }
-        else if (IsNewPress(buttons, XInput.XINPUT_GAMEPAD_BACK, controllerIndex))
+        else if ((newlyPressed & XInput.XINPUT_GAMEPAD_BACK) != 0)
         {
-            consumedNavigationButtons[controllerIndex] |= XInput.XINPUT_GAMEPAD_BACK;
             navigationHandledThisCycle = true;
             Dispatch(window, () => window.ControllerCancel());
         }
