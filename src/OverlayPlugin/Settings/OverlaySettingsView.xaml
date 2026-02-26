@@ -124,29 +124,25 @@
 
             <GroupBox Header="Focus &amp; Input Control">
                 <StackPanel Margin="10">
-                    <CheckBox Content="Minimize game when overlay opens"
-                              IsChecked="{Binding Settings.MinimizeGameOnOverlay}"
-                              ToolTip="Minimizes the game window when the overlay opens, restoring it when the overlay closes."/>
-                    <TextBlock Margin="0,6,0,0" TextWrapping="Wrap"
-                               Foreground="Gray"
-                               Text="When enabled, the game window is minimized to taskbar when the overlay opens and restored when it closes. Safe for all games including online/anti-cheat games."/>
+                    <TextBlock Text="When overlay opens:" Margin="0,0,0,6"/>
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                        <ComboBox Width="280"
+                                  SelectedValuePath="Tag"
+                                  SelectedValue="{Binding Settings.FocusControlMode}">
+                            <ComboBoxItem Content="Do nothing" Tag="None" ToolTip="No special handling - game continues running normally"/>
+                            <ComboBoxItem Content="Minimize game window" Tag="Minimize" ToolTip="Safely minimizes game to taskbar. Works with all games including anti-cheat protected games."/>
+                            <ComboBoxItem Content="Suspend game process" Tag="Suspend" ToolTip="Freezes game process. More aggressive but may trigger anti-cheat detection."/>
+                        </ComboBox>
+                    </StackPanel>
                     
-                    <Separator Margin="0,12,0,8"/>
-                    
-                    <CheckBox Content="Suspend game while overlay is open"
-                              IsChecked="{Binding Settings.SuspendGameOnOverlay}"
-                              ToolTip="Freezes the game process while the overlay is open, preventing it from stealing focus."/>
-                    <TextBlock Margin="0,8,0,0" TextWrapping="Wrap"
-                               Foreground="Gray"
-                               Text="When enabled, the game process is suspended when the overlay opens and resumed when it closes. This prevents games from stealing focus back from the overlay."/>
-                    <TextBlock Margin="0,8,0,0" TextWrapping="Wrap"
-                               Foreground="Orange"
-                               FontWeight="Bold"
-                               Text="⚠️ WARNING: May trigger anti-cheat detection!"
-                               ToolTip="Process suspension can be detected by anti-cheat systems like Easy Anti-Cheat, BattlEye, etc. Use at your own risk, especially in online multiplayer games."/>
-                    <TextBlock Margin="0,4,0,0" TextWrapping="Wrap"
-                               Foreground="Orange"
-                               Text="Recommended for single-player games only. Disable for competitive/online games."/>
+                    <TextBlock Margin="0,4,0,0" TextWrapping="Wrap" Foreground="Gray">
+                        <Run Text="Minimize" FontWeight="Bold"/> - Safely minimizes the game window. Works with all games.
+                    </TextBlock>
+                    <TextBlock Margin="0,4,0,0" TextWrapping="Wrap" Foreground="Gray">
+                        <Run Text="Suspend" FontWeight="Bold"/> - Freezes the game process. 
+                    </TextBlock>
+                    <TextBlock Margin="0,2,0,0" TextWrapping="Wrap" Foreground="Orange" FontWeight="Bold"
+                               Text="⚠️ Suspend may trigger anti-cheat! Use Minimize for online games."/>
                 </StackPanel>
             </GroupBox>
             <GroupBox Header="Shortcuts">

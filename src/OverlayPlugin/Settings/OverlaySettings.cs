@@ -141,27 +141,20 @@ public class OverlaySettings : MVVM.ObservableObject
     /// </summary>
     public const int MaxShortcuts = 10;
 
-    private bool suspendGameOnOverlay = false;
+    private string focusControlMode = "None";
     /// <summary>
-    /// When enabled, suspends the game process while the overlay is open.
-    /// This prevents the game from stealing focus and ensures reliable overlay input.
-    /// WARNING: May trigger anti-cheat detection in some games.
+    /// Determines how the overlay handles game focus when opened.
+    /// None = No focus control (default)
+    /// Minimize = Minimize game window (safe for all games)
+    /// Suspend = Suspend game process (may trigger anti-cheat)
     /// </summary>
-    public bool SuspendGameOnOverlay
+    public string FocusControlMode
     {
-        get => suspendGameOnOverlay;
-        set => SetProperty(ref suspendGameOnOverlay, value);
+        get => focusControlMode;
+        set => SetProperty(ref focusControlMode, value);
     }
-
-    private bool minimizeGameOnOverlay = false;
-    /// <summary>
-    /// When enabled, minimizes the game window when the overlay opens.
-    /// The window is restored when the overlay closes.
-    /// This is a safer alternative to process suspension - no anti-cheat issues.
-    /// </summary>
-    public bool MinimizeGameOnOverlay
-    {
-        get => minimizeGameOnOverlay;
-        set => SetProperty(ref minimizeGameOnOverlay, value);
-    }
+    
+    // Helper properties for easy checking
+    public bool ShouldMinimizeGame => focusControlMode == "Minimize";
+    public bool ShouldSuspendGame => focusControlMode == "Suspend";
 }
