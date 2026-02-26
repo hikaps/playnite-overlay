@@ -119,9 +119,25 @@
                                  Text="{Binding Settings.BorderlessDelayMs, UpdateSourceTrigger=PropertyChanged}"
                                  ToolTip="Time to wait after game starts before applying borderless mode (1000-10000 ms)"/>
                     </StackPanel>
+                </StackPanel>
+            </GroupBox>
+
+            <GroupBox Header="Focus &amp; Input Control">
+                <StackPanel Margin="10">
+                    <CheckBox Content="Suspend game while overlay is open"
+                              IsChecked="{Binding Settings.SuspendGameOnOverlay}"
+                              ToolTip="Freezes the game process while the overlay is open, preventing it from stealing focus."/>
+                    <TextBlock Margin="0,8,0,0" TextWrapping="Wrap"
+                               Foreground="Gray"
+                               Text="When enabled, the game process is suspended when the overlay opens and resumed when it closes. This prevents games from stealing focus back from the overlay."/>
                     <TextBlock Margin="0,8,0,0" TextWrapping="Wrap"
                                Foreground="Orange"
-                               Text="Note: This only works for games running in windowed mode. For games in true exclusive fullscreen, you'll need to change the game's display settings to Windowed or Borderless."/>
+                               FontWeight="Bold"
+                               Text="⚠️ WARNING: May trigger anti-cheat detection!"
+                               ToolTip="Process suspension can be detected by anti-cheat systems like Easy Anti-Cheat, BattlEye, etc. Use at your own risk, especially in online multiplayer games."/>
+                    <TextBlock Margin="0,4,0,0" TextWrapping="Wrap"
+                               Foreground="Orange"
+                               Text="Recommended for single-player games only. Disable for competitive/online games."/>
                 </StackPanel>
             </GroupBox>
             <GroupBox Header="Shortcuts">

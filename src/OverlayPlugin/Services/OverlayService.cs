@@ -14,6 +14,8 @@ internal sealed class OverlayService
     private readonly object windowLock = new object();
     private readonly InputListener inputListener;
     private OverlayWindow? window;
+    private int? suspendedProcessId;
+    private bool suspendEnabled;
     public OverlayService(InputListener inputListener)
     {
         this.inputListener = inputListener ?? throw new ArgumentNullException(nameof(inputListener));
@@ -24,13 +26,29 @@ internal sealed class OverlayService
         get { lock (windowLock) return window != null; }
     }
 
-    public void Show(Action onSwitch, Action onExit, OverlayItem? currentGame, IEnumerable<RunningApp> runningApps, IEnumerable<OverlayItem> recentGames, IEnumerable<AudioDevice>? audioDevices = null, Action<string, Action<bool>>? onAudioDeviceChanged = null, GameVolumeService? gameVolumeService = null, int? currentGameProcessId = null, GameSwitcher? gameSwitcher = null, OverlaySettings? settings = null, IEnumerable<Models.OverlayShortcut>? shortcuts = null)
+    public void Show(Action onSwitch, Action onExit, OverlayItem? currentGame, IEnumerable<RunningApp> runningApps, IEnumerable<OverlayItem> recentGames, IEnumerable<AudioDevice>? audioDevices = null, Action<string, Action<bool>>? onAudioDeviceChanged = null, GameVolumeService? gameVolumeService = null, int? currentGameProcessId = null, GameSwitcher? gameSwitcher = null, OverlaySettings? settings = null, IEnumerable<Models.OverlayShortcut>? shortcuts = null, bool suspendGame = false)
     {
         lock (windowLock)
         {
             if (window != null)
             {
                 return;
+            }
+
+            // Suspend the game process before showing overlay if enabled
+            suspendEnabled = suspendGame;
+            if (suspendGame && currentGameProcessId.HasValue && currentGameProcessId.Value > 0)
+            {
+                logger.Debug($"Suspending game process {currentGameProcessId.Value} for overlay");
+                if (ProcessSuspender.SuspendProcess(currentGameProcessId.Value))
+                {
+                    suspendedProcessId = currentGameProcessId.Value;
+                    logger.Debug("Game process suspended successfully");
+                }
+                else
+                {
+                    logger.Warn("Failed to suspend game process");
+                }
             }
 
             Application.Current?.Dispatcher.Invoke(() =>
@@ -55,6 +73,10 @@ internal sealed class OverlayService
                 {
                     // Disconnect controller navigation
                     inputListener.SetOverlayWindow(null);
+
+                    // Resume the game process if it was suspended
+                    ResumeSuspendedProcess();
+
                     lock (windowLock)
                     {
                         window = null;
@@ -92,5 +114,27 @@ internal sealed class OverlayService
                 logger.Debug(ex, "Exception while closing overlay window.");
             }
         });
+    }
+
+    /// <summary>
+    /// Resumes the suspended game process, if any.
+    /// </summary>
+    private void ResumeSuspendedProcess()
+    {
+        if (suspendedProcessId.HasValue)
+        {
+            var pid = suspendedProcessId.Value;
+            suspendedProcessId = null;
+            
+            logger.Debug($"Resuming game process {pid}");
+            if (ProcessSuspender.SafeResumeProcess(pid))
+            {
+                logger.Debug("Game process resumed successfully");
+            }
+            else
+            {
+                logger.Warn("Failed to resume game process");
+            }
+        }
     }
 }

@@ -140,4 +140,16 @@ public class OverlaySettings : MVVM.ObservableObject
     /// Maximum number of shortcuts allowed.
     /// </summary>
     public const int MaxShortcuts = 10;
+
+    private bool suspendGameOnOverlay = false;
+    /// <summary>
+    /// When enabled, suspends the game process while the overlay is open.
+    /// This prevents the game from stealing focus and ensures reliable overlay input.
+    /// WARNING: May trigger anti-cheat detection in some games.
+    /// </summary>
+    public bool SuspendGameOnOverlay
+    {
+        get => suspendGameOnOverlay;
+        set => SetProperty(ref suspendGameOnOverlay, value);
+    }
 }
