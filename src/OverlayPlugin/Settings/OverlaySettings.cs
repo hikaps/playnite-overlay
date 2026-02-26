@@ -152,4 +152,16 @@ public class OverlaySettings : MVVM.ObservableObject
         get => suspendGameOnOverlay;
         set => SetProperty(ref suspendGameOnOverlay, value);
     }
+
+    private bool minimizeGameOnOverlay = false;
+    /// <summary>
+    /// When enabled, minimizes the game window when the overlay opens.
+    /// The window is restored when the overlay closes.
+    /// This is a safer alternative to process suspension - no anti-cheat issues.
+    /// </summary>
+    public bool MinimizeGameOnOverlay
+    {
+        get => minimizeGameOnOverlay;
+        set => SetProperty(ref minimizeGameOnOverlay, value);
+    }
 }

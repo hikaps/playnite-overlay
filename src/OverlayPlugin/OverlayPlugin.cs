@@ -284,7 +284,9 @@ public class OverlayPlugin : GenericPlugin
             switcher,
             settings.Settings,
             settings.Settings.Shortcuts,
-            settings.Settings.SuspendGameOnOverlay);
+            settings.Settings.SuspendGameOnOverlay,
+            settings.Settings.MinimizeGameOnOverlay,
+            switcher.ActiveApp?.WindowHandle ?? IntPtr.Zero);
     }
 
     private void HandleExitGame()

@@ -124,6 +124,15 @@
 
             <GroupBox Header="Focus &amp; Input Control">
                 <StackPanel Margin="10">
+                    <CheckBox Content="Minimize game when overlay opens"
+                              IsChecked="{Binding Settings.MinimizeGameOnOverlay}"
+                              ToolTip="Minimizes the game window when the overlay opens, restoring it when the overlay closes."/>
+                    <TextBlock Margin="0,6,0,0" TextWrapping="Wrap"
+                               Foreground="Gray"
+                               Text="When enabled, the game window is minimized to taskbar when the overlay opens and restored when it closes. Safe for all games including online/anti-cheat games."/>
+                    
+                    <Separator Margin="0,12,0,8"/>
+                    
                     <CheckBox Content="Suspend game while overlay is open"
                               IsChecked="{Binding Settings.SuspendGameOnOverlay}"
                               ToolTip="Freezes the game process while the overlay is open, preventing it from stealing focus."/>

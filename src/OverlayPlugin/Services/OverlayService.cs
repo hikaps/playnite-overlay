@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Runtime.InteropServices;
 using System.Windows;
 using Playnite.SDK;
 using PlayniteOverlay;
@@ -16,6 +17,8 @@ internal sealed class OverlayService
     private OverlayWindow? window;
     private int? suspendedProcessId;
     private bool suspendEnabled;
+    private IntPtr minimizedWindowHandle;
+
     public OverlayService(InputListener inputListener)
     {
         this.inputListener = inputListener ?? throw new ArgumentNullException(nameof(inputListener));
@@ -26,13 +29,21 @@ internal sealed class OverlayService
         get { lock (windowLock) return window != null; }
     }
 
-    public void Show(Action onSwitch, Action onExit, OverlayItem? currentGame, IEnumerable<RunningApp> runningApps, IEnumerable<OverlayItem> recentGames, IEnumerable<AudioDevice>? audioDevices = null, Action<string, Action<bool>>? onAudioDeviceChanged = null, GameVolumeService? gameVolumeService = null, int? currentGameProcessId = null, GameSwitcher? gameSwitcher = null, OverlaySettings? settings = null, IEnumerable<Models.OverlayShortcut>? shortcuts = null, bool suspendGame = false)
+    public void Show(Action onSwitch, Action onExit, OverlayItem? currentGame, IEnumerable<RunningApp> runningApps, IEnumerable<OverlayItem> recentGames, IEnumerable<AudioDevice>? audioDevices = null, Action<string, Action<bool>>? onAudioDeviceChanged = null, GameVolumeService? gameVolumeService = null, int? currentGameProcessId = null, GameSwitcher? gameSwitcher = null, OverlaySettings? settings = null, IEnumerable<Models.OverlayShortcut>? shortcuts = null, bool suspendGame = false, bool minimizeGame = false, IntPtr gameWindowHandle = default)
     {
         lock (windowLock)
         {
             if (window != null)
             {
                 return;
+            }
+
+            // Minimize the game window if enabled
+            if (minimizeGame && gameWindowHandle != IntPtr.Zero)
+            {
+                logger.Info($"Minimizing game window {gameWindowHandle}");
+                minimizedWindowHandle = gameWindowHandle;
+                ShowWindow(gameWindowHandle, SW_MINIMIZE);
             }
 
             // Suspend the game process before showing overlay if enabled
@@ -80,6 +91,9 @@ internal sealed class OverlayService
                     // Disconnect controller navigation
                     inputListener.SetOverlayWindow(null);
 
+                    // Restore the minimized game window
+                    RestoreMinimizedWindow();
+
                     // Resume the game process if it was suspended
                     ResumeSuspendedProcess();
 
@@ -123,6 +137,22 @@ internal sealed class OverlayService
     }
 
     /// <summary>
+    /// Restores the minimized game window, if any.
+    /// </summary>
+    private void RestoreMinimizedWindow()
+    {
+        if (minimizedWindowHandle != IntPtr.Zero)
+        {
+            var hwnd = minimizedWindowHandle;
+            minimizedWindowHandle = IntPtr.Zero;
+            
+            logger.Info($"Restoring game window {hwnd}");
+            ShowWindow(hwnd, SW_RESTORE);
+            SetForegroundWindow(hwnd);
+        }
+    }
+
+    /// <summary>
     /// Resumes the suspended game process, if any.
     /// </summary>
     private void ResumeSuspendedProcess()
@@ -143,4 +173,17 @@ internal sealed class OverlayService
             }
         }
     }
+
+    #region P/Invoke for window management
+
+    private const int SW_MINIMIZE = 6;
+    private const int SW_RESTORE = 9;
+
+    [DllImport("user32.dll")]
+    private static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
+
+    [DllImport("user32.dll")]
+    private static extern bool SetForegroundWindow(IntPtr hWnd);
+
+    #endregion
 }
