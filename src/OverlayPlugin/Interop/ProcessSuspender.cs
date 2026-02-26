@@ -1,6 +1,6 @@
 using System;
-using System.Diagnostics;
 using System.Runtime.InteropServices;
+using Playnite.SDK;
 
 namespace PlayniteOverlay;
 
@@ -14,6 +14,8 @@ namespace PlayniteOverlay;
 /// </summary>
 internal static class ProcessSuspender
 {
+    private static readonly ILogger logger = LogManager.GetLogger();
+
     /// <summary>
     /// Suspends all threads in the specified process using NtSuspendProcess.
     /// </summary>
@@ -23,7 +25,7 @@ internal static class ProcessSuspender
     {
         if (processId <= 0)
         {
-            System.Diagnostics.Debug.WriteLine($"[ProcessSuspender] Invalid process ID: {processId}");
+            logger.Debug($"[ProcessSuspender] Invalid process ID: {processId}");
             return false;
         }
 
@@ -35,24 +37,26 @@ internal static class ProcessSuspender
             if (processHandle == IntPtr.Zero)
             {
                 var error = Marshal.GetLastWin32Error();
-                System.Diagnostics.Debug.WriteLine($"[ProcessSuspender] OpenProcess failed for PID {processId}, error: {error}");
+                logger.Warn($"[ProcessSuspender] OpenProcess failed for PID {processId}, Win32 error: {error} (0x{error:X8})");
                 return false;
             }
 
+            logger.Debug($"[ProcessSuspender] Got process handle for PID {processId}, attempting suspend...");
+            
             // Suspend the process
             var status = NtSuspendProcess(processHandle);
             if (status != 0)
             {
-                System.Diagnostics.Debug.WriteLine($"[ProcessSuspender] NtSuspendProcess failed with status: {status}");
+                logger.Warn($"[ProcessSuspender] NtSuspendProcess failed for PID {processId}, NTSTATUS: 0x{status:X8}");
                 return false;
             }
             
-            System.Diagnostics.Debug.WriteLine($"[ProcessSuspender] Successfully suspended process {processId}");
+            logger.Info($"[ProcessSuspender] Successfully suspended process {processId}");
             return true;
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"[ProcessSuspender] Exception: {ex.Message}");
+            logger.Error(ex, $"[ProcessSuspender] Exception in SuspendProcess for PID {processId}");
             return false;
         }
         finally
@@ -83,15 +87,22 @@ internal static class ProcessSuspender
             processHandle = OpenProcess(PROCESS_SUSPEND_RESUME, false, processId);
             if (processHandle == IntPtr.Zero)
             {
+                var error = Marshal.GetLastWin32Error();
+                logger.Warn($"[ProcessSuspender] OpenProcess failed for resume PID {processId}, Win32 error: {error}");
                 return false;
             }
 
             // Resume the process
             var status = NtResumeProcess(processHandle);
+            if (status == 0)
+            {
+                logger.Info($"[ProcessSuspender] Successfully resumed process {processId}");
+            }
             return status == 0; // STATUS_SUCCESS
         }
-        catch (Exception)
+        catch (Exception ex)
         {
+            logger.Error(ex, $"[ProcessSuspender] Exception in ResumeProcess for PID {processId}");
             return false;
         }
         finally
