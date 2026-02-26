@@ -1,5 +1,7 @@
 # Playnite Overlay
 
+![Playnite Overlay Screenshot](docs/screenshots/overlay_main.png)
+
 A powerful Playnite plugin that adds an in-game overlay for quick game switching and management. Open the overlay with a hotkey or Xbox controller button to seamlessly switch between running games, manage your current session, and browse your recent games.
 
 ## Features
