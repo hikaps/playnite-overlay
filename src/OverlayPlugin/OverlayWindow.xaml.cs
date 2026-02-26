@@ -68,7 +68,7 @@ public partial class OverlayWindow : Window
         this.runningApps = new List<RunningApp>(runningApps);
         this.shortcuts = shortcuts != null ? new List<Models.OverlayShortcut>(shortcuts) : new List<Models.OverlayShortcut>();
 
-            timeTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
+        timeTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
         timeTimer.Tick += TimeTimer_Tick;
         timeTimer.Start();
 
@@ -174,8 +174,9 @@ public partial class OverlayWindow : Window
         
         Backdrop.MouseLeftButtonDown += (_, __) => this.Close();
         PreviewKeyDown += OnPreviewKeyDown;
+        Closing += OnClosingWithFade;
         
-        Loaded += async (_, __) =>
+        Loaded += (_, __) =>
         {
             Activate(); Focus(); Keyboard.Focus(this);
             

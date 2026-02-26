@@ -14,6 +14,12 @@ internal static class NativeInput
     private const uint KEYEVENTF_KEYUP = 0x0002;
     private const int INPUT_KEYBOARD = 1;
 
+    // Virtual key codes for modifiers
+    private const byte VK_CONTROL = 0x11;
+    private const byte VK_SHIFT = 0x10;
+    private const byte VK_MENU = 0x12;    // Alt
+    private const byte VK_LWIN = 0x5B;
+
     private const int ModifierDelayMs = 10;      // Delay after modifier press/release
     private const int KeyHoldDelayMs = 50;       // How long to hold main key (must be > 25ms for OBS polling)
 
@@ -208,13 +214,13 @@ internal static class NativeInput
         {
             // Press modifiers
             if (modifiers.HasFlag(ModifierKeys.Control))
-                keybd_event(0x11, 0, 0, 0);
+                keybd_event(VK_CONTROL, 0, 0, 0);
             if (modifiers.HasFlag(ModifierKeys.Shift))
-                keybd_event(0x10, 0, 0, 0);
+                keybd_event(VK_SHIFT, 0, 0, 0);
             if (modifiers.HasFlag(ModifierKeys.Alt))
-                keybd_event(0x12, 0, 0, 0);
+                keybd_event(VK_MENU, 0, 0, 0);
             if (modifiers.HasFlag(ModifierKeys.Windows))
-                keybd_event(0x5B, 0, 0, 0);
+                keybd_event(VK_LWIN, 0, 0, 0);
 
             Thread.Sleep(ModifierDelayMs);
 
@@ -228,13 +234,13 @@ internal static class NativeInput
 
             // Release modifiers (reverse order)
             if (modifiers.HasFlag(ModifierKeys.Windows))
-                keybd_event(0x5B, 0, KEYEVENTF_KEYUP, 0);
+                keybd_event(VK_LWIN, 0, KEYEVENTF_KEYUP, 0);
             if (modifiers.HasFlag(ModifierKeys.Alt))
-                keybd_event(0x12, 0, KEYEVENTF_KEYUP, 0);
+                keybd_event(VK_MENU, 0, KEYEVENTF_KEYUP, 0);
             if (modifiers.HasFlag(ModifierKeys.Shift))
-                keybd_event(0x10, 0, KEYEVENTF_KEYUP, 0);
+                keybd_event(VK_SHIFT, 0, KEYEVENTF_KEYUP, 0);
             if (modifiers.HasFlag(ModifierKeys.Control))
-                keybd_event(0x11, 0, KEYEVENTF_KEYUP, 0);
+                keybd_event(VK_CONTROL, 0, KEYEVENTF_KEYUP, 0);
 
             logger.Info($"SendHotkey: keybd_event fallback completed for vk=0x{vk:X2}");
         }
@@ -273,13 +279,13 @@ internal static class NativeInput
         var flags = keyDown ? 0u : KEYEVENTF_KEYUP;
 
         if (modifiers.HasFlag(ModifierKeys.Control))
-            inputs.Add(CreateKeyInput32WithFlags(0x11, flags));
+            inputs.Add(CreateKeyInput32WithFlags((ushort)VK_CONTROL, flags));
         if (modifiers.HasFlag(ModifierKeys.Shift))
-            inputs.Add(CreateKeyInput32WithFlags(0x10, flags));
+            inputs.Add(CreateKeyInput32WithFlags((ushort)VK_SHIFT, flags));
         if (modifiers.HasFlag(ModifierKeys.Alt))
-            inputs.Add(CreateKeyInput32WithFlags(0x12, flags));
+            inputs.Add(CreateKeyInput32WithFlags((ushort)VK_MENU, flags));
         if (modifiers.HasFlag(ModifierKeys.Windows))
-            inputs.Add(CreateKeyInput32WithFlags(0x5B, flags));
+            inputs.Add(CreateKeyInput32WithFlags((ushort)VK_LWIN, flags));
     }
 
     private static INPUT32 CreateKeyInput32(ushort vk, bool keyUp)
@@ -312,13 +318,13 @@ internal static class NativeInput
         var flags = keyDown ? 0u : KEYEVENTF_KEYUP;
 
         if (modifiers.HasFlag(ModifierKeys.Control))
-            inputs.Add(CreateKeyInput64WithFlags(0x11, flags));
+            inputs.Add(CreateKeyInput64WithFlags((ushort)VK_CONTROL, flags));
         if (modifiers.HasFlag(ModifierKeys.Shift))
-            inputs.Add(CreateKeyInput64WithFlags(0x10, flags));
+            inputs.Add(CreateKeyInput64WithFlags((ushort)VK_SHIFT, flags));
         if (modifiers.HasFlag(ModifierKeys.Alt))
-            inputs.Add(CreateKeyInput64WithFlags(0x12, flags));
+            inputs.Add(CreateKeyInput64WithFlags((ushort)VK_MENU, flags));
         if (modifiers.HasFlag(ModifierKeys.Windows))
-            inputs.Add(CreateKeyInput64WithFlags(0x5B, flags));
+            inputs.Add(CreateKeyInput64WithFlags((ushort)VK_LWIN, flags));
     }
 
     private static INPUT64 CreateKeyInput64(ushort vk, bool keyUp)

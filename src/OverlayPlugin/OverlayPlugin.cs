@@ -87,7 +87,6 @@ public class OverlayPlugin : GenericPlugin
             switcher.SetActiveApp(app);
         };
 
-
         // Start hotkey immediately (keyboard shortcut should always work)
         input.StartHotkey();
 
@@ -174,8 +173,7 @@ public class OverlayPlugin : GenericPlugin
     internal void ApplySettings(OverlaySettings newSettings)
     {
         input.ApplySettings(newSettings);
-        
-        
+
         // Apply controller always-active setting
         if (newSettings.ControllerAlwaysActive)
         {
