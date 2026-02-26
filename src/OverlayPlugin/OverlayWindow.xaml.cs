@@ -575,6 +575,20 @@ public partial class OverlayWindow : Window
         return true;
     }
 
+    private int GetShortcutsPerRow()
+    {
+        if (ShortcutsPanel == null || ShortcutsPanel.Children.Count == 0)
+            return 1;
+
+        var panelWidth = ShortcutsPanel.ActualWidth;
+        if (panelWidth <= 0)
+            return 1;
+
+        // Button width: MinWidth (110) + Margin (8) = 118px
+        const double buttonWidth = 118;
+        return Math.Max(1, (int)(panelWidth / buttonWidth));
+    }
+
     private void FocusRunningAppItem(int index)
     {
         if (!Dispatcher.CheckAccess())
@@ -702,8 +716,19 @@ public partial class OverlayWindow : Window
                     break;
 
                 case NavigationTarget.ShortcutItem:
-                    // Shortcuts are horizontal - Up/Down should exit to section level, not change index
-                    ExitToSectionLevel();
+                    {
+                        // Navigate up in WrapPanel grid
+                        int perRow = GetShortcutsPerRow();
+                        int newIndex = shortcutsSelectedIndex - perRow;
+                        if (newIndex < 0)
+                        {
+                            ExitToSectionLevel();
+                        }
+                        else
+                        {
+                            FocusShortcutButton(newIndex);
+                        }
+                    }
                     break;
 
                 case NavigationTarget.RecentGameItem:
@@ -792,8 +817,19 @@ public partial class OverlayWindow : Window
                     break;
 
                 case NavigationTarget.ShortcutItem:
-                    // Shortcuts are horizontal - Up/Down should exit to section level, not change index
-                    ExitToSectionLevel();
+                    {
+                        // Navigate down in WrapPanel grid
+                        int perRow = GetShortcutsPerRow();
+                        int newIndex = shortcutsSelectedIndex + perRow;
+                        if (newIndex >= ShortcutsPanel.Children.Count)
+                        {
+                            ExitToSectionLevel();
+                        }
+                        else
+                        {
+                            FocusShortcutButton(newIndex);
+                        }
+                    }
                     break;
 
                 case NavigationTarget.RecentGameItem:
@@ -1194,7 +1230,7 @@ public partial class OverlayWindow : Window
             var button = new Button
             {
                 Content = shortcut.Label,
-                Margin = new Thickness(0, 0, 8, 0),
+                Margin = new Thickness(0, 0, 8, 8),
                 Padding = new Thickness(16, 8, 16, 8),
                 MinWidth = 110,
                 Background = new SolidColorBrush(Color.FromRgb(0x3A, 0x3A, 0x3A)),

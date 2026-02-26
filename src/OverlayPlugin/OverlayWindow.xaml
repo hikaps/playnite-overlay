@@ -516,7 +516,7 @@
                             <TextBlock Text="QUICK ACTIONS" FontSize="10" FontWeight="Bold" 
                                        Foreground="#888888" Margin="0,0,0,10"/>
                             
-                            <StackPanel x:Name="ShortcutsPanel" Orientation="Horizontal" />
+                            <WrapPanel x:Name="ShortcutsPanel" />
                         </StackPanel>
                     </Border>
                     

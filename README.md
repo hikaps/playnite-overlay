@@ -120,29 +120,63 @@ Access settings through: **Playnite Menu** → **Add-ons** → **Extension setti
 - **Max Running Apps**: Limit number of apps displayed (1-50, default: 10)
 
 ### Shortcuts
-Configure custom shortcut buttons in the overlay that run shell commands:
+Configure custom shortcut buttons in the overlay that can run scripts or simulate keyboard presses:
 - **Add shortcuts** in settings (up to 10)
 - **Shortcuts appear** as buttons in a SHORTCUTS section in the overlay
-- **Click to execute** the configured command
+- **Click to execute** the configured action
 
-#### Example Configurations
+#### Action Types
 
-**ShareX Screenshot:**
-- Label: `Screenshot`
-- Command: `C:\Program Files\ShareX\ShareX.exe`
-- Arguments: `-screenshot`
+| Type | Description | Use Case |
+|------|-------------|----------|
+| **CommandLine** | Run a script or executable with arguments | Launch PowerShell scripts, batch files, external tools |
+| **SendInput** | Simulate a keyboard hotkey press | Trigger tools that only respond to hotkeys (Steam, OBS, etc.) |
 
-**OBS Recording:**
-- Label: `Record`
-- Command: `C:\Program Files\obs-studio\bin\64bit\obs64.exe`
-- Arguments: `--startrecording`
+#### CommandLine Examples
 
-**Simple Test:**
+**Run a PowerShell script:**
+- Label: `Backup Saves`
+- Action: `CommandLine`
+- Command: `powershell.exe`
+- Arguments: `-ExecutionPolicy Bypass -File "C:\Scripts\backup-saves.ps1"`
+
+**Run a batch file:**
+- Label: `Clean Temp`
+- Action: `CommandLine`
+- Command: `C:\Scripts\clean-temp.bat`
+- Arguments: (leave empty)
+
+**Launch external tool:**
 - Label: `Notepad`
+- Action: `CommandLine`
 - Command: `notepad.exe`
 - Arguments: (leave empty)
 
-> **Note:** Some tools (Steam F12, GeForce Experience Alt+F1, Xbox Game Bar) use hotkeys only and don't support command-line execution.
+#### SendInput Examples (Screenshot/Recording)
+
+For tools that use hotkeys instead of command-line arguments:
+
+**Steam Screenshot:**
+- Label: `Screenshot`
+- Action: `SendInput`
+- Hotkey: `F12`
+
+**OBS Toggle Recording:**
+- Label: `Record`
+- Action: `SendInput`
+- Hotkey: `F9` (or your OBS hotkey setting)
+
+**GeForce Experience Screenshot:**
+- Label: `Screenshot`
+- Action: `SendInput`
+- Hotkey: `Alt+F1`
+
+**Xbox Game Bar Recording:**
+- Label: `Record`
+- Action: `SendInput`
+- Hotkey: `Win+Alt+R`
+
+> **Tip:** For SendInput, set the hotkey to match what's configured in the target application. Check Steam/OBS/GeForce Experience settings to find or customize their screenshot/recording hotkeys.
 
 ## Requirements
 
