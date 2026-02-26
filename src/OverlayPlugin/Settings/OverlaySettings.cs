@@ -140,4 +140,21 @@ public class OverlaySettings : MVVM.ObservableObject
     /// Maximum number of shortcuts allowed.
     /// </summary>
     public const int MaxShortcuts = 10;
+
+    private string focusControlMode = "None";
+    /// <summary>
+    /// Determines how the overlay handles game focus when opened.
+    /// None = No focus control (default)
+    /// Minimize = Minimize game window (safe for all games)
+    /// Suspend = Suspend game process (may trigger anti-cheat)
+    /// </summary>
+    public string FocusControlMode
+    {
+        get => focusControlMode;
+        set => SetProperty(ref focusControlMode, value);
+    }
+    
+    // Helper properties for easy checking
+    public bool ShouldMinimizeGame => focusControlMode == "Minimize";
+    public bool ShouldSuspendGame => focusControlMode == "Suspend";
 }

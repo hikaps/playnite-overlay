@@ -119,9 +119,30 @@
                                  Text="{Binding Settings.BorderlessDelayMs, UpdateSourceTrigger=PropertyChanged}"
                                  ToolTip="Time to wait after game starts before applying borderless mode (1000-10000 ms)"/>
                     </StackPanel>
-                    <TextBlock Margin="0,8,0,0" TextWrapping="Wrap"
-                               Foreground="Orange"
-                               Text="Note: This only works for games running in windowed mode. For games in true exclusive fullscreen, you'll need to change the game's display settings to Windowed or Borderless."/>
+                </StackPanel>
+            </GroupBox>
+
+            <GroupBox Header="Focus &amp; Input Control">
+                <StackPanel Margin="10">
+                    <TextBlock Text="When overlay opens:" Margin="0,0,0,6"/>
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                        <ComboBox Width="280"
+                                  SelectedValuePath="Tag"
+                                  SelectedValue="{Binding Settings.FocusControlMode}">
+                            <ComboBoxItem Content="Do nothing" Tag="None" ToolTip="No special handling - game continues running normally"/>
+                            <ComboBoxItem Content="Minimize game window" Tag="Minimize" ToolTip="Safely minimizes game to taskbar. Works with all games including anti-cheat protected games."/>
+                            <ComboBoxItem Content="Suspend game process" Tag="Suspend" ToolTip="Freezes game process. More aggressive but may trigger anti-cheat detection."/>
+                        </ComboBox>
+                    </StackPanel>
+                    
+                    <TextBlock Margin="0,4,0,0" TextWrapping="Wrap" Foreground="Gray">
+                        <Run Text="Minimize" FontWeight="Bold"/> - Safely minimizes the game window. Works with all games.
+                    </TextBlock>
+                    <TextBlock Margin="0,4,0,0" TextWrapping="Wrap" Foreground="Gray">
+                        <Run Text="Suspend" FontWeight="Bold"/> - Freezes the game process. 
+                    </TextBlock>
+                    <TextBlock Margin="0,2,0,0" TextWrapping="Wrap" Foreground="Orange" FontWeight="Bold"
+                               Text="⚠️ Suspend may trigger anti-cheat! Use Minimize for online games."/>
                 </StackPanel>
             </GroupBox>
             <GroupBox Header="Shortcuts">

@@ -4,15 +4,31 @@ using System.Runtime.InteropServices;
 namespace PlayniteOverlay;
 
 /// <summary>
-/// Provides reliable window activation using AttachThreadInput pattern.
-/// This allows stealing focus from other applications without requiring
-/// hacky workarounds like simulating Alt key presses.
+/// Provides reliable window activation using multiple focus-stealing techniques.
+/// Uses a cascading fallback approach: AttachThreadInput → Alt key simulation →
+/// Foreground lock bypass to ensure focus is acquired from fullscreen games.
 /// </summary>
 internal static class Win32Window
 {
     private const int SW_MINIMIZE = 6;
     private const int SW_RESTORE = 9;
     private const int SW_SHOW = 5;
+
+    // Virtual key codes
+    private const int VK_MENU = 0x12; // Alt key
+    private const int KEYEVENTF_EXTENDEDKEY = 0x0001;
+    private const int KEYEVENTF_KEYUP = 0x0002;
+
+    // SystemParametersInfo constants
+    private const int SPI_GETFOREGROUNDLOCKTIMEOUT = 0x2000;
+    private const int SPI_SETFOREGROUNDLOCKTIMEOUT = 0x2001;
+    private const uint SPIF_SENDCHANGE = 0x0002;
+
+    // LockSetForegroundWindow constants
+    private const uint LSFW_UNLOCK = 2;
+
+    // AllowSetForegroundWindow constant
+    private const int ASFW_ANY = -1;
 
     [DllImport("user32.dll")]
     private static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
@@ -37,6 +53,22 @@ internal static class Win32Window
 
     [DllImport("kernel32.dll")]
     private static extern uint GetCurrentThreadId();
+
+    // Additional P/Invoke for focus stealing techniques
+    [DllImport("user32.dll")]
+    private static extern void keybd_event(byte bVk, byte bScan, int dwFlags, int dwExtraInfo);
+
+    [DllImport("user32.dll")]
+    private static extern short GetAsyncKeyState(int vKey);
+
+    [DllImport("user32.dll")]
+    private static extern bool AllowSetForegroundWindow(int dwProcessId);
+
+    [DllImport("user32.dll")]
+    private static extern bool LockSetForegroundWindow(uint uLockCode);
+
+    [DllImport("user32.dll", SetLastError = true)]
+    private static extern bool SystemParametersInfo(uint uiAction, uint uiParam, ref uint pvParam, uint fWinIni);
 
     /// <summary>
     /// Gets the current foreground window handle.
@@ -131,8 +163,8 @@ internal static class Win32Window
                 ShowWindow(hWnd, SW_SHOW);
             }
 
-            // Use AttachThreadInput pattern for reliable focus stealing
-            ActivateWindowReliably(hWnd);
+            // Use cascading fallback techniques for reliable focus stealing
+            ActivateWindowWithFallbacks(hWnd);
         }
         catch
         {
@@ -150,8 +182,8 @@ internal static class Win32Window
 
     /// <summary>
     /// Activates the overlay window reliably by stealing focus from the
-    /// current foreground window (typically a game). This uses the
-    /// AttachThreadInput pattern to bypass Windows focus restrictions.
+    /// current foreground window (typically a game). Uses a cascading
+    /// fallback approach with multiple focus-stealing techniques.
     /// </summary>
     /// <param name="overlayHwnd">Handle to the overlay window</param>
     public static void ActivateOverlayWindow(IntPtr overlayHwnd)
@@ -161,43 +193,47 @@ internal static class Win32Window
             return;
         }
 
-        try
-        {
-            ActivateWindowReliably(overlayHwnd);
-        }
-        catch
-        {
-            // Fallback to basic activation
-            try
-            {
-                SetForegroundWindow(overlayHwnd);
-            }
-            catch
-            {
-                // ignore
-            }
-        }
+        ActivateWindowWithFallbacks(overlayHwnd);
     }
 
     /// <summary>
-    /// Activates a window reliably by attaching to the foreground thread.
-    /// Windows restricts SetForegroundWindow unless:
-    /// 1. The calling process is the foreground process, OR
-    /// 2. The calling thread is attached to the foreground thread
-    /// 
-    /// This method temporarily attaches our thread to the foreground window's
-    /// thread, which allows SetForegroundWindow to succeed.
+    /// Activates a window using multiple techniques in a cascading fallback approach.
+    /// This is the most robust way to steal focus from fullscreen games.
     /// </summary>
-    private static void ActivateWindowReliably(IntPtr targetWindow)
+    private static void ActivateWindowWithFallbacks(IntPtr targetWindow)
     {
         IntPtr foregroundWindow = GetForegroundWindow();
-        
+
         // If target is already foreground, nothing to do
         if (foregroundWindow == targetWindow)
         {
             return;
         }
 
+        // Technique 1: Try AttachThreadInput (most reliable, least invasive)
+        if (TryAttachThreadInput(targetWindow, foregroundWindow))
+        {
+            return;
+        }
+
+        // Technique 2: Alt key simulation (tricks Windows into unlocking focus)
+        if (TryAltKeySimulation(targetWindow))
+        {
+            return;
+        }
+
+        // Technique 3: Foreground lock timeout bypass (most invasive, last resort)
+        TryForegroundLockBypass(targetWindow);
+    }
+
+    /// <summary>
+    /// Technique 1: AttachThreadInput pattern.
+    /// Temporarily attaches our thread to the foreground thread's input queue,
+    /// which grants permission to call SetForegroundWindow.
+    /// </summary>
+    /// <returns>True if focus was successfully acquired</returns>
+    private static bool TryAttachThreadInput(IntPtr targetWindow, IntPtr foregroundWindow)
+    {
         uint currentThreadId = GetCurrentThreadId();
         uint foregroundThreadId = GetWindowThreadProcessId(foregroundWindow, out _);
         uint targetThreadId = GetWindowThreadProcessId(targetWindow, out _);
@@ -209,13 +245,13 @@ internal static class Win32Window
         {
             // Attach our thread to the foreground window's thread
             // This gives us permission to call SetForegroundWindow
-            if (foregroundThreadId != currentThreadId)
+            if (foregroundThreadId != currentThreadId && foregroundThreadId != 0)
             {
                 attachedToForeground = AttachThreadInput(currentThreadId, foregroundThreadId, true);
             }
 
             // Also attach to the target window's thread if different
-            if (targetThreadId != currentThreadId && targetThreadId != foregroundThreadId)
+            if (targetThreadId != currentThreadId && targetThreadId != foregroundThreadId && targetThreadId != 0)
             {
                 attachedToTarget = AttachThreadInput(currentThreadId, targetThreadId, true);
             }
@@ -223,6 +259,9 @@ internal static class Win32Window
             // Now we can reliably bring the window to foreground
             BringWindowToTop(targetWindow);
             SetForegroundWindow(targetWindow);
+
+            // Verify success
+            return GetForegroundWindow() == targetWindow;
         }
         finally
         {
@@ -235,6 +274,80 @@ internal static class Win32Window
             {
                 AttachThreadInput(currentThreadId, targetThreadId, false);
             }
+        }
+    }
+
+    /// <summary>
+    /// Technique 2: Alt key simulation.
+    /// Windows unlocks SetForegroundWindow when the user presses Alt.
+    /// Simulating an Alt keypress tricks the system into allowing focus changes.
+    /// </summary>
+    /// <returns>True if focus was successfully acquired</returns>
+    private static bool TryAltKeySimulation(IntPtr targetWindow)
+    {
+        bool simulatedAlt = false;
+
+        try
+        {
+            // Only simulate Alt if it's not already pressed
+            if ((GetAsyncKeyState(VK_MENU) & 0x8000) == 0)
+            {
+                keybd_event(VK_MENU, 0, KEYEVENTF_EXTENDEDKEY, 0);
+                simulatedAlt = true;
+            }
+
+            BringWindowToTop(targetWindow);
+            SetForegroundWindow(targetWindow);
+
+            // Verify success
+            return GetForegroundWindow() == targetWindow;
+        }
+        finally
+        {
+            // Always release the Alt key if we pressed it
+            if (simulatedAlt)
+            {
+                keybd_event(VK_MENU, 0, KEYEVENTF_EXTENDEDKEY | KEYEVENTF_KEYUP, 0);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Technique 3: Foreground lock timeout bypass.
+    /// Temporarily disables Windows' foreground lock restrictions,
+    /// allowing any process to set the foreground window.
+    /// This is the most invasive technique and should be used as a last resort.
+    /// </summary>
+    /// <returns>True if focus was successfully acquired</returns>
+    private static bool TryForegroundLockBypass(IntPtr targetWindow)
+    {
+        uint oldTimeout = 0;
+
+        try
+        {
+            // Save the current foreground lock timeout
+            SystemParametersInfo(SPI_GETFOREGROUNDLOCKTIMEOUT, 0, ref oldTimeout, 0);
+
+            // Disable the foreground lock timeout
+            uint newTimeout = 0;
+            SystemParametersInfo(SPI_SETFOREGROUNDLOCKTIMEOUT, 0, ref newTimeout, SPIF_SENDCHANGE);
+
+            // Unlock foreground window changes
+            LockSetForegroundWindow(LSFW_UNLOCK);
+
+            // Allow any process to set foreground window
+            AllowSetForegroundWindow(ASFW_ANY);
+
+            // Now try to set the foreground window
+            BringWindowToTop(targetWindow);
+            SetForegroundWindow(targetWindow);
+
+            return GetForegroundWindow() == targetWindow;
+        }
+        finally
+        {
+            // Restore the original foreground lock timeout
+            SystemParametersInfo(SPI_SETFOREGROUNDLOCKTIMEOUT, 0, ref oldTimeout, SPIF_SENDCHANGE);
         }
     }
 }

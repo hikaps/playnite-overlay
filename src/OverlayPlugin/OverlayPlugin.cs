@@ -283,7 +283,10 @@ public class OverlayPlugin : GenericPlugin
             switcher.ActiveApp?.ProcessId,
             switcher,
             settings.Settings,
-            settings.Settings.Shortcuts);
+            settings.Settings.Shortcuts,
+            settings.Settings.ShouldSuspendGame,
+            settings.Settings.ShouldMinimizeGame,
+            switcher.ActiveApp?.WindowHandle ?? IntPtr.Zero);
     }
 
     private void HandleExitGame()
