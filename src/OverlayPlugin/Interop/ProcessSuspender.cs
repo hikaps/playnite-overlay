@@ -23,6 +23,7 @@ internal static class ProcessSuspender
     {
         if (processId <= 0)
         {
+            System.Diagnostics.Debug.WriteLine($"[ProcessSuspender] Invalid process ID: {processId}");
             return false;
         }
 
@@ -33,15 +34,25 @@ internal static class ProcessSuspender
             processHandle = OpenProcess(PROCESS_SUSPEND_RESUME, false, processId);
             if (processHandle == IntPtr.Zero)
             {
+                var error = Marshal.GetLastWin32Error();
+                System.Diagnostics.Debug.WriteLine($"[ProcessSuspender] OpenProcess failed for PID {processId}, error: {error}");
                 return false;
             }
 
             // Suspend the process
             var status = NtSuspendProcess(processHandle);
-            return status == 0; // STATUS_SUCCESS
+            if (status != 0)
+            {
+                System.Diagnostics.Debug.WriteLine($"[ProcessSuspender] NtSuspendProcess failed with status: {status}");
+                return false;
+            }
+            
+            System.Diagnostics.Debug.WriteLine($"[ProcessSuspender] Successfully suspended process {processId}");
+            return true;
         }
-        catch (Exception)
+        catch (Exception ex)
         {
+            System.Diagnostics.Debug.WriteLine($"[ProcessSuspender] Exception: {ex.Message}");
             return false;
         }
         finally

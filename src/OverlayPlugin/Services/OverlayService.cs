@@ -37,18 +37,24 @@ internal sealed class OverlayService
 
             // Suspend the game process before showing overlay if enabled
             suspendEnabled = suspendGame;
+            logger.Debug($"Suspend setting enabled: {suspendGame}, ProcessId: {currentGameProcessId}");
+            
             if (suspendGame && currentGameProcessId.HasValue && currentGameProcessId.Value > 0)
             {
-                logger.Debug($"Suspending game process {currentGameProcessId.Value} for overlay");
+                logger.Info($"Suspending game process {currentGameProcessId.Value} for overlay");
                 if (ProcessSuspender.SuspendProcess(currentGameProcessId.Value))
                 {
                     suspendedProcessId = currentGameProcessId.Value;
-                    logger.Debug("Game process suspended successfully");
+                    logger.Info("Game process suspended successfully");
                 }
                 else
                 {
                     logger.Warn("Failed to suspend game process");
                 }
+            }
+            else if (suspendGame)
+            {
+                logger.Warn($"Cannot suspend: suspendGame={suspendGame}, hasProcessId={currentGameProcessId.HasValue}, processId={currentGameProcessId}");
             }
 
             Application.Current?.Dispatcher.Invoke(() =>
@@ -126,10 +132,10 @@ internal sealed class OverlayService
             var pid = suspendedProcessId.Value;
             suspendedProcessId = null;
             
-            logger.Debug($"Resuming game process {pid}");
+            logger.Info($"Resuming game process {pid}");
             if (ProcessSuspender.SafeResumeProcess(pid))
             {
-                logger.Debug("Game process resumed successfully");
+                logger.Info("Game process resumed successfully");
             }
             else
             {
