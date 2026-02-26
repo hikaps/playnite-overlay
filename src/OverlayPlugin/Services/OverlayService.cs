@@ -14,7 +14,6 @@ internal sealed class OverlayService
     private readonly object windowLock = new object();
     private readonly InputListener inputListener;
     private OverlayWindow? window;
-
     public OverlayService(InputListener inputListener)
     {
         this.inputListener = inputListener ?? throw new ArgumentNullException(nameof(inputListener));
@@ -25,7 +24,7 @@ internal sealed class OverlayService
         get { lock (windowLock) return window != null; }
     }
 
-    public void Show(Action onSwitch, Action onExit, OverlayItem? currentGame, IEnumerable<RunningApp> runningApps, IEnumerable<OverlayItem> recentGames, IEnumerable<AudioDevice>? audioDevices = null, Action<string, Action<bool>>? onAudioDeviceChanged = null, GameVolumeService? gameVolumeService = null, int? currentGameProcessId = null, GameSwitcher? gameSwitcher = null)
+    public void Show(Action onSwitch, Action onExit, OverlayItem? currentGame, IEnumerable<RunningApp> runningApps, IEnumerable<OverlayItem> recentGames, IEnumerable<AudioDevice>? audioDevices = null, Action<string, Action<bool>>? onAudioDeviceChanged = null, GameVolumeService? gameVolumeService = null, int? currentGameProcessId = null, GameSwitcher? gameSwitcher = null, OverlaySettings? settings = null, IEnumerable<Models.OverlayShortcut>? shortcuts = null)
     {
         lock (windowLock)
         {
@@ -36,7 +35,7 @@ internal sealed class OverlayService
 
             Application.Current?.Dispatcher.Invoke(() =>
             {
-                window = new OverlayWindow(onSwitch, onExit, currentGame, runningApps, recentGames, audioDevices, onAudioDeviceChanged, gameVolumeService, currentGameProcessId, gameSwitcher);
+                window = new OverlayWindow(onSwitch, onExit, currentGame, runningApps, recentGames, audioDevices, onAudioDeviceChanged, gameVolumeService, currentGameProcessId, gameSwitcher, shortcuts: shortcuts);
 
                 window.Loaded += (_, _) =>
                 {
@@ -56,7 +55,6 @@ internal sealed class OverlayService
                 {
                     // Disconnect controller navigation
                     inputListener.SetOverlayWindow(null);
-
                     lock (windowLock)
                     {
                         window = null;

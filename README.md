@@ -119,6 +119,65 @@ Access settings through: **Playnite Menu** → **Add-ons** → **Extension setti
 - **Show Generic Apps**: Include non-game applications in RUNNING APPS section
 - **Max Running Apps**: Limit number of apps displayed (1-50, default: 10)
 
+### Shortcuts
+Configure custom shortcut buttons in the overlay that can run scripts or simulate keyboard presses:
+- **Add shortcuts** in settings (up to 10)
+- **Shortcuts appear** as buttons in a SHORTCUTS section in the overlay
+- **Click to execute** the configured action
+
+#### Action Types
+
+| Type | Description | Use Case |
+|------|-------------|----------|
+| **CommandLine** | Run a script or executable with arguments | Launch PowerShell scripts, batch files, external tools |
+| **SendInput** | Simulate a keyboard hotkey press | Trigger tools that only respond to hotkeys (Steam, OBS, etc.) |
+
+#### CommandLine Examples
+
+**Run a PowerShell script:**
+- Label: `Backup Saves`
+- Action: `CommandLine`
+- Command: `powershell.exe`
+- Arguments: `-ExecutionPolicy Bypass -File "C:\Scripts\backup-saves.ps1"`
+
+**Run a batch file:**
+- Label: `Clean Temp`
+- Action: `CommandLine`
+- Command: `C:\Scripts\clean-temp.bat`
+- Arguments: (leave empty)
+
+**Launch external tool:**
+- Label: `Notepad`
+- Action: `CommandLine`
+- Command: `notepad.exe`
+- Arguments: (leave empty)
+
+#### SendInput Examples (Screenshot/Recording)
+
+For tools that use hotkeys instead of command-line arguments:
+
+**Steam Screenshot:**
+- Label: `Screenshot`
+- Action: `SendInput`
+- Hotkey: `F12`
+
+**OBS Toggle Recording:**
+- Label: `Record`
+- Action: `SendInput`
+- Hotkey: `F9` (or your OBS hotkey setting)
+
+**GeForce Experience Screenshot:**
+- Label: `Screenshot`
+- Action: `SendInput`
+- Hotkey: `Alt+F1`
+
+**Xbox Game Bar Recording:**
+- Label: `Record`
+- Action: `SendInput`
+- Hotkey: `Win+Alt+R`
+
+> **Tip:** For SendInput, set the hotkey to match what's configured in the target application. Check Steam/OBS/GeForce Experience settings to find or customize their screenshot/recording hotkeys.
+
 ## Requirements
 
 - **Playnite**: Version compatible with PlayniteSDK 6.12.0+

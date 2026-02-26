@@ -173,7 +173,7 @@ public class OverlayPlugin : GenericPlugin
     internal void ApplySettings(OverlaySettings newSettings)
     {
         input.ApplySettings(newSettings);
-        
+
         // Apply controller always-active setting
         if (newSettings.ControllerAlwaysActive)
         {
@@ -281,7 +281,9 @@ public class OverlayPlugin : GenericPlugin
             SwitchAudioDevice,
             gameVolumeService,
             switcher.ActiveApp?.ProcessId,
-            switcher);
+            switcher,
+            settings.Settings,
+            settings.Settings.Shortcuts);
     }
 
     private void HandleExitGame()
