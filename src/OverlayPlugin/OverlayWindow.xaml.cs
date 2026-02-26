@@ -575,18 +575,96 @@ public partial class OverlayWindow : Window
         return true;
     }
 
-    private int GetShortcutsPerRow()
+    private int GetShortcutIndexAbove(int currentIndex)
     {
-        if (ShortcutsPanel == null || ShortcutsPanel.Children.Count == 0)
-            return 1;
+        if (ShortcutsPanel == null || currentIndex <= 0)
+            return -1;
 
-        var panelWidth = ShortcutsPanel.ActualWidth;
-        if (panelWidth <= 0)
-            return 1;
+        var currentButton = ShortcutsPanel.Children[currentIndex] as Button;
+        if (currentButton == null) return -1;
 
-        // Button width: MinWidth (110) + Margin (8) = 118px
-        const double buttonWidth = 118;
-        return Math.Max(1, (int)(panelWidth / buttonWidth));
+        // Get current button's position relative to panel
+        var currentPos = currentButton.TransformToVisual(ShortcutsPanel).Transform(new Point(0, 0));
+        var currentCenterX = currentPos.X + currentButton.ActualWidth / 2;
+        var currentY = currentPos.Y;
+
+        // Find the button closest to current X position on the row above
+        int bestIndex = -1;
+        double bestXDiff = double.MaxValue;
+        double bestY = double.MaxValue;
+
+        for (int i = 0; i < currentIndex; i++)
+        {
+            var btn = ShortcutsPanel.Children[i] as Button;
+            if (btn == null) continue;
+
+            var pos = btn.TransformToVisual(ShortcutsPanel).Transform(new Point(0, 0));
+            var centerY = pos.Y + btn.ActualHeight / 2;
+
+            // Must be on a different (higher) row
+            if (centerY >= currentY - 5) continue;
+
+            // Find the closest row above
+            if (centerY > bestY) continue;
+
+            var centerX = pos.X + btn.ActualWidth / 2;
+            var xDiff = Math.Abs(centerX - currentCenterX);
+
+            if (centerY < bestY || (Math.Abs(centerY - bestY) < 5 && xDiff < bestXDiff))
+            {
+                bestY = centerY;
+                bestXDiff = xDiff;
+                bestIndex = i;
+            }
+        }
+
+        return bestIndex;
+    }
+
+    private int GetShortcutIndexBelow(int currentIndex)
+    {
+        if (ShortcutsPanel == null || currentIndex >= ShortcutsPanel.Children.Count - 1)
+            return -1;
+
+        var currentButton = ShortcutsPanel.Children[currentIndex] as Button;
+        if (currentButton == null) return -1;
+
+        // Get current button's position relative to panel
+        var currentPos = currentButton.TransformToVisual(ShortcutsPanel).Transform(new Point(0, 0));
+        var currentCenterX = currentPos.X + currentButton.ActualWidth / 2;
+        var currentY = currentPos.Y;
+
+        // Find the button closest to current X position on the row below
+        int bestIndex = -1;
+        double bestXDiff = double.MaxValue;
+        double bestY = double.MinValue;
+
+        for (int i = ShortcutsPanel.Children.Count - 1; i > currentIndex; i--)
+        {
+            var btn = ShortcutsPanel.Children[i] as Button;
+            if (btn == null) continue;
+
+            var pos = btn.TransformToVisual(ShortcutsPanel).Transform(new Point(0, 0));
+            var centerY = pos.Y + btn.ActualHeight / 2;
+
+            // Must be on a different (lower) row
+            if (centerY <= currentY + 5) continue;
+
+            // Find the closest row below
+            if (centerY < bestY) continue;
+
+            var centerX = pos.X + btn.ActualWidth / 2;
+            var xDiff = Math.Abs(centerX - currentCenterX);
+
+            if (centerY > bestY || (Math.Abs(centerY - bestY) < 5 && xDiff < bestXDiff))
+            {
+                bestY = centerY;
+                bestXDiff = xDiff;
+                bestIndex = i;
+            }
+        }
+
+        return bestIndex;
     }
 
     private void FocusRunningAppItem(int index)
@@ -717,9 +795,8 @@ public partial class OverlayWindow : Window
 
                 case NavigationTarget.ShortcutItem:
                     {
-                        // Navigate up in WrapPanel grid
-                        int perRow = GetShortcutsPerRow();
-                        int newIndex = shortcutsSelectedIndex - perRow;
+                        // Navigate up in WrapPanel using actual positions
+                        int newIndex = GetShortcutIndexAbove(shortcutsSelectedIndex);
                         if (newIndex < 0)
                         {
                             ExitToSectionLevel();
@@ -818,10 +895,9 @@ public partial class OverlayWindow : Window
 
                 case NavigationTarget.ShortcutItem:
                     {
-                        // Navigate down in WrapPanel grid
-                        int perRow = GetShortcutsPerRow();
-                        int newIndex = shortcutsSelectedIndex + perRow;
-                        if (newIndex >= ShortcutsPanel.Children.Count)
+                        // Navigate down in WrapPanel using actual positions
+                        int newIndex = GetShortcutIndexBelow(shortcutsSelectedIndex);
+                        if (newIndex < 0)
                         {
                             ExitToSectionLevel();
                         }
