@@ -33,6 +33,7 @@ public class OverlayPlugin : GenericPlugin
         logger = LogManager.GetLogger();
         input = new InputListener();
         overlay = new OverlayService(input);
+        settings = new OverlaySettingsViewModel(this);
         overlay.SetPlayniteAPI(api);
         switcher = new GameSwitcher(api, settings.Settings);
         runningAppsDetector = new RunningAppsDetector(api, settings.Settings);
