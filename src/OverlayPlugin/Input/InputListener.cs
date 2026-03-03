@@ -371,7 +371,6 @@ internal sealed class InputListener
 
     private void ProcessController(LoadedController controller, OverlayWindow? currentOverlay)
     {
-        // Get current button states
         var currentButtons = new HashSet<int>();
         foreach (var button in AllButtons)
         {
@@ -379,6 +378,14 @@ internal sealed class InputListener
             {
                 currentButtons.Add(button);
             }
+        }
+        
+        // Debug: Log Guide button state changes
+        var guidePressed = currentButtons.Contains(SDL2.SDL_CONTROLLER_BUTTON_GUIDE);
+        var guideWasPressed = controller.PressedButtons.Contains(SDL2.SDL_CONTROLLER_BUTTON_GUIDE);
+        if (guidePressed != guideWasPressed)
+        {
+            logger.Debug($"Guide button state changed: {guidePressed} (controller: {controller.Name})");
         }
 
         // Handle toggle combo with cooldown
