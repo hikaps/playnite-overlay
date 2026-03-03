@@ -243,13 +243,20 @@ internal sealed class InputListener
         lock (controllersLock)
         {
             var numJoysticks = SDL2.NumJoysticks();
+            logger.Debug($"ScanForControllers: Found {numJoysticks} joystick(s)");
+            
             for (int i = 0; i < numJoysticks; i++)
             {
-                if (SDL2.IsGameController(i))
+                var isController = SDL2.IsGameController(i);
+                logger.Debug($"ScanForControllers: Joystick {i} - IsGameController={isController}");
+                
+                if (isController)
                 {
                     AddController(i);
                 }
             }
+            
+            logger.Debug($"ScanForControllers: Total controllers opened: {controllers.Count}");
         }
     }
 

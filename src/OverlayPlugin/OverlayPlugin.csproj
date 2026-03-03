@@ -24,11 +24,13 @@
   <!-- SDL2 native library and controller mappings -->
   <ItemGroup>
     <Content Include="libs\SDL2.dll">
+      <Link>SDL2.dll</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <Pack>true</Pack>
       <PackagePath>lib\</PackagePath>
     </Content>
     <Content Include="Resources\gamecontrollerdb.txt">
+      <Link>gamecontrollerdb.txt</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <Pack>true</Pack>
       <PackagePath>lib\</PackagePath>

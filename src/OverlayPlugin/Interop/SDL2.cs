@@ -73,31 +73,50 @@ internal static class SDL2
         if (isInitialized) return true;
         if (initFailed) return false;
 
+        var logger = Playnite.SDK.LogManager.GetLogger();
+        
         try
         {
+            logger.Debug("SDL2: Initializing controller subsystem...");
+            
             // Initialize joystick and gamecontroller subsystems
-            if (SDL_InitSubSystem(SDL_INIT_JOYSTICK | SDL_INIT_GAMECONTROLLER | SDL_INIT_EVENTS) < 0)
+            var result = SDL_InitSubSystem(SDL_INIT_JOYSTICK | SDL_INIT_GAMECONTROLLER | SDL_INIT_EVENTS);
+            if (result < 0)
             {
+                var error = SDL_GetError();
+                logger.Error($"SDL2: Failed to initialize subsystem (result={result}, error={error})");
                 initFailed = true;
                 return false;
             }
+            
+            logger.Debug("SDL2: Subsystem initialized successfully");
 
             // Load controller mappings from the file next to the DLL
-            // This file should be deployed alongside the plugin
-            var mappingsPath = System.IO.Path.Combine(
-                System.IO.Path.GetDirectoryName(typeof(SDL2).Assembly.Location) ?? "",
-                "gamecontrollerdb.txt");
+            var assemblyLocation = typeof(SDL2).Assembly.Location;
+            var assemblyDir = System.IO.Path.GetDirectoryName(assemblyLocation) ?? "";
+            var mappingsPath = System.IO.Path.Combine(assemblyDir, "gamecontrollerdb.txt");
+            
+            logger.Debug($"SDL2: Looking for mappings at: {mappingsPath}");
             
             if (System.IO.File.Exists(mappingsPath))
             {
-                SDL_GameControllerAddMappingsFromFile(mappingsPath);
+                var mappingResult = SDL_GameControllerAddMappingsFromFile(mappingsPath);
+                logger.Debug($"SDL2: Loaded controller mappings (result={mappingResult})");
             }
+            else
+            {
+                logger.Warn($"SDL2: Controller mappings file not found at {mappingsPath}");
+            }
+            
+            var numJoysticks = SDL_NumJoysticks();
+            logger.Debug($"SDL2: Detected {numJoysticks} joystick(s)");
 
             isInitialized = true;
             return true;
         }
-        catch
+        catch (Exception ex)
         {
+            logger.Error(ex, "SDL2: Exception during initialization");
             initFailed = true;
             return false;
         }
@@ -233,6 +252,15 @@ internal static class SDL2
 
     [DllImport(SDL2_DLL, CallingConvention = CallingConvention.Cdecl)]
     private static extern int SDL_GameControllerAddMappingsFromFile([MarshalAs(UnmanagedType.LPStr)] string file);
+
+    [DllImport(SDL2_DLL, CallingConvention = CallingConvention.Cdecl)]
+    private static extern IntPtr SDL_GetError();
+
+    public static string GetError()
+    {
+        var ptr = SDL_GetError();
+        return ptr != IntPtr.Zero ? Marshal.PtrToStringAnsi(ptr) ?? "" : "";
+    }
 
     #endregion
 }
