@@ -39,13 +39,18 @@ internal sealed class OverlayService
             }
 
             // Minimize the game window if enabled
+            logger.Debug($"Minimize setting: {minimizeGame}, WindowHandle: {gameWindowHandle}");
             if (minimizeGame && gameWindowHandle != IntPtr.Zero)
             {
                 logger.Info($"Minimizing game window {gameWindowHandle}");
                 minimizedWindowHandle = gameWindowHandle;
-                ShowWindow(gameWindowHandle, SW_MINIMIZE);
+                var result = ShowWindow(gameWindowHandle, SW_MINIMIZE);
+                logger.Debug($"ShowWindow(SW_MINIMIZE) returned: {result}");
             }
-
+            else if (minimizeGame)
+            {
+                logger.Warn($"Cannot minimize: minimizeGame={minimizeGame}, gameWindowHandle={gameWindowHandle}");
+            }
             // Suspend the game process before showing overlay if enabled
             suspendEnabled = suspendGame;
             logger.Debug($"Suspend setting enabled: {suspendGame}, ProcessId: {currentGameProcessId}");
