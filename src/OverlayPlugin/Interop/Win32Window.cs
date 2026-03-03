@@ -326,11 +326,17 @@ internal static class Win32Window
         try
         {
             // Save the current foreground lock timeout
-            SystemParametersInfo(SPI_GETFOREGROUNDLOCKTIMEOUT, 0, ref oldTimeout, 0);
+            if (!SystemParametersInfo(SPI_GETFOREGROUNDLOCKTIMEOUT, 0, ref oldTimeout, 0))
+            {
+                return false;
+            }
 
             // Disable the foreground lock timeout
             uint newTimeout = 0;
-            SystemParametersInfo(SPI_SETFOREGROUNDLOCKTIMEOUT, 0, ref newTimeout, SPIF_SENDCHANGE);
+            if (!SystemParametersInfo(SPI_SETFOREGROUNDLOCKTIMEOUT, 0, ref newTimeout, SPIF_SENDCHANGE))
+            {
+                return false;
+            }
 
             // Unlock foreground window changes
             LockSetForegroundWindow(LSFW_UNLOCK);
