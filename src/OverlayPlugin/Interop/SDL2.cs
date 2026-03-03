@@ -59,9 +59,27 @@ internal static class SDL2
     #endregion
 
     #region SDL_Event types
+    public const uint SDL_QUIT = 0x100;
     public const uint SDL_CONTROLLERDEVICEADDED = 0x653;
     public const uint SDL_CONTROLLERDEVICEREMOVED = 0x654;
     public const uint SDL_CONTROLLERDEVICEREMAPPED = 0x655;
+    #endregion
+
+    #region SDL_Event structure
+    [StructLayout(LayoutKind.Explicit, Size = 56)]
+    public struct SDL_Event
+    {
+        [FieldOffset(0)] public uint type;
+        [FieldOffset(0)] public SDL_ControllerDeviceEvent cdevice;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct SDL_ControllerDeviceEvent
+    {
+        public uint type;
+        public uint timestamp;
+        public int which;  // joystick index for ADDED, instance ID for REMOVED/REMAPPED
+    }
     #endregion
 
     /// <summary>
@@ -256,10 +274,21 @@ internal static class SDL2
     [DllImport(SDL2_DLL, CallingConvention = CallingConvention.Cdecl)]
     private static extern IntPtr SDL_GetError();
 
+    [DllImport(SDL2_DLL, CallingConvention = CallingConvention.Cdecl)]
+    private static extern int SDL_PollEvent(out SDL_Event _event);
+
     public static string GetError()
     {
         var ptr = SDL_GetError();
         return ptr != IntPtr.Zero ? Marshal.PtrToStringAnsi(ptr) ?? "" : "";
+    }
+
+    /// <summary>
+    /// Polls for pending events. Returns true if an event was available.
+    /// </summary>
+    public static bool PollEvent(out SDL_Event _event)
+    {
+        return SDL_PollEvent(out _event) == 1;
     }
 
     #endregion

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Windows;
 using System.Windows.Threading;
@@ -286,6 +287,46 @@ internal sealed class InputListener
         }
     }
 
+    private void RemoveController(int instanceId)
+    {
+        lock (controllersLock)
+        {
+            var controller = controllers.FirstOrDefault(c => c.InstanceId == instanceId);
+            if (controller != null)
+            {
+                SDL2.GameControllerClose(controller.Handle);
+                controllers.Remove(controller);
+                consumedNavigationButtons.Remove(instanceId);
+                logger.Debug($"Controller disconnected: {controller.Name} (instance {instanceId})");
+            }
+        }
+    }
+
+    private void ProcessEvents()
+    {
+        while (SDL2.PollEvent(out var sdlEvent))
+        {
+            switch (sdlEvent.type)
+            {
+                case SDL2.SDL_CONTROLLERDEVICEADDED:
+                    // which contains the joystick index for the newly added controller
+                    var addedIndex = sdlEvent.cdevice.which;
+                    logger.Debug($"SDL_EVENT: Controller added (joystick index {addedIndex})");
+                    if (SDL2.IsGameController(addedIndex))
+                    {
+                        AddController(addedIndex);
+                    }
+                    break;
+
+                case SDL2.SDL_CONTROLLERDEVICEREMOVED:
+                    // which contains the instance ID of the removed controller
+                    var removedInstanceId = sdlEvent.cdevice.which;
+                    logger.Debug($"SDL_EVENT: Controller removed (instance ID {removedInstanceId})");
+                    RemoveController(removedInstanceId);
+                    break;
+            }
+        }
+    }
     private void PollControllers()
     {
         if (!enableController || !runtimeControllerEnabled)
@@ -296,6 +337,9 @@ internal sealed class InputListener
 
         // Reset navigation flag at start of each poll cycle
         navigationHandledThisCycle = false;
+
+        // Process SDL events for hot-plugging
+        ProcessEvents();
 
         // Update controller states
         SDL2.GameControllerUpdate();
