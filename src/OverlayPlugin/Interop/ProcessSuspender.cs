@@ -31,7 +31,7 @@ internal static class ProcessSuspender
             return false;
         }
 
-        Process process = null;
+        Process? process = null;
         try
         {
             // Get process object - this gives us a handle with limited access rights
@@ -57,7 +57,7 @@ internal static class ProcessSuspender
             logger.Info($"[ProcessSuspender] Successfully suspended process {processId}");
             return true;
         }
-        catch (ArgumentException ex)
+        catch (ArgumentException)
         {
             // Process doesn't exist
             logger.Warn($"[ProcessSuspender] Process {processId} not found or already exited");
@@ -86,7 +86,7 @@ internal static class ProcessSuspender
             return false;
         }
 
-        Process process = null;
+        Process? process = null;
         try
         {
             // Get process object - this gives us a handle with limited access rights

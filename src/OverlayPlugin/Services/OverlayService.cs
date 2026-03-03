@@ -51,28 +51,6 @@ internal sealed class OverlayService
             {
                 logger.Warn($"Cannot minimize: minimizeGame={minimizeGame}, gameWindowHandle={gameWindowHandle}");
             }
-            // Suspend the game process before showing overlay if enabled
-            suspendEnabled = suspendGame;
-            logger.Debug($"Suspend setting enabled: {suspendGame}, ProcessId: {currentGameProcessId}");
-            
-            if (suspendGame && currentGameProcessId.HasValue && currentGameProcessId.Value > 0)
-            {
-                logger.Info($"Suspending game process {currentGameProcessId.Value} for overlay");
-                if (ProcessSuspender.SuspendProcess(currentGameProcessId.Value))
-                {
-                    suspendedProcessId = currentGameProcessId.Value;
-                    logger.Info("Game process suspended successfully");
-                }
-                else
-                {
-                    logger.Warn("Failed to suspend game process");
-                }
-            }
-            else if (suspendGame)
-            {
-                logger.Warn($"Cannot suspend: suspendGame={suspendGame}, hasProcessId={currentGameProcessId.HasValue}, processId={currentGameProcessId}");
-            }
-
             Application.Current?.Dispatcher.Invoke(() =>
             {
                 window = new OverlayWindow(onSwitch, onExit, currentGame, runningApps, recentGames, audioDevices, onAudioDeviceChanged, gameVolumeService, currentGameProcessId, gameSwitcher, shortcuts: shortcuts);
@@ -89,6 +67,27 @@ internal sealed class OverlayService
 
                     // Wire up controller navigation via InputListener
                     inputListener.SetOverlayWindow(window);
+
+                    suspendEnabled = suspendGame;
+                    logger.Debug($"Suspend setting enabled: {suspendGame}, ProcessId: {currentGameProcessId}");
+                    
+                    if (suspendGame && currentGameProcessId.HasValue && currentGameProcessId.Value > 0)
+                    {
+                        logger.Info($"Suspending game process {currentGameProcessId.Value} for overlay");
+                        if (ProcessSuspender.SuspendProcess(currentGameProcessId.Value))
+                        {
+                            suspendedProcessId = currentGameProcessId.Value;
+                            logger.Info("Game process suspended successfully");
+                        }
+                        else
+                        {
+                            logger.Warn("Failed to suspend game process");
+                        }
+                    }
+                    else if (suspendGame)
+                    {
+                        logger.Warn($"Cannot suspend: suspendGame={suspendGame}, hasProcessId={currentGameProcessId.HasValue}, processId={currentGameProcessId}");
+                    }
                 };
 
                 window.Closed += (_, _) =>
