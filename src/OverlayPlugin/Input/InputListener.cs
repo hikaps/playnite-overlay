@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading;
 using System.Windows;
 using System.Windows.Threading;
@@ -244,20 +243,13 @@ internal sealed class InputListener
         lock (controllersLock)
         {
             var numJoysticks = SDL2.NumJoysticks();
-            logger.Debug($"ScanForControllers: Found {numJoysticks} joystick(s)");
-            
             for (int i = 0; i < numJoysticks; i++)
             {
-                var isController = SDL2.IsGameController(i);
-                logger.Debug($"ScanForControllers: Joystick {i} - IsGameController={isController}");
-                
-                if (isController)
+                if (SDL2.IsGameController(i))
                 {
                     AddController(i);
                 }
             }
-            
-            logger.Debug($"ScanForControllers: Total controllers opened: {controllers.Count}");
         }
     }
 
@@ -283,7 +275,6 @@ internal sealed class InputListener
 
             var controller = new LoadedController(handle, instanceId, name);
             controllers.Add(controller);
-            logger.Debug($"Controller connected: {name} (instance {instanceId})");
         }
     }
 
@@ -291,13 +282,16 @@ internal sealed class InputListener
     {
         lock (controllersLock)
         {
-            var controller = controllers.FirstOrDefault(c => c.InstanceId == instanceId);
-            if (controller != null)
+            for (var i = 0; i < controllers.Count; i++)
             {
-                SDL2.GameControllerClose(controller.Handle);
-                controllers.Remove(controller);
-                consumedNavigationButtons.Remove(instanceId);
-                logger.Debug($"Controller disconnected: {controller.Name} (instance {instanceId})");
+                var controller = controllers[i];
+                if (controller.InstanceId == instanceId)
+                {
+                    SDL2.GameControllerClose(controller.Handle);
+                    controllers.RemoveAt(i);
+                    consumedNavigationButtons.Remove(instanceId);
+                    break;
+                }
             }
         }
     }
@@ -311,7 +305,6 @@ internal sealed class InputListener
                 case SDL2.SDL_CONTROLLERDEVICEADDED:
                     // which contains the joystick index for the newly added controller
                     var addedIndex = sdlEvent.cdevice.which;
-                    logger.Debug($"SDL_EVENT: Controller added (joystick index {addedIndex})");
                     if (SDL2.IsGameController(addedIndex))
                     {
                         AddController(addedIndex);
@@ -321,7 +314,6 @@ internal sealed class InputListener
                 case SDL2.SDL_CONTROLLERDEVICEREMOVED:
                     // which contains the instance ID of the removed controller
                     var removedInstanceId = sdlEvent.cdevice.which;
-                    logger.Debug($"SDL_EVENT: Controller removed (instance ID {removedInstanceId})");
                     RemoveController(removedInstanceId);
                     break;
             }
@@ -380,13 +372,6 @@ internal sealed class InputListener
             }
         }
         
-        // Debug: Log Guide button state changes
-        var guidePressed = currentButtons.Contains(SDL2.SDL_CONTROLLER_BUTTON_GUIDE);
-        var guideWasPressed = controller.PressedButtons.Contains(SDL2.SDL_CONTROLLER_BUTTON_GUIDE);
-        if (guidePressed != guideWasPressed)
-        {
-            logger.Debug($"Guide button state changed: {guidePressed} (controller: {controller.Name})");
-        }
 
         // Handle toggle combo with cooldown
         var toggleMask = ResolveComboMask(controllerCombo);
@@ -417,7 +402,6 @@ internal sealed class InputListener
                 var elapsed = (DateTime.Now - lastToggleTime).TotalMilliseconds;
                 if (elapsed >= ToggleCooldownMs)
                 {
-                    logger.Debug($"Controller combo '{controllerCombo}' pressed on {controller.Name}");
                     lastToggleTime = DateTime.Now;
                     TriggerToggle();
                 }
@@ -580,11 +564,8 @@ internal sealed class InputListener
 
             if (hotkeyManager.Register(customHotkeyGesture!, TriggerToggle))
             {
-                logger.Debug($"Successfully registered hotkey: {customHotkeyGesture}");
                 return;
             }
-
-            logger.Debug($"Failed to register hotkey immediately, will retry: {customHotkeyGesture}");
             int attempts = 0;
             hotkeyRetryTimer = new DispatcherTimer
             {
@@ -595,13 +576,11 @@ internal sealed class InputListener
                 attempts++;
                 if (hotkeyManager.Register(customHotkeyGesture!, TriggerToggle))
                 {
-                    logger.Debug($"Successfully registered hotkey after {attempts} attempts: {customHotkeyGesture}");
                     hotkeyRetryTimer?.Stop();
                     hotkeyRetryTimer = null;
                 }
                 else if (attempts >= HotkeyRetryLimit)
                 {
-                    logger.Warn($"Failed to register hotkey after {attempts} attempts: {customHotkeyGesture}");
                     hotkeyRetryTimer?.Stop();
                     hotkeyRetryTimer = null;
                 }

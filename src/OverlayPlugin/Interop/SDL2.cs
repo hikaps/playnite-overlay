@@ -53,16 +53,9 @@ internal static class SDL2
     public const int SDL_CONTROLLER_AXIS_TRIGGERRIGHT = 5;
     #endregion
 
-    #region Axis thresholds
-    /// <summary>Threshold for detecting axis movement (from SDL2 docs: range is -32768 to 32767)</summary>
-    public const short AXIS_THRESHOLD = 16384;
-    #endregion
-
     #region SDL_Event types
-    public const uint SDL_QUIT = 0x100;
     public const uint SDL_CONTROLLERDEVICEADDED = 0x653;
     public const uint SDL_CONTROLLERDEVICEREMOVED = 0x654;
-    public const uint SDL_CONTROLLERDEVICEREMAPPED = 0x655;
     #endregion
 
     #region SDL_Event structure
@@ -91,50 +84,31 @@ internal static class SDL2
         if (isInitialized) return true;
         if (initFailed) return false;
 
-        var logger = Playnite.SDK.LogManager.GetLogger();
-        
         try
         {
-            logger.Debug("SDL2: Initializing controller subsystem...");
-            
             // Initialize joystick and gamecontroller subsystems
             var result = SDL_InitSubSystem(SDL_INIT_JOYSTICK | SDL_INIT_GAMECONTROLLER | SDL_INIT_EVENTS);
             if (result < 0)
             {
-                var error = SDL_GetError();
-                logger.Error($"SDL2: Failed to initialize subsystem (result={result}, error={error})");
                 initFailed = true;
                 return false;
             }
-            
-            logger.Debug("SDL2: Subsystem initialized successfully");
 
             // Load controller mappings from the file next to the DLL
             var assemblyLocation = typeof(SDL2).Assembly.Location;
             var assemblyDir = System.IO.Path.GetDirectoryName(assemblyLocation) ?? "";
             var mappingsPath = System.IO.Path.Combine(assemblyDir, "gamecontrollerdb.txt");
             
-            logger.Debug($"SDL2: Looking for mappings at: {mappingsPath}");
-            
             if (System.IO.File.Exists(mappingsPath))
             {
-                var mappingResult = SDL_GameControllerAddMappingsFromFile(mappingsPath);
-                logger.Debug($"SDL2: Loaded controller mappings (result={mappingResult})");
+                SDL_GameControllerAddMappingsFromFile(mappingsPath);
             }
-            else
-            {
-                logger.Warn($"SDL2: Controller mappings file not found at {mappingsPath}");
-            }
-            
-            var numJoysticks = SDL_NumJoysticks();
-            logger.Debug($"SDL2: Detected {numJoysticks} joystick(s)");
 
             isInitialized = true;
             return true;
         }
-        catch (Exception ex)
+        catch (Exception)
         {
-            logger.Error(ex, "SDL2: Exception during initialization");
             initFailed = true;
             return false;
         }
@@ -272,16 +246,7 @@ internal static class SDL2
     private static extern int SDL_GameControllerAddMappingsFromFile([MarshalAs(UnmanagedType.LPStr)] string file);
 
     [DllImport(SDL2_DLL, CallingConvention = CallingConvention.Cdecl)]
-    private static extern IntPtr SDL_GetError();
-
-    [DllImport(SDL2_DLL, CallingConvention = CallingConvention.Cdecl)]
     private static extern int SDL_PollEvent(out SDL_Event _event);
-
-    public static string GetError()
-    {
-        var ptr = SDL_GetError();
-        return ptr != IntPtr.Zero ? Marshal.PtrToStringAnsi(ptr) ?? "" : "";
-    }
 
     /// <summary>
     /// Polls for pending events. Returns true if an event was available.
