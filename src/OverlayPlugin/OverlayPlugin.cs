@@ -34,6 +34,7 @@ public class OverlayPlugin : GenericPlugin
         input = new InputListener();
         overlay = new OverlayService(input);
         settings = new OverlaySettingsViewModel(this);
+        overlay.SetPlayniteAPI(api);
         switcher = new GameSwitcher(api, settings.Settings);
         runningAppsDetector = new RunningAppsDetector(api, settings.Settings);
         successStory = new SuccessStoryIntegration(api);
@@ -283,7 +284,10 @@ public class OverlayPlugin : GenericPlugin
             switcher.ActiveApp?.ProcessId,
             switcher,
             settings.Settings,
-            settings.Settings.Shortcuts);
+            settings.Settings.Shortcuts,
+            settings.Settings.ShouldSuspendGame,
+            settings.Settings.ShouldMinimizeGame,
+            GetGameWindowHandle(switcher.ActiveApp?.ProcessId));
     }
 
     private void HandleExitGame()
@@ -410,6 +414,35 @@ public class OverlayPlugin : GenericPlugin
             ));
     }
 
+    /// <summary>
+    /// Gets the window handle for the game process, fetching it fresh since
+    /// MainWindowHandle may have been 0 when the game first started.
+    /// </summary>
+    private IntPtr GetGameWindowHandle(int? processId)
+    {
+        if (!processId.HasValue || processId.Value <= 0)
+        {
+            return IntPtr.Zero;
+        }
+
+        // Try to get fresh window handle from the process
+        var freshHandle = BorderlessHelper.GetMainWindowHandle(processId.Value);
+        if (freshHandle != IntPtr.Zero)
+        {
+            return freshHandle;
+        }
+
+        // Fallback: Use foreground window (game should be in foreground when overlay opens)
+        var foregroundHandle = Win32Window.GetCurrentForegroundWindow();
+        if (foregroundHandle != IntPtr.Zero)
+        {
+            return foregroundHandle;
+        }
+
+        logger.Warn($"GetGameWindowHandle: No window handle found for PID {processId.Value}");
+        return IntPtr.Zero;
+    }
+
     public override void Dispose()
     {
         if (isDisposed)
@@ -425,6 +458,18 @@ public class OverlayPlugin : GenericPlugin
         // Clean up resources
         input.Stop();
         overlay.Hide();
+
+        // CRITICAL: Resume any suspended processes to prevent games being left frozen
+        // if Playnite crashes or closes while overlay is open
+        try
+        {
+            ProcessSuspender.ResumeAllSuspendedProcesses();
+        }
+        catch (Exception ex)
+        {
+            logger.Error(ex, "Failed to resume suspended processes during disposal");
+        }
+
         audioDeviceService?.Dispose();
         gameVolumeService?.Dispose();
 
