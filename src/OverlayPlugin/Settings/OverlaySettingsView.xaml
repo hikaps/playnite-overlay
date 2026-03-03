@@ -144,7 +144,6 @@
                     </TextBlock>
                     <TextBlock Margin="0,2,0,0" TextWrapping="Wrap" Foreground="Orange" FontWeight="Bold"
                                Text="⚠️ Suspend may trigger anti-cheat in online games! Use Minimize for Fortnite, Apex, Valorant, etc."/>
-                               Text="⚠️ Suspend WILL trigger anti-cheat in online games! Use Minimize for Fortnite, Apex, Valorant, etc."/>
                 </StackPanel>
             </GroupBox>
             <GroupBox Header="Shortcuts">
