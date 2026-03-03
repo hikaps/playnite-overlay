@@ -427,7 +427,6 @@ public class OverlayPlugin : GenericPlugin
         var freshHandle = BorderlessHelper.GetMainWindowHandle(processId.Value);
         if (freshHandle != IntPtr.Zero)
         {
-            logger.Debug($"GetGameWindowHandle: Found window handle {freshHandle} for PID {processId.Value}");
             return freshHandle;
         }
 
@@ -435,7 +434,6 @@ public class OverlayPlugin : GenericPlugin
         var foregroundHandle = Win32Window.GetCurrentForegroundWindow();
         if (foregroundHandle != IntPtr.Zero)
         {
-            logger.Debug($"GetGameWindowHandle: Using foreground window {foregroundHandle} (Process.MainWindowHandle was 0)");
             return foregroundHandle;
         }
 

@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using System.Windows;
 using Playnite.SDK;
-using PlayniteOverlay;
 using PlayniteOverlay.Input;
 using PlayniteOverlay.Models;
 
@@ -16,7 +15,6 @@ internal sealed class OverlayService
     private readonly InputListener inputListener;
     private OverlayWindow? window;
     private int? suspendedProcessId;
-    private bool suspendEnabled;
     private IntPtr minimizedWindowHandle;
 
     public OverlayService(InputListener inputListener)
@@ -38,14 +36,11 @@ internal sealed class OverlayService
                 return;
             }
 
-            // Minimize the game window if enabled
-            logger.Debug($"Minimize setting: {minimizeGame}, WindowHandle: {gameWindowHandle}");
             if (minimizeGame && gameWindowHandle != IntPtr.Zero)
             {
                 logger.Info($"Minimizing game window {gameWindowHandle}");
                 minimizedWindowHandle = gameWindowHandle;
-                var result = ShowWindow(gameWindowHandle, SW_MINIMIZE);
-                logger.Debug($"ShowWindow(SW_MINIMIZE) returned: {result}");
+                ShowWindow(gameWindowHandle, SW_MINIMIZE);
             }
             else if (minimizeGame)
             {
@@ -68,9 +63,6 @@ internal sealed class OverlayService
                     // Wire up controller navigation via InputListener
                     inputListener.SetOverlayWindow(window);
 
-                    suspendEnabled = suspendGame;
-                    logger.Debug($"Suspend setting enabled: {suspendGame}, ProcessId: {currentGameProcessId}");
-                    
                     if (suspendGame && currentGameProcessId.HasValue && currentGameProcessId.Value > 0)
                     {
                         logger.Info($"Suspending game process {currentGameProcessId.Value} for overlay");

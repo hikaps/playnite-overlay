@@ -34,22 +34,10 @@ internal static class ProcessSuspender
         Process? process = null;
         try
         {
-            // Get process object - this gives us a handle with limited access rights
-            // but avoids the need for OpenProcess with PROCESS_SUSPEND_RESUME
             process = Process.GetProcessById(processId);
-            if (process == null)
-            {
-                logger.Warn($"[ProcessSuspender] Process not found: {processId}");
-                return false;
-            }
-
-            // Use the process handle directly (like PlayState does)
-            // The handle is obtained via Process.GetProcessById which has limited access
-            // but still allows NtSuspendProcess to work
             var status = NtSuspendProcess(process.Handle);
             if (status != 0)
             {
-                // Common error: 0xC0000022 = STATUS_ACCESS_DENIED (anti-cheat blocking)
                 logger.Warn($"[ProcessSuspender] NtSuspendProcess failed for PID {processId}, NTSTATUS: 0x{status:X8}");
                 return false;
             }
@@ -59,7 +47,6 @@ internal static class ProcessSuspender
         }
         catch (ArgumentException)
         {
-            // Process doesn't exist
             logger.Warn($"[ProcessSuspender] Process {processId} not found or already exited");
             return false;
         }
@@ -89,15 +76,7 @@ internal static class ProcessSuspender
         Process? process = null;
         try
         {
-            // Get process object - this gives us a handle with limited access rights
             process = Process.GetProcessById(processId);
-            if (process == null)
-            {
-                logger.Warn($"[ProcessSuspender] Process not found: {processId}");
-                return false;
-            }
-
-            // Use the process handle directly (like PlayState does)
             var status = NtResumeProcess(process.Handle);
             if (status == 0)
             {
