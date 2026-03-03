@@ -33,7 +33,7 @@ public class OverlayPlugin : GenericPlugin
         logger = LogManager.GetLogger();
         input = new InputListener();
         overlay = new OverlayService(input);
-        settings = new OverlaySettingsViewModel(this);
+        overlay.SetPlayniteAPI(api);
         switcher = new GameSwitcher(api, settings.Settings);
         runningAppsDetector = new RunningAppsDetector(api, settings.Settings);
         successStory = new SuccessStoryIntegration(api);
@@ -288,6 +288,7 @@ public class OverlayPlugin : GenericPlugin
             settings.Settings.ShouldMinimizeGame,
             GetGameWindowHandle(switcher.ActiveApp?.ProcessId));
     }
+
     private void HandleExitGame()
     {
         // Exit the active app (whatever is in NOW PLAYING)
@@ -456,6 +457,18 @@ public class OverlayPlugin : GenericPlugin
         // Clean up resources
         input.Stop();
         overlay.Hide();
+
+        // CRITICAL: Resume any suspended processes to prevent games being left frozen
+        // if Playnite crashes or closes while overlay is open
+        try
+        {
+            ProcessSuspender.ResumeAllSuspendedProcesses();
+        }
+        catch (Exception ex)
+        {
+            logger.Error(ex, "Failed to resume suspended processes during disposal");
+        }
+
         audioDeviceService?.Dispose();
         gameVolumeService?.Dispose();
 

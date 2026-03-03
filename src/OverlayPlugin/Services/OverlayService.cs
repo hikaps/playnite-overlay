@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Runtime.InteropServices;
 using System.Windows;
 using Playnite.SDK;
 using PlayniteOverlay.Input;
@@ -11,15 +10,26 @@ namespace PlayniteOverlay.Services;
 internal sealed class OverlayService
 {
     private static readonly ILogger logger = LogManager.GetLogger();
+    private readonly object stateLock = new object();
     private readonly object windowLock = new object();
     private readonly InputListener inputListener;
     private OverlayWindow? window;
     private int? suspendedProcessId;
     private IntPtr minimizedWindowHandle;
+    private IPlayniteAPI? playniteApi;
 
     public OverlayService(InputListener inputListener)
     {
         this.inputListener = inputListener ?? throw new ArgumentNullException(nameof(inputListener));
+    }
+
+    /// <summary>
+    /// Sets the Playnite API reference for showing notifications.
+    /// Must be called before Show() if notifications are desired.
+    /// </summary>
+    public void SetPlayniteAPI(IPlayniteAPI api)
+    {
+        playniteApi = api;
     }
 
     public bool IsVisible
@@ -36,16 +46,34 @@ internal sealed class OverlayService
                 return;
             }
 
+            // Capture state atomically inside the lock
+            IntPtr handleToMinimize = IntPtr.Zero;
+            int? processToSuspend = null;
+            
             if (minimizeGame && gameWindowHandle != IntPtr.Zero)
             {
+                handleToMinimize = gameWindowHandle;
+                lock (stateLock)
+                {
+                    minimizedWindowHandle = gameWindowHandle;
+                }
                 logger.Info($"Minimizing game window {gameWindowHandle}");
-                minimizedWindowHandle = gameWindowHandle;
-                ShowWindow(gameWindowHandle, SW_MINIMIZE);
+                Win32Window.MinimizeWindow(gameWindowHandle);
             }
             else if (minimizeGame)
             {
                 logger.Warn($"Cannot minimize: minimizeGame={minimizeGame}, gameWindowHandle={gameWindowHandle}");
             }
+            
+            if (suspendGame && currentGameProcessId.HasValue && currentGameProcessId.Value > 0)
+            {
+                processToSuspend = currentGameProcessId.Value;
+            }
+            else if (suspendGame)
+            {
+                logger.Warn($"Cannot suspend: suspendGame={suspendGame}, hasProcessId={currentGameProcessId.HasValue}, processId={currentGameProcessId}");
+            }
+
             Application.Current?.Dispatcher.Invoke(() =>
             {
                 window = new OverlayWindow(onSwitch, onExit, currentGame, runningApps, recentGames, audioDevices, onAudioDeviceChanged, gameVolumeService, currentGameProcessId, gameSwitcher, shortcuts: shortcuts);
@@ -63,22 +91,22 @@ internal sealed class OverlayService
                     // Wire up controller navigation via InputListener
                     inputListener.SetOverlayWindow(window);
 
-                    if (suspendGame && currentGameProcessId.HasValue && currentGameProcessId.Value > 0)
+                    // Suspend game process if requested (happens after window is loaded)
+                    if (processToSuspend.HasValue)
                     {
-                        logger.Info($"Suspending game process {currentGameProcessId.Value} for overlay");
-                        if (ProcessSuspender.SuspendProcess(currentGameProcessId.Value))
+                        logger.Info($"Suspending game process {processToSuspend.Value} for overlay");
+                        if (ProcessSuspender.SuspendProcess(processToSuspend.Value))
                         {
-                            suspendedProcessId = currentGameProcessId.Value;
+                            lock (stateLock)
+                            {
+                                suspendedProcessId = processToSuspend.Value;
+                            }
                             logger.Info("Game process suspended successfully");
                         }
                         else
                         {
                             logger.Warn("Failed to suspend game process");
                         }
-                    }
-                    else if (suspendGame)
-                    {
-                        logger.Warn($"Cannot suspend: suspendGame={suspendGame}, hasProcessId={currentGameProcessId.HasValue}, processId={currentGameProcessId}");
                     }
                 };
 
@@ -137,15 +165,19 @@ internal sealed class OverlayService
     /// </summary>
     private void RestoreMinimizedWindow()
     {
-        if (minimizedWindowHandle != IntPtr.Zero)
+        IntPtr hwndToRestore;
+        lock (stateLock)
         {
-            var hwnd = minimizedWindowHandle;
+            if (minimizedWindowHandle == IntPtr.Zero)
+            {
+                return;
+            }
+            hwndToRestore = minimizedWindowHandle;
             minimizedWindowHandle = IntPtr.Zero;
-            
-            logger.Info($"Restoring game window {hwnd}");
-            ShowWindow(hwnd, SW_RESTORE);
-            SetForegroundWindow(hwnd);
         }
+        
+        logger.Info($"Restoring game window {hwndToRestore}");
+        Win32Window.RestoreAndActivate(hwndToRestore);
     }
 
     /// <summary>
@@ -153,33 +185,46 @@ internal sealed class OverlayService
     /// </summary>
     private void ResumeSuspendedProcess()
     {
-        if (suspendedProcessId.HasValue)
+        int? pidToResume;
+        lock (stateLock)
         {
-            var pid = suspendedProcessId.Value;
+            if (!suspendedProcessId.HasValue)
+            {
+                return;
+            }
+            pidToResume = suspendedProcessId.Value;
             suspendedProcessId = null;
-            
-            logger.Info($"Resuming game process {pid}");
-            if (ProcessSuspender.SafeResumeProcess(pid))
-            {
-                logger.Info("Game process resumed successfully");
-            }
-            else
-            {
-                logger.Warn("Failed to resume game process");
-            }
+        }
+        
+        logger.Info($"Resuming game process {pidToResume.Value}");
+        if (ProcessSuspender.SafeResumeProcess(pidToResume.Value))
+        {
+            logger.Info("Game process resumed successfully");
+        }
+        else
+        {
+            logger.Warn("Failed to resume game process");
+            ShowNotification("Failed to resume game process. The game may remain frozen.", "Playnite Overlay Error");
         }
     }
 
-    #region P/Invoke for window management
-
-    private const int SW_MINIMIZE = 6;
-    private const int SW_RESTORE = 9;
-
-    [DllImport("user32.dll")]
-    private static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
-
-    [DllImport("user32.dll")]
-    private static extern bool SetForegroundWindow(IntPtr hWnd);
-
-    #endregion
+    /// <summary>
+    /// Shows a notification to the user if Playnite API is available.
+    /// </summary>
+    private void ShowNotification(string message, string title)
+    {
+        try
+        {
+            playniteApi?.Notifications?.Add(
+                Guid.NewGuid().ToString(),
+                $"{title}: {message}",
+                NotificationType.Error
+            );
+        }
+        catch (Exception ex)
+        {
+            logger.Error(ex, "Failed to show notification");
+        }
+    }
 }
+

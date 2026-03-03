@@ -5,6 +5,7 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:models="clr-namespace:PlayniteOverlay.Models"
              xmlns:converters="clr-namespace:PlayniteOverlay.Converters"
+             xmlns:settings="clr-namespace:PlayniteOverlay"
              mc:Ignorable="d"
              d:DesignWidth="540" d:DesignHeight="320">
     <UserControl.Resources>
@@ -129,9 +130,9 @@
                         <ComboBox Width="280"
                                   SelectedValuePath="Tag"
                                   SelectedValue="{Binding Settings.FocusControlMode}">
-                            <ComboBoxItem Content="Do nothing" Tag="None" ToolTip="No special handling - game continues running normally"/>
-                            <ComboBoxItem Content="Minimize game window" Tag="Minimize" ToolTip="Safely minimizes game to taskbar. Works with all games including anti-cheat protected games."/>
-                            <ComboBoxItem Content="Suspend game process" Tag="Suspend" ToolTip="Freezes game process. More aggressive but may trigger anti-cheat detection."/>
+                            <ComboBoxItem Content="Do nothing" Tag="{x:Static settings:OverlaySettings+FocusControlModeType.None}" ToolTip="No special handling - game continues running normally"/>
+                            <ComboBoxItem Content="Minimize game window" Tag="{x:Static settings:OverlaySettings+FocusControlModeType.Minimize}" ToolTip="Safely minimizes game to taskbar. Works with all games including anti-cheat protected games."/>
+                            <ComboBoxItem Content="Suspend game process" Tag="{x:Static settings:OverlaySettings+FocusControlModeType.Suspend}" ToolTip="⚠️ Completely freezes the game process. May trigger anti-cheat in online games like Fortnite, Apex Legends, Valorant. Use Minimize for online games."/>
                         </ComboBox>
                     </StackPanel>
                     
@@ -139,10 +140,11 @@
                         <Run Text="Minimize" FontWeight="Bold"/> - Safely minimizes the game window. Works with all games.
                     </TextBlock>
                     <TextBlock Margin="0,4,0,0" TextWrapping="Wrap" Foreground="Gray">
-                        <Run Text="Suspend" FontWeight="Bold"/> - Freezes the game process. 
+                        <Run Text="Suspend" FontWeight="Bold"/> - Freezes the game process completely. 
                     </TextBlock>
                     <TextBlock Margin="0,2,0,0" TextWrapping="Wrap" Foreground="Orange" FontWeight="Bold"
-                               Text="⚠️ Suspend may trigger anti-cheat! Use Minimize for online games."/>
+                               Text="⚠️ Suspend may trigger anti-cheat in online games! Use Minimize for Fortnite, Apex, Valorant, etc."/>
+                               Text="⚠️ Suspend WILL trigger anti-cheat in online games! Use Minimize for Fortnite, Apex, Valorant, etc."/>
                 </StackPanel>
             </GroupBox>
             <GroupBox Header="Shortcuts">
