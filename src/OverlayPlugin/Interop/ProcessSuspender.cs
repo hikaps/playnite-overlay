@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics;
 using System.Runtime.InteropServices;
 using Playnite.SDK;
 
@@ -30,18 +31,22 @@ internal static class ProcessSuspender
             return false;
         }
 
-        IntPtr processHandle = IntPtr.Zero;
+        Process process = null;
         try
         {
-            processHandle = OpenProcess(PROCESS_SUSPEND_RESUME, false, processId);
-            if (processHandle == IntPtr.Zero)
+            // Get process object - this gives us a handle with limited access rights
+            // but avoids the need for OpenProcess with PROCESS_SUSPEND_RESUME
+            process = Process.GetProcessById(processId);
+            if (process == null)
             {
-                var error = Marshal.GetLastWin32Error();
-                logger.Warn($"[ProcessSuspender] OpenProcess failed for PID {processId}, Win32 error: {error} (0x{error:X8})");
+                logger.Warn($"[ProcessSuspender] Process not found: {processId}");
                 return false;
             }
 
-            var status = NtSuspendProcess(processHandle);
+            // Use the process handle directly (like PlayState does)
+            // The handle is obtained via Process.GetProcessById which has limited access
+            // but still allows NtSuspendProcess to work
+            var status = NtSuspendProcess(process.Handle);
             if (status != 0)
             {
                 // Common error: 0xC0000022 = STATUS_ACCESS_DENIED (anti-cheat blocking)
@@ -52,6 +57,12 @@ internal static class ProcessSuspender
             logger.Info($"[ProcessSuspender] Successfully suspended process {processId}");
             return true;
         }
+        catch (ArgumentException ex)
+        {
+            // Process doesn't exist
+            logger.Warn($"[ProcessSuspender] Process {processId} not found or already exited");
+            return false;
+        }
         catch (Exception ex)
         {
             logger.Error(ex, $"[ProcessSuspender] Exception in SuspendProcess for PID {processId}");
@@ -59,10 +70,7 @@ internal static class ProcessSuspender
         }
         finally
         {
-            if (processHandle != IntPtr.Zero)
-            {
-                CloseHandle(processHandle);
-            }
+            process?.Dispose();
         }
     }
 
@@ -78,23 +86,30 @@ internal static class ProcessSuspender
             return false;
         }
 
-        IntPtr processHandle = IntPtr.Zero;
+        Process process = null;
         try
         {
-            processHandle = OpenProcess(PROCESS_SUSPEND_RESUME, false, processId);
-            if (processHandle == IntPtr.Zero)
+            // Get process object - this gives us a handle with limited access rights
+            process = Process.GetProcessById(processId);
+            if (process == null)
             {
-                var error = Marshal.GetLastWin32Error();
-                logger.Warn($"[ProcessSuspender] OpenProcess failed for resume PID {processId}, Win32 error: {error}");
+                logger.Warn($"[ProcessSuspender] Process not found: {processId}");
                 return false;
             }
 
-            var status = NtResumeProcess(processHandle);
+            // Use the process handle directly (like PlayState does)
+            var status = NtResumeProcess(process.Handle);
             if (status == 0)
             {
                 logger.Info($"[ProcessSuspender] Successfully resumed process {processId}");
             }
             return status == 0;
+        }
+        catch (ArgumentException)
+        {
+            // Process doesn't exist
+            logger.Warn($"[ProcessSuspender] Process {processId} not found or already exited");
+            return false;
         }
         catch (Exception ex)
         {
@@ -103,10 +118,7 @@ internal static class ProcessSuspender
         }
         finally
         {
-            if (processHandle != IntPtr.Zero)
-            {
-                CloseHandle(processHandle);
-            }
+            process?.Dispose();
         }
     }
 
@@ -120,20 +132,11 @@ internal static class ProcessSuspender
 
     #region P/Invoke
 
-    private const uint PROCESS_SUSPEND_RESUME = 0x0800;
-
     [DllImport("ntdll.dll", SetLastError = true)]
     private static extern uint NtSuspendProcess(IntPtr processHandle);
 
     [DllImport("ntdll.dll", SetLastError = true)]
     private static extern uint NtResumeProcess(IntPtr processHandle);
-
-    [DllImport("kernel32.dll", SetLastError = true)]
-    private static extern IntPtr OpenProcess(uint dwDesiredAccess, bool bInheritHandle, int dwProcessId);
-
-    [DllImport("kernel32.dll", SetLastError = true)]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    private static extern bool CloseHandle(IntPtr hObject);
 
     #endregion
 }
