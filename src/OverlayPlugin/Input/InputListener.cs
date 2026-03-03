@@ -1,9 +1,9 @@
 using System;
+using System.Collections.Generic;
 using System.Threading;
 using System.Windows;
 using System.Windows.Threading;
 using Playnite.SDK;
-using PlayniteOverlay;
 
 namespace PlayniteOverlay.Input;
 
@@ -14,8 +14,10 @@ internal sealed class InputListener
     private const int ToggleCooldownMs = 300;
 
     private static readonly ILogger logger = LogManager.GetLogger();
-    private readonly ushort[] lastButtons = new ushort[4];
-    private readonly bool[] controllerConnected = new bool[4];
+    
+    // SDL2 controller tracking
+    private readonly List<LoadedController> controllers = new List<LoadedController>();
+    private readonly object controllersLock = new object();
 
     private Timer? pollTimer;
     private HotkeyManager? hotkeyManager;
@@ -33,12 +35,33 @@ internal sealed class InputListener
     private DateTime lastToggleTime = DateTime.MinValue;
 
     // Track which navigation buttons have been consumed per controller (waiting for release before re-triggering)
-    private readonly ushort[] consumedNavigationButtons = new ushort[4];
+    private readonly Dictionary<int, HashSet<int>> consumedNavigationButtons = new Dictionary<int, HashSet<int>>();
 
     // Prevent duplicate navigation from multiple controllers reporting the same input in a single poll cycle
     private bool navigationHandledThisCycle = false;
 
     public event EventHandler? ToggleRequested;
+
+    /// <summary>
+    /// Represents a loaded SDL2 game controller.
+    /// </summary>
+    private class LoadedController
+    {
+        public IntPtr Handle { get; }
+        public int InstanceId { get; }
+        public string Name { get; }
+        public bool Enabled { get; set; } = true;
+
+        // Track previous button states for edge detection
+        public readonly HashSet<int> PressedButtons = new HashSet<int>();
+
+        public LoadedController(IntPtr handle, int instanceId, string name)
+        {
+            Handle = handle;
+            InstanceId = instanceId;
+            Name = name;
+        }
+    }
 
     /// <summary>
     /// Sets the overlay window reference for controller navigation.
@@ -54,41 +77,55 @@ internal sealed class InputListener
             {
                 // Capture current button state to prevent ghost inputs
                 // Any buttons currently pressed won't trigger actions until released
-                for (int i = 0; i < lastButtons.Length; i++)
+                lock (controllersLock)
                 {
-                    if (XInput.TryGetState(i, out var state))
+                    foreach (var controller in controllers)
                     {
-                        lastButtons[i] = state.Gamepad.wButtons;
-                        // Mark all currently pressed navigation buttons as consumed per controller
-                        // so they don't trigger until released and pressed again
-                        consumedNavigationButtons[i] = (ushort)(state.Gamepad.wButtons & NavigationButtonsMask);
-                    }
-                    else
-                    {
-                        consumedNavigationButtons[i] = 0;
+                        if (controller.Enabled)
+                        {
+                            SDL2.GameControllerUpdate();
+                            CaptureCurrentButtonState(controller);
+                        }
                     }
                 }
             }
             else
             {
                 // Reset consumed buttons for all controllers when overlay closes
-                for (int i = 0; i < consumedNavigationButtons.Length; i++)
+                lock (controllersLock)
                 {
-                    consumedNavigationButtons[i] = 0;
+                    consumedNavigationButtons.Clear();
                 }
             }
         }
     }
 
+    private void CaptureCurrentButtonState(LoadedController controller)
+    {
+        // Mark all currently pressed navigation buttons as consumed
+        // so they don't trigger until released and pressed again
+        var consumed = new HashSet<int>();
+        foreach (var button in NavigationButtons)
+        {
+            if (SDL2.GameControllerGetButton(controller.Handle, button) == 1)
+            {
+                consumed.Add(button);
+            }
+        }
+        consumedNavigationButtons[controller.InstanceId] = consumed;
+    }
+
     // All navigation-related buttons that use consumed-button debouncing
-    private const ushort NavigationButtonsMask =
-        XInput.XINPUT_GAMEPAD_DPAD_UP |
-        XInput.XINPUT_GAMEPAD_DPAD_DOWN |
-        XInput.XINPUT_GAMEPAD_DPAD_LEFT |
-        XInput.XINPUT_GAMEPAD_DPAD_RIGHT |
-        XInput.XINPUT_GAMEPAD_A |
-        XInput.XINPUT_GAMEPAD_B |
-        XInput.XINPUT_GAMEPAD_BACK;
+    private static readonly int[] NavigationButtons = new int[]
+    {
+        SDL2.SDL_CONTROLLER_BUTTON_DPAD_UP,
+        SDL2.SDL_CONTROLLER_BUTTON_DPAD_DOWN,
+        SDL2.SDL_CONTROLLER_BUTTON_DPAD_LEFT,
+        SDL2.SDL_CONTROLLER_BUTTON_DPAD_RIGHT,
+        SDL2.SDL_CONTROLLER_BUTTON_A,
+        SDL2.SDL_CONTROLLER_BUTTON_B,
+        SDL2.SDL_CONTROLLER_BUTTON_BACK
+    };
 
     /// <summary>
     /// Starts both hotkey and controller input listening.
@@ -130,20 +167,43 @@ internal sealed class InputListener
     }
 
     /// <summary>
-    /// Starts only controller input polling (Xbox controller).
+    /// Starts only controller input polling.
     /// </summary>
     public void StartController()
     {
+        // Initialize SDL2 if not already done
+        if (!SDL2.Init())
+        {
+            logger.Error("Failed to initialize SDL2 for controller input");
+            return;
+        }
+
+        // Scan for already-connected controllers
+        ScanForControllers();
+
         pollTimer ??= new Timer(_ => PollControllers(), null, 0, PollIntervalMs);
     }
 
     /// <summary>
-    /// Stops only controller input polling (Xbox controller).
+    /// Stops only controller input polling.
     /// </summary>
     public void StopController()
     {
         pollTimer?.Dispose();
         pollTimer = null;
+
+        // Close all open controllers
+        lock (controllersLock)
+        {
+            foreach (var controller in controllers)
+            {
+                SDL2.GameControllerClose(controller.Handle);
+            }
+            controllers.Clear();
+            consumedNavigationButtons.Clear();
+        }
+
+        SDL2.Quit();
     }
 
     /// <summary>
@@ -178,6 +238,47 @@ internal sealed class InputListener
         ToggleRequested?.Invoke(this, EventArgs.Empty);
     }
 
+    private void ScanForControllers()
+    {
+        lock (controllersLock)
+        {
+            var numJoysticks = SDL2.NumJoysticks();
+            for (int i = 0; i < numJoysticks; i++)
+            {
+                if (SDL2.IsGameController(i))
+                {
+                    AddController(i);
+                }
+            }
+        }
+    }
+
+    private void AddController(int joystickIndex)
+    {
+        var handle = SDL2.GameControllerOpen(joystickIndex);
+        if (handle == IntPtr.Zero)
+        {
+            return;
+        }
+
+        var instanceId = SDL2.GameControllerGetJoystickInstanceID(handle);
+        var name = SDL2.GameControllerName(handle) ?? $"Controller {instanceId}";
+
+        // Check if we already have this controller
+        lock (controllersLock)
+        {
+            if (controllers.Exists(c => c.InstanceId == instanceId))
+            {
+                SDL2.GameControllerClose(handle);
+                return;
+            }
+
+            var controller = new LoadedController(handle, instanceId, name);
+            controllers.Add(controller);
+            logger.Debug($"Controller connected: {name} (instance {instanceId})");
+        }
+    }
+
     private void PollControllers()
     {
         if (!enableController || !runtimeControllerEnabled)
@@ -189,7 +290,8 @@ internal sealed class InputListener
         // Reset navigation flag at start of each poll cycle
         navigationHandledThisCycle = false;
 
-        bool useGuide = controllerCombo.Equals("Guide", StringComparison.OrdinalIgnoreCase);
+        // Update controller states
+        SDL2.GameControllerUpdate();
 
         // Get current overlay window reference
         OverlayWindow? currentOverlay;
@@ -198,129 +300,159 @@ internal sealed class InputListener
             currentOverlay = overlayWindow;
         }
 
-        for (int index = 0; index < lastButtons.Length; index++)
+        // Process each controller
+        List<LoadedController> controllersCopy;
+        lock (controllersLock)
         {
-            // Use TryGetStateEx when checking for Guide button (includes Guide in wButtons)
-            // Use TryGetState for other combos (standard API)
-            bool connected = useGuide
-                ? XInput.TryGetStateEx(index, out var state)
-                : XInput.TryGetState(index, out state);
+            controllersCopy = new List<LoadedController>(controllers);
+        }
 
-            if (!connected)
+        foreach (var controller in controllersCopy)
+        {
+            if (!controller.Enabled)
             {
-                if (controllerConnected[index])
-                {
-                    logger.Debug($"Controller {index} disconnected");
-                    controllerConnected[index] = false;
-                }
-                lastButtons[index] = 0;
                 continue;
             }
 
-            if (!controllerConnected[index])
-            {
-                logger.Debug($"Controller {index} connected");
-                controllerConnected[index] = true;
-            }
-
-            var buttons = state.Gamepad.wButtons;
-            var previous = lastButtons[index];
-
-            // Handle toggle combo with cooldown
-            var mask = ResolveComboMask(controllerCombo);
-            if (mask != 0)
-            {
-                bool now = (buttons & mask) == mask;
-                bool prev = (previous & mask) == mask;
-                if (now && !prev)
-                {
-                    var elapsed = (DateTime.Now - lastToggleTime).TotalMilliseconds;
-                    if (elapsed >= ToggleCooldownMs)
-                    {
-                        logger.Debug($"Controller combo '{controllerCombo}' pressed on controller {index}");
-                        lastToggleTime = DateTime.Now;
-                        TriggerToggle();
-                    }
-                }
-            }
-
-            // Handle navigation if overlay is open
-            if (currentOverlay != null)
-            {
-                HandleNavigation(currentOverlay, buttons, index);
-            }
-
-            lastButtons[index] = buttons;
+            ProcessController(controller, currentOverlay);
         }
     }
 
-    private void HandleNavigation(OverlayWindow window, ushort buttons, int controllerIndex)
+    private void ProcessController(LoadedController controller, OverlayWindow? currentOverlay)
+    {
+        // Get current button states
+        var currentButtons = new HashSet<int>();
+        foreach (var button in AllButtons)
+        {
+            if (SDL2.GameControllerGetButton(controller.Handle, button) == 1)
+            {
+                currentButtons.Add(button);
+            }
+        }
+
+        // Handle toggle combo with cooldown
+        var toggleMask = ResolveComboMask(controllerCombo);
+        if (toggleMask.Length > 0)
+        {
+            bool allPressed = true;
+            foreach (var button in toggleMask)
+            {
+                if (!currentButtons.Contains(button))
+                {
+                    allPressed = false;
+                    break;
+                }
+            }
+
+            bool wasPressed = true;
+            foreach (var button in toggleMask)
+            {
+                if (!controller.PressedButtons.Contains(button))
+                {
+                    wasPressed = false;
+                    break;
+                }
+            }
+
+            if (allPressed && !wasPressed)
+            {
+                var elapsed = (DateTime.Now - lastToggleTime).TotalMilliseconds;
+                if (elapsed >= ToggleCooldownMs)
+                {
+                    logger.Debug($"Controller combo '{controllerCombo}' pressed on {controller.Name}");
+                    lastToggleTime = DateTime.Now;
+                    TriggerToggle();
+                }
+            }
+        }
+
+        // Handle navigation if overlay is open
+        if (currentOverlay != null)
+        {
+            HandleNavigation(currentOverlay, controller, currentButtons);
+        }
+
+        // Update previous state
+        controller.PressedButtons.Clear();
+        foreach (var button in currentButtons)
+        {
+            controller.PressedButtons.Add(button);
+        }
+    }
+
+    private void HandleNavigation(OverlayWindow window, LoadedController controller, HashSet<int> currentButtons)
     {
         // Only allow one navigation action per poll cycle (prevents duplicate input from
-        // controllers that register as multiple XInput devices)
+        // controllers that register as multiple devices)
         if (navigationHandledThisCycle)
         {
             return;
         }
 
-        // Clear consumed flag for any navigation buttons that are now released on THIS controller
-        ushort releasedButtons = (ushort)(consumedNavigationButtons[controllerIndex] & ~buttons);
-        consumedNavigationButtons[controllerIndex] = (ushort)(consumedNavigationButtons[controllerIndex] & ~releasedButtons);
-
-        // Check D-pad directions - only trigger if pressed AND not consumed on THIS controller
-        if (IsNewPress(buttons, XInput.XINPUT_GAMEPAD_DPAD_UP, controllerIndex))
+        // Get or create consumed buttons set for this controller
+        if (!consumedNavigationButtons.TryGetValue(controller.InstanceId, out var consumed))
         {
-            consumedNavigationButtons[controllerIndex] |= XInput.XINPUT_GAMEPAD_DPAD_UP;
+            consumed = new HashSet<int>();
+            consumedNavigationButtons[controller.InstanceId] = consumed;
+        }
+
+        // Clear consumed flag for any navigation buttons that are now released
+        consumed.RemoveWhere(button => !currentButtons.Contains(button));
+
+        // Check D-pad directions - only trigger if pressed AND not consumed
+        if (IsNewPress(currentButtons, consumed, SDL2.SDL_CONTROLLER_BUTTON_DPAD_UP))
+        {
+            consumed.Add(SDL2.SDL_CONTROLLER_BUTTON_DPAD_UP);
             navigationHandledThisCycle = true;
             Dispatch(window, () => window.ControllerNavigateUp());
         }
-        else if (IsNewPress(buttons, XInput.XINPUT_GAMEPAD_DPAD_DOWN, controllerIndex))
+        else if (IsNewPress(currentButtons, consumed, SDL2.SDL_CONTROLLER_BUTTON_DPAD_DOWN))
         {
-            consumedNavigationButtons[controllerIndex] |= XInput.XINPUT_GAMEPAD_DPAD_DOWN;
+            consumed.Add(SDL2.SDL_CONTROLLER_BUTTON_DPAD_DOWN);
             navigationHandledThisCycle = true;
             Dispatch(window, () => window.ControllerNavigateDown());
         }
-        else if (IsNewPress(buttons, XInput.XINPUT_GAMEPAD_DPAD_LEFT, controllerIndex))
+        else if (IsNewPress(currentButtons, consumed, SDL2.SDL_CONTROLLER_BUTTON_DPAD_LEFT))
         {
-            consumedNavigationButtons[controllerIndex] |= XInput.XINPUT_GAMEPAD_DPAD_LEFT;
+            consumed.Add(SDL2.SDL_CONTROLLER_BUTTON_DPAD_LEFT);
             navigationHandledThisCycle = true;
             Dispatch(window, () => window.ControllerNavigateLeft());
         }
-        else if (IsNewPress(buttons, XInput.XINPUT_GAMEPAD_DPAD_RIGHT, controllerIndex))
+        else if (IsNewPress(currentButtons, consumed, SDL2.SDL_CONTROLLER_BUTTON_DPAD_RIGHT))
         {
-            consumedNavigationButtons[controllerIndex] |= XInput.XINPUT_GAMEPAD_DPAD_RIGHT;
+            consumed.Add(SDL2.SDL_CONTROLLER_BUTTON_DPAD_RIGHT);
             navigationHandledThisCycle = true;
             Dispatch(window, () => window.ControllerNavigateRight());
         }
 
         // Check action buttons (A, B, Back)
-        if (IsNewPress(buttons, XInput.XINPUT_GAMEPAD_A, controllerIndex))
+        if (IsNewPress(currentButtons, consumed, SDL2.SDL_CONTROLLER_BUTTON_A))
         {
-            consumedNavigationButtons[controllerIndex] |= XInput.XINPUT_GAMEPAD_A;
+            consumed.Add(SDL2.SDL_CONTROLLER_BUTTON_A);
             navigationHandledThisCycle = true;
             Dispatch(window, () => window.ControllerAccept());
         }
-        else if (IsNewPress(buttons, XInput.XINPUT_GAMEPAD_B, controllerIndex))
+        else if (IsNewPress(currentButtons, consumed, SDL2.SDL_CONTROLLER_BUTTON_B))
         {
-            consumedNavigationButtons[controllerIndex] |= XInput.XINPUT_GAMEPAD_B;
+            consumed.Add(SDL2.SDL_CONTROLLER_BUTTON_B);
             navigationHandledThisCycle = true;
             Dispatch(window, () => window.ControllerCancel());
         }
-        else if (IsNewPress(buttons, XInput.XINPUT_GAMEPAD_BACK, controllerIndex))
+        else if (IsNewPress(currentButtons, consumed, SDL2.SDL_CONTROLLER_BUTTON_BACK))
         {
-            consumedNavigationButtons[controllerIndex] |= XInput.XINPUT_GAMEPAD_BACK;
+            consumed.Add(SDL2.SDL_CONTROLLER_BUTTON_BACK);
             navigationHandledThisCycle = true;
             Dispatch(window, () => window.ControllerCancel());
         }
     }
 
     /// <summary>
-    /// Returns true if the button is currently pressed AND has not been consumed yet on this controller.
+    /// Returns true if the button is currently pressed AND has not been consumed yet.
     /// A button is consumed when it triggers an action, and is released when the button is no longer pressed.
     /// </summary>
-    private bool IsNewPress(ushort buttons, ushort mask, int controllerIndex)
+    private static bool IsNewPress(HashSet<int> currentButtons, HashSet<int> consumed, int button)
     {
-        return (buttons & mask) != 0 && (consumedNavigationButtons[controllerIndex] & mask) == 0;
+        return currentButtons.Contains(button) && !consumed.Contains(button);
     }
 
     private static void Dispatch(OverlayWindow window, Action action)
@@ -341,15 +473,35 @@ internal sealed class InputListener
         }
     }
 
-    private static ushort ResolveComboMask(string combo)
+    // All buttons we track for toggle combos
+    private static readonly int[] AllButtons = new int[]
+    {
+        SDL2.SDL_CONTROLLER_BUTTON_A,
+        SDL2.SDL_CONTROLLER_BUTTON_B,
+        SDL2.SDL_CONTROLLER_BUTTON_X,
+        SDL2.SDL_CONTROLLER_BUTTON_Y,
+        SDL2.SDL_CONTROLLER_BUTTON_BACK,
+        SDL2.SDL_CONTROLLER_BUTTON_GUIDE,
+        SDL2.SDL_CONTROLLER_BUTTON_START,
+        SDL2.SDL_CONTROLLER_BUTTON_LEFTSTICK,
+        SDL2.SDL_CONTROLLER_BUTTON_RIGHTSTICK,
+        SDL2.SDL_CONTROLLER_BUTTON_LEFTSHOULDER,
+        SDL2.SDL_CONTROLLER_BUTTON_RIGHTSHOULDER,
+        SDL2.SDL_CONTROLLER_BUTTON_DPAD_UP,
+        SDL2.SDL_CONTROLLER_BUTTON_DPAD_DOWN,
+        SDL2.SDL_CONTROLLER_BUTTON_DPAD_LEFT,
+        SDL2.SDL_CONTROLLER_BUTTON_DPAD_RIGHT
+    };
+
+    private static int[] ResolveComboMask(string combo)
     {
         var upper = combo.ToUpperInvariant();
         return upper switch
         {
-            "GUIDE" => XInput.XINPUT_GAMEPAD_GUIDE,
-            "START+BACK" or "BACK+START" => (ushort)(XInput.XINPUT_GAMEPAD_START | XInput.XINPUT_GAMEPAD_BACK),
-            "LB+RB" or "RB+LB" => (ushort)(XInput.XINPUT_GAMEPAD_LEFT_SHOULDER | XInput.XINPUT_GAMEPAD_RIGHT_SHOULDER),
-            _ => 0
+            "GUIDE" => new int[] { SDL2.SDL_CONTROLLER_BUTTON_GUIDE },
+            "START+BACK" or "BACK+START" => new int[] { SDL2.SDL_CONTROLLER_BUTTON_START, SDL2.SDL_CONTROLLER_BUTTON_BACK },
+            "LB+RB" or "RB+LB" => new int[] { SDL2.SDL_CONTROLLER_BUTTON_LEFTSHOULDER, SDL2.SDL_CONTROLLER_BUTTON_RIGHTSHOULDER },
+            _ => Array.Empty<int>()
         };
     }
 
