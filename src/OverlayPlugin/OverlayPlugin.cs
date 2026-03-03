@@ -286,9 +286,8 @@ public class OverlayPlugin : GenericPlugin
             settings.Settings.Shortcuts,
             settings.Settings.ShouldSuspendGame,
             settings.Settings.ShouldMinimizeGame,
-            switcher.ActiveApp?.WindowHandle ?? IntPtr.Zero);
+            GetGameWindowHandle(switcher.ActiveApp?.ProcessId));
     }
-
     private void HandleExitGame()
     {
         // Exit the active app (whatever is in NOW PLAYING)
@@ -411,6 +410,37 @@ public class OverlayPlugin : GenericPlugin
                 p.Name.Equals("PC (Windows)", StringComparison.OrdinalIgnoreCase) ||
                 p.Name.IndexOf("Windows", StringComparison.OrdinalIgnoreCase) >= 0
             ));
+    }
+
+    /// <summary>
+    /// Gets the window handle for the game process, fetching it fresh since
+    /// MainWindowHandle may have been 0 when the game first started.
+    /// </summary>
+    private IntPtr GetGameWindowHandle(int? processId)
+    {
+        if (!processId.HasValue || processId.Value <= 0)
+        {
+            return IntPtr.Zero;
+        }
+
+        // Try to get fresh window handle from the process
+        var freshHandle = BorderlessHelper.GetMainWindowHandle(processId.Value);
+        if (freshHandle != IntPtr.Zero)
+        {
+            logger.Debug($"GetGameWindowHandle: Found window handle {freshHandle} for PID {processId.Value}");
+            return freshHandle;
+        }
+
+        // Fallback: Use foreground window (game should be in foreground when overlay opens)
+        var foregroundHandle = Win32Window.GetCurrentForegroundWindow();
+        if (foregroundHandle != IntPtr.Zero)
+        {
+            logger.Debug($"GetGameWindowHandle: Using foreground window {foregroundHandle} (Process.MainWindowHandle was 0)");
+            return foregroundHandle;
+        }
+
+        logger.Warn($"GetGameWindowHandle: No window handle found for PID {processId.Value}");
+        return IntPtr.Zero;
     }
 
     public override void Dispose()
