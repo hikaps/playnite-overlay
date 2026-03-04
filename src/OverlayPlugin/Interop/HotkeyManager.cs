@@ -16,6 +16,7 @@ internal sealed class HotkeyManager : IDisposable
     private const uint MOD_WIN = 0x0008;
 
     private static readonly ILogger logger = LogManager.GetLogger();
+    private static int nextId = 0xBEEE;
 
     [DllImport("user32.dll", SetLastError = true)]
     private static extern bool RegisterHotKey(IntPtr hWnd, int id, uint fsModifiers, uint vk);
@@ -28,9 +29,9 @@ internal sealed class HotkeyManager : IDisposable
     private HwndSourceHook? hook;
     private Action? onHotkey;
 
-    public HotkeyManager(int id = 0xBEEF)
+    public HotkeyManager(int? id = null)
     {
-        this.id = id;
+        this.id = id ?? System.Threading.Interlocked.Increment(ref nextId);
     }
 
     public bool Register(string gesture, Action onHotkey)

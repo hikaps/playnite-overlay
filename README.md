@@ -1,11 +1,13 @@
 # Playnite Overlay
 
+![Playnite Overlay Screenshot](docs/screenshots/overlay_main.png)
+
 A powerful Playnite plugin that adds an in-game overlay for quick game switching and management. Open the overlay with a hotkey or Xbox controller button to seamlessly switch between running games, manage your current session, and browse your recent games.
 
 ## Features
 
 ### 🎮 Quick Access Overlay
-- Open with **Ctrl+Alt+O** (customizable) or **Xbox Guide button**
+- Open with **Ctrl+Alt+O** (customizable) or **controller button**
 - Beautiful, non-intrusive overlay UI
 - Smooth fade-in/fade-out animations
 - Controller and keyboard navigation support
@@ -71,8 +73,8 @@ A powerful Playnite plugin that adds an in-game overlay for quick game switching
 **Keyboard:**
 - Press **Ctrl+Alt+O** (or your custom hotkey)
 
-**Xbox Controller:**
-- Press the **Guide button** (or your configured combo)
+**Controller:**
+- Press the **Guide/Home button** (or your configured combo)
 
 ### Navigating the Overlay
 
@@ -82,7 +84,7 @@ A powerful Playnite plugin that adds an in-game overlay for quick game switching
 - **Escape**: Close overlay
 - **Click**: Mouse support for all actions
 
-**Xbox Controller:**
+**Controller:**
 - **D-Pad/Left Stick**: Navigate
 - **A Button**: Select/activate
 - **B Button**: Close overlay
@@ -110,6 +112,8 @@ Access settings through: **Playnite Menu** → **Add-ons** → **Extension setti
 ### Controller Settings
 - **Use Controller to Open**: Enable/disable controller input
 - **Controller Combo**: Choose trigger combination:
+- **Use Controller to Open**: Enable/disable controller input
+- **Controller Combo**: Choose trigger combination:
   - Guide (default)
   - Start+Back
   - LB+RB
@@ -119,12 +123,71 @@ Access settings through: **Playnite Menu** → **Add-ons** → **Extension setti
 - **Show Generic Apps**: Include non-game applications in RUNNING APPS section
 - **Max Running Apps**: Limit number of apps displayed (1-50, default: 10)
 
+### Shortcuts
+Configure custom shortcut buttons in the overlay that can run scripts or simulate keyboard presses:
+- **Add shortcuts** in settings (up to 10)
+- **Shortcuts appear** as buttons in a SHORTCUTS section in the overlay
+- **Click to execute** the configured action
+
+#### Action Types
+
+| Type | Description | Use Case |
+|------|-------------|----------|
+| **CommandLine** | Run a script or executable with arguments | Launch PowerShell scripts, batch files, external tools |
+| **SendInput** | Simulate a keyboard hotkey press | Trigger tools that only respond to hotkeys (Steam, OBS, etc.) |
+
+#### CommandLine Examples
+
+**Run a PowerShell script:**
+- Label: `Backup Saves`
+- Action: `CommandLine`
+- Command: `powershell.exe`
+- Arguments: `-ExecutionPolicy Bypass -File "C:\Scripts\backup-saves.ps1"`
+
+**Run a batch file:**
+- Label: `Clean Temp`
+- Action: `CommandLine`
+- Command: `C:\Scripts\clean-temp.bat`
+- Arguments: (leave empty)
+
+**Launch external tool:**
+- Label: `Notepad`
+- Action: `CommandLine`
+- Command: `notepad.exe`
+- Arguments: (leave empty)
+
+#### SendInput Examples (Screenshot/Recording)
+
+For tools that use hotkeys instead of command-line arguments:
+
+**Steam Screenshot:**
+- Label: `Screenshot`
+- Action: `SendInput`
+- Hotkey: `F12`
+
+**OBS Toggle Recording:**
+- Label: `Record`
+- Action: `SendInput`
+- Hotkey: `F9` (or your OBS hotkey setting)
+
+**GeForce Experience Screenshot:**
+- Label: `Screenshot`
+- Action: `SendInput`
+- Hotkey: `Alt+F1`
+
+**Xbox Game Bar Recording:**
+- Label: `Record`
+- Action: `SendInput`
+- Hotkey: `Win+Alt+R`
+
+> **Tip:** For SendInput, set the hotkey to match what's configured in the target application. Check Steam/OBS/GeForce Experience settings to find or customize their screenshot/recording hotkeys.
+
 ## Requirements
 
 - **Playnite**: Version compatible with PlayniteSDK 6.12.0+
 - **.NET Framework**: 4.7.2 or higher
 - **Operating System**: Windows
-- **Optional**: Xbox-compatible controller for controller features
+- **Optional**: SDL2-compatible controller (Xbox, PlayStation, Nintendo Switch Pro, 8BitDo, etc.)
 
 ## How It Works
 
