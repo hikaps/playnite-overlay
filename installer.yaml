@@ -1,5 +1,14 @@
 AddonId: 'playnite-overlay'
 Packages:
+  - Version: 0.7.0
+    RequiredApiVersion: 6.0.0
+    ReleaseDate: 2026-03-03
+    PackageUrl: https://github.com/hikaps/playnite-overlay/releases/download/v0.7.0/playnite-overlay-0.7.0.pext
+    Changelog:
+      - SDL2 controller support - PlayStation, Nintendo, 8BitDo and more
+      - Overlay shortcuts - custom buttons with hotkey simulation
+      - Improved focus stealing with cascading fallback techniques
+      - 2D navigation support for shortcuts grid
   - Version: 0.6.0
     RequiredApiVersion: 6.0.0
     ReleaseDate: 2026-02-18

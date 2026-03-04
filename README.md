@@ -7,7 +7,7 @@ A powerful Playnite plugin that adds an in-game overlay for quick game switching
 ## Features
 
 ### 🎮 Quick Access Overlay
-- Open with **Ctrl+Alt+O** (customizable) or **Xbox Guide button**
+- Open with **Ctrl+Alt+O** (customizable) or **controller button**
 - Beautiful, non-intrusive overlay UI
 - Smooth fade-in/fade-out animations
 - Controller and keyboard navigation support
@@ -73,8 +73,8 @@ A powerful Playnite plugin that adds an in-game overlay for quick game switching
 **Keyboard:**
 - Press **Ctrl+Alt+O** (or your custom hotkey)
 
-**Xbox Controller:**
-- Press the **Guide button** (or your configured combo)
+**Controller:**
+- Press the **Guide/Home button** (or your configured combo)
 
 ### Navigating the Overlay
 
@@ -84,7 +84,7 @@ A powerful Playnite plugin that adds an in-game overlay for quick game switching
 - **Escape**: Close overlay
 - **Click**: Mouse support for all actions
 
-**Xbox Controller:**
+**Controller:**
 - **D-Pad/Left Stick**: Navigate
 - **A Button**: Select/activate
 - **B Button**: Close overlay
@@ -110,6 +110,8 @@ Access settings through: **Playnite Menu** → **Add-ons** → **Extension setti
 - **Custom Hotkey**: Set your preferred key combination (default: Ctrl+Alt+O)
 
 ### Controller Settings
+- **Use Controller to Open**: Enable/disable controller input
+- **Controller Combo**: Choose trigger combination:
 - **Use Controller to Open**: Enable/disable controller input
 - **Controller Combo**: Choose trigger combination:
   - Guide (default)
@@ -185,7 +187,7 @@ For tools that use hotkeys instead of command-line arguments:
 - **Playnite**: Version compatible with PlayniteSDK 6.12.0+
 - **.NET Framework**: 4.7.2 or higher
 - **Operating System**: Windows
-- **Optional**: Xbox-compatible controller for controller features
+- **Optional**: SDL2-compatible controller (Xbox, PlayStation, Nintendo Switch Pro, 8BitDo, etc.)
 
 ## How It Works
 

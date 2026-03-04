@@ -9,6 +9,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.7.0] - 2026-03-03
+
+### Added
+- **SDL2 Controller Support**: Full support for all SDL2-compatible controllers
+  - PlayStation DualShock 4 and DualSense (PS5) controllers
+  - Nintendo Switch Pro Controller
+  - 8BitDo and other third-party controllers
+  - 2220+ controller mappings from community database
+  - Replaces XInput-only support for broader compatibility
+- **Overlay Shortcuts**: Custom shortcut buttons in the overlay
+  - Configure up to 10 custom shortcuts in settings
+  - Two action types: CommandLine (run scripts/exe) and SendInput (simulate hotkeys)
+  - Shortcuts appear in a dedicated SHORTCUTS section
+  - Perfect for screenshots, recording, or launching external tools
+- **2D Navigation**: Navigate shortcuts grid with D-pad or arrow keys
+  - Horizontal and vertical movement between shortcut buttons
+  - Seamless integration with existing navigation system
+
+### Changed
+- **Improved Focus Stealing**: Cascading fallback techniques for reliable game focus
+  - Three techniques tried in order: AttachThreadInput, Alt key simulation, Foreground lock timeout
+  - Each technique verifies success before trying next fallback
+  - Better compatibility with stubborn fullscreen games
+- **Crash Recovery**: Process suspension now tracks all suspended processes
+  - Games won't be left frozen if Playnite crashes
+  - Automatic resume on plugin dispose
+  - Retry logic (up to 3 attempts) for resume failures
+
+### Fixed
+- **Thread Safety**: Added proper synchronization for process suspension state
+- **Type Safety**: Replaced string-based FocusControlMode with enum
+
+---
+
 ## [0.6.0] - 2026-02-18
 
 ### Added
