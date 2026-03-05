@@ -1375,6 +1375,13 @@ public partial class OverlayWindow : Window
                 return;
             }
 
+            if (shortcut.ActionType == ShortcutActionType.MediaKey)
+            {
+                logger.Info($"ExecuteShortcutAction: Sending media key '{shortcut.MediaKeySelection}'");
+                System.Threading.Tasks.Task.Run(() => NativeInput.SendMediaKey(shortcut.MediaKeySelection));
+                return;
+            }
+
             if (!string.IsNullOrWhiteSpace(shortcut.Command))
             {
                 var processStartInfo = new System.Diagnostics.ProcessStartInfo

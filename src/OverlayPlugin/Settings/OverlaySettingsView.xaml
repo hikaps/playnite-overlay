@@ -173,6 +173,7 @@
                                                 <RowDefinition Height="Auto"/>
                                                 <RowDefinition Height="Auto"/>
                                                 <RowDefinition Height="Auto"/>
+                                                <RowDefinition Height="Auto"/>
                                             </Grid.RowDefinitions>
                                             <Grid.ColumnDefinitions>
                                                 <ColumnDefinition Width="70"/>
@@ -193,6 +194,7 @@
                                                       Foreground="{DynamicResource TextBrush}">
                                                 <ComboBoxItem Content="CommandLine" Tag="{x:Static models:ShortcutActionType.CommandLine}"/>
                                                 <ComboBoxItem Content="SendInput" Tag="{x:Static models:ShortcutActionType.SendInput}"/>
+                                                <ComboBoxItem Content="MediaKey" Tag="{x:Static models:ShortcutActionType.MediaKey}"/>
                                             </ComboBox>
 
                                             <TextBlock Grid.Row="2" Grid.Column="0" Text="Command:" VerticalAlignment="Center" Foreground="{DynamicResource TextBrush}"
@@ -237,7 +239,23 @@
                                                         Foreground="{DynamicResource TextBrush}"/>
                                             </Grid>
 
-                                            <Button Grid.Row="5" Grid.Column="2" Content="Delete"
+                                            <TextBlock Grid.Row="5" Grid.Column="0" Text="Media Key:" VerticalAlignment="Center" Foreground="{DynamicResource TextBrush}"
+                                                       Visibility="{Binding ActionType, Converter={StaticResource EnumToVisibilityConverter}, ConverterParameter={x:Static models:ShortcutActionType.MediaKey}}"/>
+                                            <ComboBox Grid.Row="5" Grid.Column="1" Grid.ColumnSpan="2" Margin="0,0,0,6"
+                                                      SelectedValuePath="Tag"
+                                                      SelectedValue="{Binding MediaKeySelection}"
+                                                      Foreground="{DynamicResource TextBrush}"
+                                                      Visibility="{Binding ActionType, Converter={StaticResource EnumToVisibilityConverter}, ConverterParameter={x:Static models:ShortcutActionType.MediaKey}}">
+                                                <ComboBoxItem Content="Play/Pause" Tag="PlayPause"/>
+                                                <ComboBoxItem Content="Stop" Tag="Stop"/>
+                                                <ComboBoxItem Content="Next Track" Tag="NextTrack"/>
+                                                <ComboBoxItem Content="Previous Track" Tag="PreviousTrack"/>
+                                                <ComboBoxItem Content="Volume Up" Tag="VolumeUp"/>
+                                                <ComboBoxItem Content="Volume Down" Tag="VolumeDown"/>
+                                                <ComboBoxItem Content="Mute" Tag="Mute"/>
+                                            </ComboBox>
+
+                                            <Button Grid.Row="6" Grid.Column="2" Content="Delete"
                                                     MinWidth="70" HorizontalAlignment="Right"
                                                     Click="ShortcutDelete_Click"
                                                     Tag="{Binding}"
