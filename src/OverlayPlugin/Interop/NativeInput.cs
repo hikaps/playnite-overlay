@@ -20,6 +20,15 @@ internal static class NativeInput
     private const byte VK_MENU = 0x12;    // Alt
     private const byte VK_LWIN = 0x5B;
 
+    // Virtual key codes for media keys
+    private const ushort VK_VOLUME_MUTE = 0xAD;
+    private const ushort VK_VOLUME_DOWN = 0xAE;
+    private const ushort VK_VOLUME_UP = 0xAF;
+    private const ushort VK_MEDIA_NEXT_TRACK = 0xB0;
+    private const ushort VK_MEDIA_PREV_TRACK = 0xB1;
+    private const ushort VK_MEDIA_STOP = 0xB2;
+    private const ushort VK_MEDIA_PLAY_PAUSE = 0xB3;
+
     private const int ModifierDelayMs = 10;      // Delay after modifier press/release
     private const int KeyHoldDelayMs = 50;       // How long to hold main key (must be > 25ms for OBS polling)
 
@@ -48,6 +57,146 @@ internal static class NativeInput
         logger.Info($"SendHotkey: gesture='{gesture}', vk=0x{vk:X2}");
 
         SendHotkeyWithDelays(modifiers, vk);
+    }
+
+    /// <summary>
+    /// Sends a media key by name.
+    /// </summary>
+    /// <param name="mediaKey">Media key name: PlayPause, Stop, NextTrack, PreviousTrack, VolumeUp, VolumeDown, Mute</param>
+    public static void SendMediaKey(string? mediaKey)
+    {
+        if (string.IsNullOrWhiteSpace(mediaKey))
+        {
+            logger.Warn("SendMediaKey called with empty key.");
+            return;
+        }
+
+        var vk = mediaKey!.ToLowerInvariant() switch
+        {
+            "playpause" => VK_MEDIA_PLAY_PAUSE,
+            "stop" => VK_MEDIA_STOP,
+            "nexttrack" => VK_MEDIA_NEXT_TRACK,
+            "previoustrack" => VK_MEDIA_PREV_TRACK,
+            "volumeup" => VK_VOLUME_UP,
+            "volumedown" => VK_VOLUME_DOWN,
+            "mute" => VK_VOLUME_MUTE,
+            _ => (ushort?)null
+        };
+
+        if (vk == null)
+        {
+            logger.Warn($"SendMediaKey: Unknown media key '{mediaKey}'.");
+            return;
+        }
+
+        logger.Info($"SendMediaKey: key='{mediaKey}', vk=0x{vk:X2}");
+        SendKeyPress(vk.Value);
+    }
+
+    /// <summary>
+    /// Sends a single key press (down + up) with no modifiers.
+    /// </summary>
+    private static void SendKeyPress(ushort vk)
+    {
+        try
+        {
+            if (IntPtr.Size == 8)
+            {
+                SendKeyPress64(vk);
+            }
+            else
+            {
+                SendKeyPress32(vk);
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.Error(ex, $"SendKeyPress failed: {ex.Message}");
+            SendKeyPressViaKeybdEvent(vk);
+        }
+    }
+
+    private static void SendKeyPress32(ushort vk)
+    {
+        var inputs = new List<INPUT32>();
+        int inputSize = Marshal.SizeOf(typeof(INPUT32));
+        const int expectedInputSize = 28;
+
+        if (inputSize != expectedInputSize)
+        {
+            logger.Warn($"SendKeyPress32: INPUT size mismatch. Falling back to keybd_event.");
+            SendKeyPressViaKeybdEvent(vk);
+            return;
+        }
+
+        // Press key
+        inputs.Add(CreateKeyInput32(vk, keyUp: false));
+        uint sentDown = SendInput32(1, inputs.ToArray(), inputSize);
+        if (sentDown == 0)
+        {
+            logger.Warn($"SendKeyPress32: SendInput failed for key down.");
+            SendKeyPressViaKeybdEvent(vk);
+            return;
+        }
+        Thread.Sleep(KeyHoldDelayMs);
+
+        // Release key
+        inputs.Clear();
+        inputs.Add(CreateKeyInput32(vk, keyUp: true));
+        uint sentUp = SendInput32(1, inputs.ToArray(), inputSize);
+        if (sentUp == 0)
+        {
+            logger.Warn($"SendKeyPress32: SendInput failed for key up.");
+        }
+    }
+
+    private static void SendKeyPress64(ushort vk)
+    {
+        var inputs = new List<INPUT64>();
+        int inputSize = Marshal.SizeOf(typeof(INPUT64));
+        const int expectedInputSize = 40;
+
+        if (inputSize != expectedInputSize)
+        {
+            logger.Warn($"SendKeyPress64: INPUT size mismatch. Falling back to keybd_event.");
+            SendKeyPressViaKeybdEvent(vk);
+            return;
+        }
+
+        // Press key
+        inputs.Add(CreateKeyInput64(vk, keyUp: false));
+        uint sentDown = SendInput64(1, inputs.ToArray(), inputSize);
+        if (sentDown == 0)
+        {
+            logger.Warn($"SendKeyPress64: SendInput failed for key down.");
+            SendKeyPressViaKeybdEvent(vk);
+            return;
+        }
+        Thread.Sleep(KeyHoldDelayMs);
+
+        // Release key
+        inputs.Clear();
+        inputs.Add(CreateKeyInput64(vk, keyUp: true));
+        uint sentUp = SendInput64(1, inputs.ToArray(), inputSize);
+        if (sentUp == 0)
+        {
+            logger.Warn($"SendKeyPress64: SendInput failed for key up.");
+        }
+    }
+
+    private static void SendKeyPressViaKeybdEvent(ushort vk)
+    {
+        try
+        {
+            keybd_event((byte)vk, 0, 0, 0);
+            Thread.Sleep(KeyHoldDelayMs);
+            keybd_event((byte)vk, 0, KEYEVENTF_KEYUP, 0);
+            logger.Info($"SendKeyPress: keybd_event fallback completed for vk=0x{vk:X2}");
+        }
+        catch (Exception ex)
+        {
+            logger.Error(ex, $"SendKeyPress keybd_event fallback failed: {ex.Message}");
+        }
     }
 
     /// <summary>
