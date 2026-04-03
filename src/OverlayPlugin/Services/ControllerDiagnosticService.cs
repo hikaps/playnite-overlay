@@ -5,7 +5,7 @@ using Playnite.SDK;
 
 namespace PlayniteOverlay.Services;
 
-internal sealed class ControllerDiagnosticService : MVVM.ObservableObject, IDisposable
+public sealed class ControllerDiagnosticService : MVVM.ObservableObject, IDisposable
 {
     private static readonly ILogger logger = LogManager.GetLogger();
 
@@ -160,7 +160,7 @@ internal sealed class ControllerDiagnosticService : MVVM.ObservableObject, IDisp
     }
 }
 
-internal sealed class DiagnosticDevice
+public sealed class DiagnosticDevice
 {
     public string Name { get; }
     public bool IsGameController { get; }
@@ -176,7 +176,7 @@ internal sealed class DiagnosticDevice
     }
 }
 
-internal sealed class DiagnosticButton
+public sealed class DiagnosticButton
 {
     public string Name { get; }
     public bool IsPressed { get; }
