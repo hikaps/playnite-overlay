@@ -59,6 +59,7 @@
                     <TextBlock Margin="0,6,0,0" TextWrapping="Wrap"
                                Foreground="Gray"
                                Text="Note: Controller detection uses SDL2 and supports Xbox, PlayStation, Nintendo, and most other controllers."/>
+                    <ContentControl x:Name="DiagnosticHost" Margin="0,8,0,0"/>
                 </StackPanel>
             </GroupBox>
 

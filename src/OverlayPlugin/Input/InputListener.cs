@@ -171,17 +171,19 @@ internal sealed class InputListener
     /// </summary>
     public void StartController()
     {
-        // Initialize SDL2 if not already done
         if (!SDL2.Init())
         {
             logger.Error("Failed to initialize SDL2 for controller input");
             return;
         }
 
-        // Scan for already-connected controllers
         ScanForControllers();
 
-        pollTimer ??= new Timer(_ => PollControllers(), null, 0, PollIntervalMs);
+        if (pollTimer == null)
+        {
+            pollTimer = new Timer(_ => PollControllers(), null, 0, PollIntervalMs);
+            logger.Info($"Controller polling started (interval={PollIntervalMs}ms, combo=\"{controllerCombo}\").");
+        }
     }
 
     /// <summary>
@@ -192,9 +194,9 @@ internal sealed class InputListener
         pollTimer?.Dispose();
         pollTimer = null;
 
-        // Close all open controllers
         lock (controllersLock)
         {
+            logger.Info($"Controller polling stopped. Closing {controllers.Count} controller(s).");
             foreach (var controller in controllers)
             {
                 SDL2.GameControllerClose(controller.Handle);
@@ -243,11 +245,17 @@ internal sealed class InputListener
         lock (controllersLock)
         {
             var numJoysticks = SDL2.NumJoysticks();
+            logger.Info($"Controller scan: {numJoysticks} joystick(s) reported by SDL2.");
             for (int i = 0; i < numJoysticks; i++)
             {
                 if (SDL2.IsGameController(i))
                 {
                     AddController(i);
+                }
+                else
+                {
+                    var name = SDL2.JoystickNameForIndex(i) ?? $"Unknown {i}";
+                    logger.Debug($"Controller scan: Device {i} \"{name}\" is not a recognized GameController (no mapping).");
                 }
             }
         }
@@ -258,13 +266,14 @@ internal sealed class InputListener
         var handle = SDL2.GameControllerOpen(joystickIndex);
         if (handle == IntPtr.Zero)
         {
+            var name = SDL2.JoystickNameForIndex(joystickIndex) ?? $"Device {joystickIndex}";
+            logger.Warn($"Controller: Failed to open GameController for index {joystickIndex} (\"{name}\"). SDL2.GameControllerOpen returned null.");
             return;
         }
 
         var instanceId = SDL2.GameControllerGetJoystickInstanceID(handle);
-        var name = SDL2.GameControllerName(handle) ?? $"Controller {instanceId}";
+        var name2 = SDL2.GameControllerName(handle) ?? $"Controller {instanceId}";
 
-        // Check if we already have this controller
         lock (controllersLock)
         {
             if (controllers.Exists(c => c.InstanceId == instanceId))
@@ -273,8 +282,9 @@ internal sealed class InputListener
                 return;
             }
 
-            var controller = new LoadedController(handle, instanceId, name);
+            var controller = new LoadedController(handle, instanceId, name2);
             controllers.Add(controller);
+            logger.Info($"Controller: Opened \"{name2}\" (instanceId={instanceId}, joystickIndex={joystickIndex}).");
         }
     }
 
@@ -287,6 +297,7 @@ internal sealed class InputListener
                 var controller = controllers[i];
                 if (controller.InstanceId == instanceId)
                 {
+                    logger.Info($"Controller: Removed \"{controller.Name}\" (instanceId={instanceId}).");
                     SDL2.GameControllerClose(controller.Handle);
                     controllers.RemoveAt(i);
                     consumedNavigationButtons.Remove(instanceId);
@@ -403,6 +414,7 @@ internal sealed class InputListener
                 if (elapsed >= ToggleCooldownMs)
                 {
                     lastToggleTime = DateTime.Now;
+                    logger.Info($"Controller: Toggle combo \"{controllerCombo}\" detected from \"{controller.Name}\" (instanceId={controller.InstanceId}).");
                     TriggerToggle();
                 }
             }

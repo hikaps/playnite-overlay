@@ -3,20 +3,25 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using PlayniteOverlay.Models;
+using PlayniteOverlay.Services;
 
 namespace PlayniteOverlay;
 
 public partial class OverlaySettingsView : UserControl
 {
+    private readonly ControllerDiagnosticService diagnosticService;
+
     public OverlaySettingsView()
     {
         InitializeComponent();
         Loaded += OverlaySettingsView_Loaded;
+        diagnosticService = new ControllerDiagnosticService();
     }
 
     private void OverlaySettingsView_Loaded(object sender, RoutedEventArgs e)
     {
         UpdateAddButtonState();
+        DiagnosticHost.Content = new ControllerDiagnosticView(diagnosticService);
     }
 
     private OverlaySettings? Model => (DataContext as OverlaySettingsViewModel)?.Settings;

@@ -1,5 +1,6 @@
 using System;
 using System.Runtime.InteropServices;
+using Playnite.SDK;
 
 namespace PlayniteOverlay;
 
@@ -10,6 +11,7 @@ namespace PlayniteOverlay;
 internal static class SDL2
 {
     private const string SDL2_DLL = "SDL2.dll";
+    private static readonly ILogger logger = LogManager.GetLogger();
     private static bool isInitialized = false;
     private static bool initFailed = false;
 
@@ -86,30 +88,62 @@ internal static class SDL2
 
         try
         {
-            // Initialize joystick and gamecontroller subsystems
+            var assemblyLocation = typeof(SDL2).Assembly.Location;
+            var assemblyDir = System.IO.Path.GetDirectoryName(assemblyLocation) ?? "";
+            var mappingsPath = System.IO.Path.Combine(assemblyDir, "gamecontrollerdb.txt");
+
+            if (!System.IO.File.Exists(mappingsPath))
+            {
+                logger.Warn($"SDL2: gamecontrollerdb.txt not found at {mappingsPath}. Controller mappings will use SDL2 built-in defaults only.");
+            }
+
             var result = SDL_InitSubSystem(SDL_INIT_JOYSTICK | SDL_INIT_GAMECONTROLLER | SDL_INIT_EVENTS);
             if (result < 0)
             {
                 initFailed = true;
+                logger.Error($"SDL2: SDL_InitSubSystem failed with result {result}. Controller input will not work.");
                 return false;
             }
 
-            // Load controller mappings from the file next to the DLL
-            var assemblyLocation = typeof(SDL2).Assembly.Location;
-            var assemblyDir = System.IO.Path.GetDirectoryName(assemblyLocation) ?? "";
-            var mappingsPath = System.IO.Path.Combine(assemblyDir, "gamecontrollerdb.txt");
-            
             if (System.IO.File.Exists(mappingsPath))
             {
-                SDL_GameControllerAddMappingsFromFile(mappingsPath);
+                var mappingsLoaded = SDL_GameControllerAddMappingsFromFile(mappingsPath);
+                logger.Info($"SDL2: Initialized successfully. Loaded {mappingsLoaded} controller mappings from gamecontrollerdb.txt.");
+            }
+            else
+            {
+                logger.Info("SDL2: Initialized successfully using built-in controller mappings only.");
+            }
+
+            var joystickCount = SDL_NumJoysticks();
+            logger.Info($"SDL2: {joystickCount} joystick(s) detected at startup.");
+            for (int i = 0; i < joystickCount; i++)
+            {
+                var isGC = SDL_IsGameController(i) == SDL_TRUE;
+                var name = JoystickNameForIndex(i) ?? $"Unknown device {i}";
+                var mapping = GameControllerMappingForDeviceIndex(i);
+                logger.Info($"SDL2: Device {i}: \"{name}\" | IsGameController={isGC} | HasMapping={mapping != null}");
             }
 
             isInitialized = true;
             return true;
         }
-        catch (Exception)
+        catch (DllNotFoundException ex)
         {
             initFailed = true;
+            logger.Error(ex, $"SDL2: Failed to load {SDL2_DLL}. The native library is missing from the plugin directory. Controller input will not work.");
+            return false;
+        }
+        catch (BadImageFormatException ex)
+        {
+            initFailed = true;
+            logger.Error(ex, $"SDL2: {SDL2_DLL} architecture mismatch. The DLL may be x86/x64 incompatible with this Playnite instance. Controller input will not work.");
+            return false;
+        }
+        catch (Exception ex)
+        {
+            initFailed = true;
+            logger.Error(ex, "SDL2: Unexpected error during initialization. Controller input will not work.");
             return false;
         }
     }
@@ -254,6 +288,111 @@ internal static class SDL2
     public static bool PollEvent(out SDL_Event _event)
     {
         return SDL_PollEvent(out _event) == 1;
+    }
+
+    [DllImport(SDL2_DLL, CallingConvention = CallingConvention.Cdecl)]
+    private static extern IntPtr SDL_JoystickNameForIndex(int deviceIndex);
+
+    [DllImport(SDL2_DLL, CallingConvention = CallingConvention.Cdecl)]
+    private static extern IntPtr SDL_JoystickOpen(int deviceIndex);
+
+    [DllImport(SDL2_DLL, CallingConvention = CallingConvention.Cdecl)]
+    private static extern void SDL_JoystickClose(IntPtr joystick);
+
+    [DllImport(SDL2_DLL, CallingConvention = CallingConvention.Cdecl)]
+    private static extern int SDL_JoystickNumButtons(IntPtr joystick);
+
+    [DllImport(SDL2_DLL, CallingConvention = CallingConvention.Cdecl)]
+    private static extern int SDL_JoystickGetButton(IntPtr joystick, int button);
+
+    [DllImport(SDL2_DLL, CallingConvention = CallingConvention.Cdecl)]
+    private static extern int SDL_JoystickNumAxes(IntPtr joystick);
+
+    [DllImport(SDL2_DLL, CallingConvention = CallingConvention.Cdecl)]
+    private static extern short SDL_JoystickGetAxis(IntPtr joystick, int axis);
+
+    [DllImport(SDL2_DLL, CallingConvention = CallingConvention.Cdecl)]
+    private static extern IntPtr SDL_GameControllerMappingForDeviceIndex(int deviceIndex);
+
+    [DllImport(SDL2_DLL, CallingConvention = CallingConvention.Cdecl)]
+    private static extern void SDL_JoystickUpdate();
+
+    /// <summary>
+    /// Gets the joystick name for a device index (does not require opening).
+    /// </summary>
+    public static string? JoystickNameForIndex(int deviceIndex)
+    {
+        var ptr = SDL_JoystickNameForIndex(deviceIndex);
+        return ptr != IntPtr.Zero ? Marshal.PtrToStringAnsi(ptr) : null;
+    }
+
+    /// <summary>
+    /// Opens a raw joystick (for diagnostics when no GameController mapping exists).
+    /// </summary>
+    public static IntPtr JoystickOpen(int deviceIndex)
+    {
+        return SDL_JoystickOpen(deviceIndex);
+    }
+
+    /// <summary>
+    /// Closes a raw joystick handle.
+    /// </summary>
+    public static void JoystickClose(IntPtr joystick)
+    {
+        if (joystick != IntPtr.Zero)
+        {
+            SDL_JoystickClose(joystick);
+        }
+    }
+
+    /// <summary>
+    /// Gets the number of buttons on a raw joystick.
+    /// </summary>
+    public static int JoystickNumButtons(IntPtr joystick)
+    {
+        return SDL_JoystickNumButtons(joystick);
+    }
+
+    /// <summary>
+    /// Gets the state of a raw joystick button (1 = pressed, 0 = released).
+    /// </summary>
+    public static int JoystickGetButton(IntPtr joystick, int button)
+    {
+        return SDL_JoystickGetButton(joystick, button);
+    }
+
+    /// <summary>
+    /// Gets the number of axes on a raw joystick.
+    /// </summary>
+    public static int JoystickNumAxes(IntPtr joystick)
+    {
+        return SDL_JoystickNumAxes(joystick);
+    }
+
+    /// <summary>
+    /// Gets the state of a raw joystick axis (-32768 to 32767).
+    /// </summary>
+    public static short JoystickGetAxis(IntPtr joystick, int axis)
+    {
+        return SDL_JoystickGetAxis(joystick, axis);
+    }
+
+    /// <summary>
+    /// Gets the mapping string for a controller device index.
+    /// Returns null if no mapping exists.
+    /// </summary>
+    public static string? GameControllerMappingForDeviceIndex(int deviceIndex)
+    {
+        var ptr = SDL_GameControllerMappingForDeviceIndex(deviceIndex);
+        return ptr != IntPtr.Zero ? Marshal.PtrToStringAnsi(ptr) : null;
+    }
+
+    /// <summary>
+    /// Updates the state of all open joysticks (raw).
+    /// </summary>
+    public static void JoystickUpdate()
+    {
+        SDL_JoystickUpdate();
     }
 
     #endregion
