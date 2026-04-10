@@ -21,7 +21,7 @@ public class OverlayPlugin : GenericPlugin
     private readonly OverlayService overlay;
     private readonly GameSwitcher switcher;
     private readonly RunningAppsDetector runningAppsDetector;
-    private readonly SuccessStoryIntegration successStory;
+    private readonly AchievementSourceProvider achievementSource;
     private readonly AudioDeviceService? audioDeviceService;
     private readonly GameVolumeService? gameVolumeService;
     private readonly OverlaySettingsViewModel settings;
@@ -37,7 +37,10 @@ public class OverlayPlugin : GenericPlugin
         overlay.SetPlayniteAPI(api);
         switcher = new GameSwitcher(api, settings.Settings);
         runningAppsDetector = new RunningAppsDetector(api, settings.Settings);
-        successStory = new SuccessStoryIntegration(api);
+        achievementSource = new AchievementSourceProvider(
+            new PlayniteAchievementsIntegration(api),
+            new SuccessStoryIntegration(api)
+        );
 
         // Initialize audio device service (optional - may fail if NAudio unavailable)
         try
@@ -222,7 +225,7 @@ public class OverlayPlugin : GenericPlugin
             // Populate achievements if enabled and game has a valid ID
             if (settings.Settings.ShowAchievements && currentGameItem.GameId != Guid.Empty)
             {
-                currentGameItem.Achievements = successStory.GetGameAchievements(
+                currentGameItem.Achievements = achievementSource.GetGameAchievements(
                     currentGameItem.GameId,
                     settings.Settings.MaxRecentAchievements,
                     settings.Settings.MaxLockedAchievements);

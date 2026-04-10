@@ -91,7 +91,7 @@ public class OverlaySettings : MVVM.ObservableObject
 
     private bool showAchievements = true;
     /// <summary>
-    /// When enabled, shows achievement progress in the NOW PLAYING section if SuccessStory plugin is installed.
+    /// When enabled, shows achievement progress in the NOW PLAYING section when a compatible achievement extension is installed.
     /// </summary>
     public bool ShowAchievements
     {
