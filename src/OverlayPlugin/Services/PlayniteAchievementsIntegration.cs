@@ -15,7 +15,7 @@ namespace PlayniteOverlay.Services;
 public sealed class PlayniteAchievementsIntegration : IAchievementSource
 {
     private const string DbFileName = "achievement_cache.db";
-    private const string PluginFolderName = "PlayniteAchievements";
+    private const string PluginId = "e6aad2c9-6e06-4d8d-ac55-ac3b252b5f7b";
 
     private readonly IPlayniteAPI api;
     private readonly ILogger logger;
@@ -41,7 +41,7 @@ public sealed class PlayniteAchievementsIntegration : IAchievementSource
         {
             var plugins = api.Addons.Plugins;
             var pluginInstalled = plugins.Any(p =>
-                p.Id.ToString().IndexOf(PluginFolderName, StringComparison.OrdinalIgnoreCase) >= 0);
+                p.Id.ToString().Equals(PluginId, StringComparison.OrdinalIgnoreCase));
 
             if (!pluginInstalled)
             {
@@ -179,6 +179,6 @@ public sealed class PlayniteAchievementsIntegration : IAchievementSource
 
     private string GetDatabasePath()
     {
-        return Path.Combine(api.Paths.ExtensionsDataPath, PluginFolderName, DbFileName);
+        return Path.Combine(api.Paths.ExtensionsDataPath, PluginId, DbFileName);
     }
 }
