@@ -1,3 +1,4 @@
+using System;
 using Xunit;
 using Playnite.SDK.Events;
 
