@@ -184,10 +184,19 @@ For tools that use hotkeys instead of command-line arguments:
 
 ## Requirements
 
-- **Playnite**: Version compatible with PlayniteSDK 6.12.0+
+- **Playnite**: Version 10.52+ (PlayniteSDK 6.16.0+)
 - **.NET Framework**: 4.7.2 or higher
 - **Operating System**: Windows
-- **Optional**: SDL2-compatible controller (Xbox, PlayStation, Nintendo Switch Pro, 8BitDo, etc.)
+
+## Controller Setup
+
+Controller input requires Playnite's built-in controller support to be enabled:
+
+1. Open Playnite **Settings** → **Input**
+2. Enable **"Enable controller support in Desktop mode"**
+3. Restart Playnite if prompted
+
+> **Note:** The Guide/Home button combo requires a **physical controller**. If you are using virtual controllers (e.g. vigembus, vgamepad), the Guide button may not be detected — use **Start+Back** or **LB+RB** instead.
 
 ## How It Works
 
@@ -200,7 +209,7 @@ The plugin uses a three-tier detection strategy to identify running applications
    - Window title matching
 3. **Generic Detection**: Any running app with a visible window (optional)
 
-The overlay runs as a separate WPF window (topmost, click-through background) and never injects into game processes, ensuring maximum compatibility and safety.
+The overlay runs as a separate WPF window (topmost, click-through background) and never injects into game processes, ensuring maximum compatibility and safety. Controller input is handled through Playnite's built-in controller API.
 
 ## Changelog
 
