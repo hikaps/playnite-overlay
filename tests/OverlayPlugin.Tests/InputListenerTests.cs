@@ -1,5 +1,7 @@
 using Xunit;
 using PlayniteOverlay.Input;
+using PlayniteOverlay;
+using Playnite.SDK.Events;
 using System;
 
 namespace OverlayPlugin.Tests;
@@ -85,5 +87,95 @@ public class InputListenerTests
 
         // Assert
         Assert.False(handlerCalled, "Unsubscribed handler should not receive event");
+    }
+
+    [Fact]
+    public void HandleControllerButtonEvent_GuidePressed_TriggersToggle()
+    {
+        var listener = new InputListener();
+        listener.ApplySettings(new OverlaySettings { UseControllerToOpen = true });
+        var eventRaised = false;
+        listener.ToggleRequested += (_, _) => eventRaised = true;
+
+        listener.HandleControllerButtonEvent(ControllerInput.Guide, ControllerInputState.Pressed, 1);
+
+        Assert.True(eventRaised);
+    }
+
+    [Fact]
+    public void HandleControllerButtonEvent_GuidePressedWhileDisabled_DoesNotTrigger()
+    {
+        var listener = new InputListener();
+        listener.ApplySettings(new OverlaySettings { UseControllerToOpen = false });
+        var eventRaised = false;
+        listener.ToggleRequested += (_, _) => eventRaised = true;
+
+        listener.HandleControllerButtonEvent(ControllerInput.Guide, ControllerInputState.Pressed, 1);
+
+        Assert.False(eventRaised);
+    }
+
+    [Fact]
+    public void HandleControllerButtonEvent_RuntimeDisabled_DoesNotTrigger()
+    {
+        var listener = new InputListener();
+        listener.ApplySettings(new OverlaySettings { UseControllerToOpen = true });
+        listener.DisableControllerInput();
+        var eventRaised = false;
+        listener.ToggleRequested += (_, _) => eventRaised = true;
+
+        listener.HandleControllerButtonEvent(ControllerInput.Guide, ControllerInputState.Pressed, 1);
+
+        Assert.False(eventRaised);
+    }
+
+    [Fact]
+    public void HandleControllerButtonEvent_NoneButton_DoesNotTrigger()
+    {
+        var listener = new InputListener();
+        listener.ApplySettings(new OverlaySettings { UseControllerToOpen = true });
+        var eventRaised = false;
+        listener.ToggleRequested += (_, _) => eventRaised = true;
+
+        listener.HandleControllerButtonEvent(ControllerInput.None, ControllerInputState.Pressed, 1);
+
+        Assert.False(eventRaised);
+    }
+
+    [Fact]
+    public void HandleControllerButtonEvent_ToggleCooldownPreventsRapidFire()
+    {
+        var listener = new InputListener();
+        listener.ApplySettings(new OverlaySettings { UseControllerToOpen = true });
+        var toggleCount = 0;
+        listener.ToggleRequested += (_, _) => toggleCount++;
+
+        // First press should trigger
+        listener.HandleControllerButtonEvent(ControllerInput.Guide, ControllerInputState.Pressed, 1);
+        listener.HandleControllerButtonEvent(ControllerInput.Guide, ControllerInputState.Released, 1);
+
+        // Immediate second press should be blocked by 300ms cooldown
+        listener.HandleControllerButtonEvent(ControllerInput.Guide, ControllerInputState.Pressed, 1);
+
+        Assert.Equal(1, toggleCount);
+    }
+
+    [Fact]
+    public void HandleControllerDisconnected_ClearsState()
+    {
+        var listener = new InputListener();
+        listener.ApplySettings(new OverlaySettings { UseControllerToOpen = true });
+
+        // Simulate button pressed
+        listener.HandleControllerButtonEvent(ControllerInput.Guide, ControllerInputState.Pressed, 1);
+
+        // Disconnect should clear state
+        listener.HandleControllerDisconnected(1);
+
+        // Re-press should trigger again (state was cleared, combo not triggered)
+        var eventRaised = false;
+        listener.ToggleRequested += (_, _) => eventRaised = true;
+        listener.HandleControllerButtonEvent(ControllerInput.Guide, ControllerInputState.Pressed, 1);
+        Assert.True(eventRaised);
     }
 }
