@@ -166,13 +166,13 @@ public class InputListenerTests
         var listener = new InputListener();
         listener.ApplySettings(new OverlaySettings { UseControllerToOpen = true });
 
-        // Simulate button pressed
-        listener.HandleControllerButtonEvent(ControllerInput.Guide, ControllerInputState.Pressed, 1);
+        // Simulate a non-combo button pressed to establish controller state
+        listener.HandleControllerButtonEvent(ControllerInput.A, ControllerInputState.Pressed, 1);
 
-        // Disconnect should clear state
+        // Disconnect should clear state for this controller
         listener.HandleControllerDisconnected(1);
 
-        // Re-press should trigger again (state was cleared, combo not triggered)
+        // Now pressing the combo should trigger toggle (no stale state)
         var eventRaised = false;
         listener.ToggleRequested += (_, _) => eventRaised = true;
         listener.HandleControllerButtonEvent(ControllerInput.Guide, ControllerInputState.Pressed, 1);
