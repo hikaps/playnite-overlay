@@ -91,11 +91,6 @@ public class OverlayPlugin : GenericPlugin
         // Start hotkey immediately (keyboard shortcut should always work)
         input.StartHotkey();
 
-        // Start controller input if configured to be always active
-        if (settings.Settings.ControllerAlwaysActive)
-        {
-            input.StartController();
-        }
     }
 
     public override Guid Id => PluginId;
@@ -112,12 +107,6 @@ public class OverlayPlugin : GenericPlugin
         {
             // Enable controller input for this game
             input.EnableControllerInput();
-            
-            // Start controller timer if not already running (when not always-active)
-            if (!settings.Settings.ControllerAlwaysActive)
-            {
-                input.StartController();
-            }
         }
         else
         {
@@ -144,13 +133,28 @@ public class OverlayPlugin : GenericPlugin
         // Re-enable controller input after game stops (in case it was disabled for non-PC game)
         input.EnableControllerInput();
         
-        // Stop controller input only if not configured to be always-active
-        if (!settings.Settings.ControllerAlwaysActive)
-        {
-            input.StopController();
-        }
-        
         overlay.Hide();
+    }
+
+    public override void OnControllerButtonStateChanged(OnControllerButtonStateChangedArgs args)
+    {
+        input.HandleControllerButtonEvent(args.Button, args.State, args.Controller.InstanceId);
+    }
+
+    public override void OnDesktopControllerButtonStateChanged(OnControllerButtonStateChangedArgs args)
+    {
+        input.HandleControllerButtonEvent(args.Button, args.State, args.Controller.InstanceId);
+    }
+
+    public override void OnControllerConnected(OnControllerConnectedArgs args)
+    {
+        logger.Info($"Controller connected: {args.Controller.Name} (ID: {args.Controller.InstanceId})");
+    }
+
+    public override void OnControllerDisconnected(OnControllerDisconnectedArgs args)
+    {
+        logger.Info($"Controller disconnected: {args.Controller.Name} (ID: {args.Controller.InstanceId})");
+        input.HandleControllerDisconnected(args.Controller.InstanceId);
     }
 
     public override ISettings GetSettings(bool firstRunSettings) => settings;
@@ -174,17 +178,6 @@ public class OverlayPlugin : GenericPlugin
     internal void ApplySettings(OverlaySettings newSettings)
     {
         input.ApplySettings(newSettings);
-
-        // Apply controller always-active setting
-        if (newSettings.ControllerAlwaysActive)
-        {
-            input.StartController();
-        }
-        else if (switcher.ActiveApp == null)
-        {
-            // Stop controller if no active app and not always-active
-            input.StopController();
-        }
     }
 
     private void HandleToggleRequested(object? sender, EventArgs e)
