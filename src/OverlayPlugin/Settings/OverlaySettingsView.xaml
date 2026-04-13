@@ -59,9 +59,6 @@
                     <TextBlock Margin="0,6,0,0" TextWrapping="Wrap"
                                Foreground="Gray"
                                Text="Note: Requires &quot;Enable controller support in Desktop mode&quot; to be turned on in Playnite Settings → Input."/>
-                    <TextBlock Margin="0,4,0,0" TextWrapping="Wrap"
-                               Foreground="Gray"
-                               Text="The Guide button combo requires a physical controller. For virtual controllers (e.g. vigembus), use Start+Back or LB+RB instead."/>
                 </StackPanel>
             </GroupBox>
 
