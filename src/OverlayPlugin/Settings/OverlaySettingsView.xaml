@@ -48,10 +48,6 @@
                             <ComboBoxItem Content="LB+RB" />
                         </ComboBox>
                     </StackPanel>
-                    <CheckBox Content="Controller input always active (not just during gameplay)"
-                              Margin="0,8,0,0"
-                              IsChecked="{Binding Settings.ControllerAlwaysActive}"
-                              ToolTip="Warning: May conflict with system Xbox overlay when enabled"/>
                     <CheckBox Content="Only enable controller for PC games"
                               Margin="0,8,0,0"
                               IsChecked="{Binding Settings.PcGamesOnly}"

@@ -112,12 +112,9 @@ Access settings through: **Playnite Menu** → **Add-ons** → **Extension setti
 ### Controller Settings
 - **Use Controller to Open**: Enable/disable controller input
 - **Controller Combo**: Choose trigger combination:
-- **Use Controller to Open**: Enable/disable controller input
-- **Controller Combo**: Choose trigger combination:
   - Guide (default)
   - Start+Back
   - LB+RB
-- **Controller Always Active**: Keep controller input active even when not in a game
 
 ### Running Apps Detection
 - **Show Generic Apps**: Include non-game applications in RUNNING APPS section

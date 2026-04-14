@@ -32,13 +32,6 @@ public class OverlaySettings : MVVM.ObservableObject
         set => SetProperty(ref customHotkey, value);
     }
 
-    private bool controllerAlwaysActive = true;
-    public bool ControllerAlwaysActive
-    {
-        get => controllerAlwaysActive;
-        set => SetProperty(ref controllerAlwaysActive, value);
-    }
-
     private bool pcGamesOnly = false;
     /// <summary>
     /// When enabled, controller input is only active for PC platform games.

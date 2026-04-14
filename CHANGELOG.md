@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- Migrated controller input from custom SDL2 P/Invoke to Playnite SDK 6.16 controller events
+- Removed bundled SDL2.dll and gamecontrollerdb.txt (no longer needed)
+- Requires Playnite 10.52+ (previously 6.12.0+)
+- Requires "Enable controller support in Desktop mode" in Playnite Settings → Input
+- Removed "Controller Always Active" setting (controller events are always delivered by Playnite)
+
+### Fixed
+- Controller input not working since v0.7.0 (#47)
+- Overlay crashes Playnite when using with ControlUp addon (#52)
+
 ---
 
 ## [0.7.0] - 2026-03-03
