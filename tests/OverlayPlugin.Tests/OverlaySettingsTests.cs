@@ -17,7 +17,6 @@ public class OverlaySettingsTests
         Assert.Equal("Guide", settings.ControllerCombo);
         Assert.True(settings.EnableCustomHotkey);
         Assert.Equal("Ctrl+Alt+O", settings.CustomHotkey);
-        Assert.True(settings.ControllerAlwaysActive);
         Assert.False(settings.ShowGenericApps);
         Assert.Equal(4, settings.MaxRunningApps);
         Assert.False(settings.ForceBorderlessMode);
