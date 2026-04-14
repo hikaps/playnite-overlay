@@ -8,7 +8,7 @@
     <UseWPF>true</UseWPF>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="PlayniteSDK" Version="6.12.0" />
+    <PackageReference Include="PlayniteSDK" Version="6.16.0" />
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.*" />
     <PackageReference Include="NAudio" Version="2.2.1" />
   </ItemGroup>
@@ -21,19 +21,5 @@
   <ItemGroup>
     <InternalsVisibleTo Include="OverlayPlugin.Tests" />
   </ItemGroup>
-  <!-- SDL2 native library and controller mappings -->
-  <ItemGroup>
-    <Content Include="libs\SDL2.dll">
-      <Link>SDL2.dll</Link>
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      <Pack>true</Pack>
-      <PackagePath>lib\</PackagePath>
-    </Content>
-    <Content Include="Resources\gamecontrollerdb.txt">
-      <Link>gamecontrollerdb.txt</Link>
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      <Pack>true</Pack>
-      <PackagePath>lib\</PackagePath>
-    </Content>
-  </ItemGroup>
+
 </Project>
