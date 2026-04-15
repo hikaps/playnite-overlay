@@ -147,6 +147,8 @@ internal sealed class InputListener
             return;
         }
 
+        logger.Debug($"[Controller {controllerInstanceId}] {state}: {button} (combo: {controllerCombo})");
+
         if (state == ControllerInputState.Pressed)
         {
             HandleButtonPressed(button, controllerInstanceId);
@@ -194,6 +196,7 @@ internal sealed class InputListener
                 {
                     lastToggleTime = DateTime.Now;
                     comboTriggered[controllerInstanceId] = true;
+                    logger.Info($"[Controller {controllerInstanceId}] Combo triggered: {FormatButtonNames(pressed)} (config: {controllerCombo})");
                     TriggerToggle();
                 }
             }
@@ -279,6 +282,16 @@ internal sealed class InputListener
             dict[controllerInstanceId] = set;
         }
         return set;
+    }
+
+    private static string FormatButtonNames(HashSet<ControllerInput> buttons)
+    {
+        var names = new List<string>();
+        foreach (var button in buttons)
+        {
+            names.Add(button.ToString());
+        }
+        return string.Join(", ", names);
     }
 
     private static ControllerInput[] ResolveComboMask(string combo)
