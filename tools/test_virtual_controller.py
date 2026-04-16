@@ -312,6 +312,9 @@ def map_to_mode(pressed_buttons, mode):
             "back": XboxButtons.BACK,
             "guide": XboxButtons.GUIDE,
         }
+        return {
+            action: mapping[action] for action in pressed_buttons if action in mapping
+        }
     else:
         mapping = {
             "a": PS4Buttons.CROSS,
@@ -324,8 +327,48 @@ def map_to_mode(pressed_buttons, mode):
             "back": PS4Buttons.SHARE,
             "guide": PS4Buttons.GUIDE,
         }
+        return {
+            action: mapping[action] for action in pressed_buttons if action in mapping
+        }
 
-    return {action: mapping[action] for action in pressed_buttons if action in mapping}
+
+DPAD_NAMES = {
+    0: "DPAD_N",
+    1: "DPAD_NE",
+    2: "DPAD_E",
+    3: "DPAD_SE",
+    4: "DPAD_S",
+    5: "DPAD_SW",
+    6: "DPAD_W",
+    7: "DPAD_NW",
+    8: "DPAD_OFF",
+}
+
+
+def resolve_dpad_hat(pressed_buttons):
+    """Compute DS4 directional_pad hat value from individual D-pad actions."""
+    up = "dpad_up" in pressed_buttons
+    down = "dpad_down" in pressed_buttons
+    left = "dpad_left" in pressed_buttons
+    right = "dpad_right" in pressed_buttons
+
+    if up and left:
+        return 7
+    if up and right:
+        return 1
+    if down and left:
+        return 5
+    if down and right:
+        return 3
+    if up:
+        return 0
+    if right:
+        return 2
+    if down:
+        return 4
+    if left:
+        return 6
+    return 8
 
 
 def main():
@@ -407,17 +450,54 @@ Compare timestamps to see which events arrive.
             pressed_actions, pressed_triggers = read_keyboard_input()
             current_buttons = map_to_mode(pressed_actions, ctrl.mode)
 
-            all_actions = set(prev_buttons.keys()) | set(current_buttons.keys())
+            if ctrl.mode == "ps4":
+                dpad_actions = {"dpad_up", "dpad_down", "dpad_left", "dpad_right"}
+                dpad_pressed = any(a in pressed_actions for a in dpad_actions)
+                prev_dpad = any(
+                    a in prev_buttons and a in dpad_actions for a in prev_buttons
+                )
 
-            for action in all_actions:
-                was_pressed = action in prev_buttons
-                is_pressed = action in current_buttons
-                if is_pressed and not was_pressed:
-                    ctrl.press(current_buttons[action])
-                elif was_pressed and not is_pressed:
-                    ctrl.release(prev_buttons[action])
+                non_dpad_buttons = {
+                    action: btn
+                    for action, btn in current_buttons.items()
+                    if action not in dpad_actions
+                }
+                prev_non_dpad = {
+                    action: btn
+                    for action, btn in prev_buttons.items()
+                    if action not in dpad_actions
+                }
 
-            prev_buttons = current_buttons.copy()
+                all_non_dpad = set(prev_non_dpad.keys()) | set(non_dpad_buttons.keys())
+                for action in all_non_dpad:
+                    was_pressed = action in prev_non_dpad
+                    is_pressed = action in non_dpad_buttons
+                    if is_pressed and not was_pressed:
+                        ctrl.press(non_dpad_buttons[action])
+                    elif was_pressed and not is_pressed:
+                        ctrl.release(prev_non_dpad[action])
+
+                if dpad_pressed != prev_dpad or (
+                    dpad_pressed and dpad_pressed != prev_dpad
+                ):
+                    hat = resolve_dpad_hat(pressed_actions)
+                    hat_name = DPAD_NAMES.get(hat, str(hat))
+                    log(f"  DPAD HAT  {hat_name}")
+                    ctrl.gamepad.directional_pad(hat)
+
+                prev_buttons = current_buttons.copy()
+            else:
+                all_actions = set(prev_buttons.keys()) | set(current_buttons.keys())
+
+                for action in all_actions:
+                    was_pressed = action in prev_buttons
+                    is_pressed = action in current_buttons
+                    if is_pressed and not was_pressed:
+                        ctrl.press(current_buttons[action])
+                    elif was_pressed and not is_pressed:
+                        ctrl.release(prev_buttons[action])
+
+                prev_buttons = current_buttons.copy()
 
             lt = 255 if "lt" in pressed_triggers else 0
             rt = 255 if "rt" in pressed_triggers else 0
