@@ -128,6 +128,8 @@ internal sealed class InputListener
         enableController = settings.UseControllerToOpen;
         controllerCombo = string.IsNullOrWhiteSpace(settings.ControllerCombo) ? "Guide" : settings.ControllerCombo;
 
+        logger.Info($"Controller settings: enabled={enableController}, combo={controllerCombo}, hotkey={customHotkeyGesture ?? "(none)"}");
+
         TryRegisterHotkey();
     }
 
@@ -144,10 +146,9 @@ internal sealed class InputListener
     {
         if (!enableController || !runtimeControllerEnabled || button == ControllerInput.None)
         {
+            logger.Debug($"[Controller {controllerInstanceId}] Ignored {state}: {button} (enabled={enableController}, runtime={runtimeControllerEnabled})");
             return;
         }
-
-        logger.Debug($"[Controller {controllerInstanceId}] {state}: {button} (combo: {controllerCombo})");
 
         if (state == ControllerInputState.Pressed)
         {

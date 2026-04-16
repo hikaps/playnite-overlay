@@ -138,11 +138,13 @@ public class OverlayPlugin : GenericPlugin
 
     public override void OnControllerButtonStateChanged(OnControllerButtonStateChangedArgs args)
     {
+        logger.Debug($"[SDK] OnControllerButtonStateChanged: {args.Button} {args.State} from {args.Controller.Name} (ID: {args.Controller.InstanceId})");
         input.HandleControllerButtonEvent(args.Button, args.State, args.Controller.InstanceId);
     }
 
     public override void OnDesktopControllerButtonStateChanged(OnControllerButtonStateChangedArgs args)
     {
+        logger.Debug($"[SDK] OnDesktopControllerButtonStateChanged: {args.Button} {args.State} from {args.Controller.Name} (ID: {args.Controller.InstanceId})");
         input.HandleControllerButtonEvent(args.Button, args.State, args.Controller.InstanceId);
     }
 
