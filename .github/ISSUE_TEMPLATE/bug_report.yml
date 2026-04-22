@@ -1,0 +1,134 @@
+name: Bug Report
+description: Report a bug or unexpected behavior in the Playnite Overlay plugin
+labels: ["bug"]
+assignees: []
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a bug! Please fill out the sections below so we can reproduce and fix the issue quickly.
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Bug Description
+      description: A clear description of the bug. What happened and what did you expect to happen?
+      placeholder: "When I press the hotkey, the overlay doesn't appear..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to Reproduce
+      description: Detailed steps to reproduce the behavior
+      placeholder: |
+        1. Open Playnite
+        2. Launch a game
+        3. Press Ctrl+Alt+O
+        4. ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected Behavior
+      description: What did you expect to happen?
+      placeholder: "The overlay should appear with the list of running apps"
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual Behavior
+      description: What actually happened instead?
+      placeholder: "Nothing happened, the overlay didn't open"
+    validations:
+      required: true
+
+  - type: input
+    id: playnite-version
+    attributes:
+      label: Playnite Version
+      description: Which version of Playnite are you using?
+      placeholder: "e.g. 10.52"
+    validations:
+      required: true
+
+  - type: input
+    id: plugin-version
+    attributes:
+      label: Plugin Version
+      description: Which version of the overlay plugin are you using? (Check in Add-ons)
+      placeholder: "e.g. 0.3.0"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: admin
+    attributes:
+      label: Is Playnite Running as Administrator?
+      description: Process termination and window management require elevation. Right-click Playnite → Properties → Compatibility → "Run this program as administrator"
+      options:
+        - "Yes"
+        - "No"
+        - "Unsure"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: controller
+    attributes:
+      label: Controller
+      description: Which controller are you using? The plugin uses XInput (native Xbox support). PS controllers work through DS4Windows or Steam Input.
+      options:
+        - Xbox (wired)
+        - Xbox (wireless)
+        - Xbox Elite
+        - PlayStation (via DS4Windows / DSX)
+        - PlayStation (via Steam Input)
+        - Steam Deck
+        - Third-party / other
+        - None / keyboard only
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: overlays
+    attributes:
+      label: Running Overlays & Input Software
+      description: These can interfere with hotkey detection, controller input, and overlay rendering. Select all that are running.
+      options:
+        - label: Steam Overlay
+          description: In-game overlay enabled in Steam settings
+        - label: Steam Input
+          description: "Steam → Controller → General Controller Settings → Enable Steam Input"
+        - label: DS4Windows / DSX
+          description: Virtual Xbox controller for PlayStation controllers
+        - label: Xbox Game Bar
+          description: Windows built-in overlay (Win+G)
+        - label: GeForce Experience / RTSS
+          description: NVIDIA frame overlay or Rivatuner Statistics Server
+        - label: Discord Overlay
+          description: Discord in-game overlay
+        - label: OBS / Streaming software
+          description: Window capture or input hooks
+        - label: Anti-cheat (EasyAntiCheat, BattlEye, etc.)
+          description: May block window manipulation and input hooks
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant Logs
+      description: Paste any relevant log output from Playnite. (Playnite log files are in `%AppData%\Playnite\playnite.log`)
+      placeholder: "Paste logs here..."
+      render: shell
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional Context
+      description: Any other context — screenshots, single/multi monitor, specific games affected, etc.
+      placeholder: "Windows 11, multi-monitor setup, happens only with Epic Games titles..."
