@@ -101,22 +101,14 @@ body:
       label: Running Overlays & Input Software
       description: These can interfere with hotkey detection, controller input, and overlay rendering. Select all that are running.
       options:
-        - label: Steam Overlay
-          description: In-game overlay enabled in Steam settings
-        - label: Steam Input
-          description: "Steam → Controller → General Controller Settings → Enable Steam Input"
+        - label: Steam Overlay (in-game overlay)
+        - label: Steam Input (virtual controller driver)
         - label: DS4Windows / DSX
-          description: Virtual Xbox controller for PlayStation controllers
-        - label: Xbox Game Bar
-          description: Windows built-in overlay (Win+G)
+        - label: Xbox Game Bar (Win+G)
         - label: GeForce Experience / RTSS
-          description: NVIDIA frame overlay or Rivatuner Statistics Server
         - label: Discord Overlay
-          description: Discord in-game overlay
         - label: OBS / Streaming software
-          description: Window capture or input hooks
         - label: Anti-cheat (EasyAntiCheat, BattlEye, etc.)
-          description: May block window manipulation and input hooks
 
   - type: textarea
     id: logs
