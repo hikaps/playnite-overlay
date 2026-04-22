@@ -1,5 +1,15 @@
 AddonId: 'playnite-overlay'
 Packages:
+  - Version: 0.7.1
+    RequiredApiVersion: 6.0.0
+    ReleaseDate: 2026-04-22
+    PackageUrl: https://github.com/hikaps/playnite-overlay/releases/download/v0.7.1/playnite-overlay-0.7.1.pext
+    Changelog:
+      - Migrated controller input to Playnite SDK 6.16 (no more SDL2)
+      - Requires Playnite 10.52+ and controller support in Desktop mode
+      - Removed Controller Always Active setting
+      - Fix controller input not working since v0.7.0
+      - Fix overlay crashes with ControlUp addon
   - Version: 0.7.0
     RequiredApiVersion: 6.0.0
     ReleaseDate: 2026-03-03
