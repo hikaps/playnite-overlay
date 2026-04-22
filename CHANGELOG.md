@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [0.7.1] - 2026-04-22
+## [0.7.2] - 2026-04-22
 
 ### Changed
 - Migrated controller input from custom SDL2 P/Invoke to Playnite SDK 6.16 controller events
