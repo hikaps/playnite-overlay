@@ -8,9 +8,9 @@ using PlayniteOverlay.Models;
 namespace PlayniteOverlay.Services;
 
 /// <summary>
-/// Integrates with the SuccessStory plugin to retrieve achievement data.
+/// Integrates with a compatible achievement extension to retrieve achievement data.
 /// </summary>
-public sealed class SuccessStoryIntegration
+public sealed class SuccessStoryIntegration : IAchievementSource
 {
     private static readonly Guid SuccessStoryPluginId = new Guid("cebe6d32-8c46-4459-b993-5a5189d60788");
     private readonly IPlayniteAPI api;
@@ -24,7 +24,7 @@ public sealed class SuccessStoryIntegration
     }
 
     /// <summary>
-    /// Checks if SuccessStory plugin is installed and available.
+    /// Checks if the achievement extension plugin is installed and available.
     /// </summary>
     public bool IsAvailable()
     {
@@ -37,12 +37,12 @@ public sealed class SuccessStoryIntegration
         {
             var plugins = api.Addons.Plugins;
             isAvailableCache = plugins.Any(p => p.Id == SuccessStoryPluginId);
-            logger.Debug($"SuccessStory plugin available: {isAvailableCache.Value}");
+            logger.Debug($"Achievement extension plugin available: {isAvailableCache.Value}");
             return isAvailableCache.Value;
         }
         catch (Exception ex)
         {
-            logger.Debug(ex, "Error checking SuccessStory availability");
+            logger.Debug(ex, "Error checking achievement extension availability");
             isAvailableCache = false;
             return false;
         }
@@ -50,7 +50,7 @@ public sealed class SuccessStoryIntegration
 
     /// <summary>
     /// Gets the achievement summary for a specific game.
-    /// Returns null if SuccessStory is not available, game has no achievements, or data cannot be read.
+    /// Returns null if the achievement extension is not available, game has no achievements, or data cannot be read.
     /// </summary>
     public GameAchievementSummary? GetGameAchievements(Guid gameId, int maxRecentUnlocked = 3, int maxLocked = 3)
     {
@@ -64,7 +64,7 @@ public sealed class SuccessStoryIntegration
             var dataPath = GetSuccessStoryDataPath(gameId);
             if (string.IsNullOrEmpty(dataPath) || !File.Exists(dataPath))
             {
-                logger.Debug($"No SuccessStory data file for game {gameId}");
+                logger.Debug($"No achievement data file for game {gameId}");
                 return null;
             }
 
@@ -76,12 +76,12 @@ public sealed class SuccessStoryIntegration
                 return null;
             }
 
-            return BuildSummary(achievements, maxRecentUnlocked, maxLocked);
+            return AchievementSummaryBuilder.Build(achievements, maxRecentUnlocked, maxLocked);
         }
         catch (Exception ex)
         {
             // Silently hide on any error (corrupted JSON, file access issues, etc.)
-            logger.Debug(ex, $"Error reading SuccessStory data for game {gameId}");
+            logger.Debug(ex, $"Error reading achievement data for game {gameId}");
             return null;
         }
     }
@@ -90,7 +90,7 @@ public sealed class SuccessStoryIntegration
     {
         try
         {
-            // Path: {ExtensionsDataPath}\cebe6d32-8c46-4459-b993-5a5189d60788\SuccessStory\{gameId}.json
+            // Path: {ExtensionsDataPath}\{plugin-id}\{data-subdir}\{gameId}.json
             var extensionsDataPath = api.Paths.ExtensionsDataPath;
             var successStoryPath = Path.Combine(
                 extensionsDataPath,
@@ -102,7 +102,7 @@ public sealed class SuccessStoryIntegration
         }
         catch (Exception ex)
         {
-            logger.Debug(ex, "Error constructing SuccessStory data path");
+            logger.Debug(ex, "Error constructing achievement data path");
             return null;
         }
     }
@@ -112,7 +112,7 @@ public sealed class SuccessStoryIntegration
         try
         {
             // Parse JSON manually to avoid external dependencies
-            // SuccessStory format: { "Items": [...], "Name": "Game Name" }
+            // Achievement data format: { "Items": [...], "Name": "Game Name" }
             var achievements = new List<AchievementData>();
 
             // Find the Items array
@@ -162,7 +162,7 @@ public sealed class SuccessStoryIntegration
         }
         catch (Exception ex)
         {
-            logger.Debug(ex, "Error parsing SuccessStory JSON");
+            logger.Debug(ex, "Error parsing achievement data JSON");
             return null;
         }
     }
@@ -182,11 +182,12 @@ public sealed class SuccessStoryIntegration
             var dateStr = ExtractStringValue(json, "DateUnlocked");
             if (!string.IsNullOrEmpty(dateStr) && DateTime.TryParse(dateStr, out var date))
             {
-                // SuccessStory uses DateTime.MinValue (0001-01-01) for locked achievements
+                // The source extension uses DateTime.MinValue (0001-01-01) for locked achievements
                 // Only set DateUnlocked if it's a valid date (year > 1)
                 if (date.Year > 1)
                 {
                     achievement.DateUnlocked = date;
+                    achievement.IsUnlocked = true;
                 }
             }
 
@@ -375,27 +376,5 @@ public sealed class SuccessStoryIntegration
         return -1;
     }
 
-    private GameAchievementSummary BuildSummary(List<AchievementData> achievements, int maxRecentUnlocked, int maxLocked)
-    {
-        var unlocked = achievements.Where(a => a.IsUnlocked).ToList();
-        var locked = achievements.Where(a => !a.IsUnlocked).ToList();
 
-        // Get most recently unlocked (sorted by date, newest first)
-        var recentlyUnlocked = unlocked
-            .Where(a => a.DateUnlocked.HasValue)
-            .OrderByDescending(a => a.DateUnlocked!.Value)
-            .Take(maxRecentUnlocked)
-            .ToList();
-
-        // Get some locked achievements to show (just take first N for now)
-        var lockedToShow = locked.Take(maxLocked).ToList();
-
-        return new GameAchievementSummary
-        {
-            TotalCount = achievements.Count,
-            UnlockedCount = unlocked.Count,
-            RecentlyUnlocked = recentlyUnlocked,
-            LockedToShow = lockedToShow
-        };
-    }
 }

@@ -12,7 +12,7 @@ public sealed class OverlayItem
     public Action? OnSelect { get; set; }
     public DateTime? ActivatedTime { get; set; }
 
-    // Achievement data (only populated for current game when SuccessStory is available)
+    // Achievement data (only populated for current game when a compatible achievement extension is available)
     public GameAchievementSummary? Achievements { get; set; }
 
     public static OverlayItem FromRecentGame(Playnite.SDK.Models.Game game, Services.GameSwitcher switcher)

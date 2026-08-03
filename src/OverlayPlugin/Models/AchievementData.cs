@@ -3,7 +3,7 @@ using System;
 namespace PlayniteOverlay.Models;
 
 /// <summary>
-/// Represents a single achievement from SuccessStory plugin.
+/// Represents a single achievement from an achievement source.
 /// </summary>
 public sealed class AchievementData
 {
@@ -13,5 +13,5 @@ public sealed class AchievementData
     public string? UrlUnlocked { get; set; }
     public string? UrlLocked { get; set; }
 
-    public bool IsUnlocked => DateUnlocked.HasValue;
+    public bool IsUnlocked { get; set; }
 }

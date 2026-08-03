@@ -79,11 +79,11 @@
                 </StackPanel>
             </GroupBox>
 
-            <GroupBox Header="Achievements (SuccessStory)">
+            <GroupBox Header="Achievements">
                 <StackPanel Margin="10">
                     <CheckBox Content="Show achievement progress in overlay"
                               IsChecked="{Binding Settings.ShowAchievements}"
-                              ToolTip="Display achievement progress when SuccessStory plugin is installed and game has achievement data."/>
+                              ToolTip="Display achievement progress when a compatible achievement extension is installed."/>
                     <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
                         <TextBlock Text="Recent unlocked to show:" VerticalAlignment="Center"/>
                         <TextBox Width="60" Margin="8,0,0,0"
@@ -98,7 +98,7 @@
                     </StackPanel>
                     <TextBlock Margin="0,6,0,0" TextWrapping="Wrap"
                                Foreground="Gray"
-                               Text="Requires the SuccessStory plugin to be installed. Achievement data is read from SuccessStory's cache."/>
+                               Text="Requires a compatible achievement extension (e.g., PlayniteAchievements, SuccessStory)."/>
                 </StackPanel>
             </GroupBox>
 
