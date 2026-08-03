@@ -12,6 +12,7 @@ public sealed class OverlayShortcut : INotifyPropertyChanged
     private string command = string.Empty;
     private string arguments = string.Empty;
     private string hotkey = string.Empty;
+    private string mediaKeySelection = "PlayPause";
 
     public ShortcutActionType ActionType
     {
@@ -78,6 +79,19 @@ public sealed class OverlayShortcut : INotifyPropertyChanged
         }
     }
 
+    public string MediaKeySelection
+    {
+        get => mediaKeySelection;
+        set
+        {
+            if (mediaKeySelection != value)
+            {
+                mediaKeySelection = value;
+                OnPropertyChanged(nameof(MediaKeySelection));
+            }
+        }
+    }
+
     public event PropertyChangedEventHandler? PropertyChanged;
 
     private void OnPropertyChanged(string propertyName)
@@ -99,5 +113,10 @@ public enum ShortcutActionType
     /// <summary>
     /// Simulate keyboard input (hotkey) using SendInput API.
     /// </summary>
-    SendInput
+    SendInput,
+    
+    /// <summary>
+    /// Send a media key (play/pause, volume, etc.).
+    /// </summary>
+    MediaKey
 }
