@@ -1,8 +1,10 @@
 # AI Agent Guidelines
 
 ## Build & Test Commands
-- Build: `dotnet build src/OverlayPlugin/OverlayPlugin.csproj`
-- Test all: `dotnet test tests/OverlayPlugin.Tests/OverlayPlugin.Tests.csproj`
+- Build Core: `dotnet build src/OverlayPlugin.Core/OverlayPlugin.Core.csproj`
+- Build Plugin: `dotnet build src/OverlayPlugin/OverlayPlugin.csproj`
+- Test Core: `dotnet test tests/OverlayPlugin.Core.Tests/OverlayPlugin.Core.Tests.csproj`
+- Test Plugin: `dotnet test tests/OverlayPlugin.Tests/OverlayPlugin.Tests.csproj`
 - Test single: `dotnet test --filter "FullyQualifiedName~TestMethodName"`
 - Package: `pwsh tools/pack.ps1` (Windows only)
 

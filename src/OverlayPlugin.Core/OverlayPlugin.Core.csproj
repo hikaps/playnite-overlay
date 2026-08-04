@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <LangVersion>10.0</LangVersion>
+    <Nullable>enable</Nullable>
+    <AssemblyName>OverlayPlugin.Core</AssemblyName>
+    <RootNamespace>PlayniteOverlay</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="PlayniteSDK" Version="6.16.0" />
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.*" />
+    <PackageReference Include="NAudio" Version="2.2.1" />
+    <PackageReference Include="System.Data.SQLite" Version="1.0.119" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="OverlayPlugin" />
+    <InternalsVisibleTo Include="OverlayPlugin.Core.Tests" />
+  </ItemGroup>
+</Project>
