@@ -1,0 +1,44 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!-- Surfaces -->
+    <SolidColorBrush x:Key="OverlayBackgroundBrush" Color="#99FFFFFF"/>
+    <SolidColorBrush x:Key="CardBackgroundBrush" Color="#EEFFFFFF"/>
+    <SolidColorBrush x:Key="SectionBackgroundBrush" Color="#FFFFFFFF"/>
+    <SolidColorBrush x:Key="PanelBackgroundBrush" Color="#E8ECEF"/>
+    <SolidColorBrush x:Key="ControlBackgroundBrush" Color="#DDE3E8"/>
+    <SolidColorBrush x:Key="ControlBorderBrush" Color="#C8D0D8"/>
+    <SolidColorBrush x:Key="ControlHoverBrush" Color="#E2E8EE"/>
+    <SolidColorBrush x:Key="ControlPressedBrush" Color="#C8D0D8"/>
+    <SolidColorBrush x:Key="ComboHighlightBackgroundBrush" Color="#DDE3E8"/>
+    <SolidColorBrush x:Key="ComboSelectedBackgroundBrush" Color="#C8D0D8"/>
+    <SolidColorBrush x:Key="RunningAppSelectedBackgroundBrush" Color="#D0D8E0"/>
+    <SolidColorBrush x:Key="RunningAppHoverBackgroundBrush" Color="#E0E6EC"/>
+    <SolidColorBrush x:Key="RecentSelectedBackgroundBrush" Color="#D8DEE6"/>
+    <SolidColorBrush x:Key="RecentHoverBackgroundBrush" Color="#E8EEF4"/>
+
+    <!-- Text -->
+    <SolidColorBrush x:Key="TextPrimaryBrush" Color="#1A1A1A"/>
+    <SolidColorBrush x:Key="TextBrightBrush" Color="#000000"/>
+    <SolidColorBrush x:Key="TextSecondaryBrush" Color="#444444"/>
+    <SolidColorBrush x:Key="TextMutedBrush" Color="#666666"/>
+    <SolidColorBrush x:Key="TextSubtleBrush" Color="#888888"/>
+    <SolidColorBrush x:Key="TextFaintBrush" Color="#777777"/>
+    <SolidColorBrush x:Key="PlaceholderBrush" Color="#999999"/>
+    <SolidColorBrush x:Key="OnAccentBrush" Color="#FFFFFF"/>
+    <SolidColorBrush x:Key="FocusBorderBrush" Color="#4A90E2"/>
+    <SolidColorBrush x:Key="SliderThumbBorderBrush" Color="#AAAAAA"/>
+
+    <!-- Accents -->
+    <SolidColorBrush x:Key="AccentPrimaryBrush" Color="#4A90E2"/>
+    <SolidColorBrush x:Key="AccentPrimaryHoverBrush" Color="#3A80D2"/>
+    <SolidColorBrush x:Key="AccentPrimaryPressedBrush" Color="#2A70C2"/>
+    <SolidColorBrush x:Key="AccentSwitchBrush" Color="#6A4FC8"/>
+    <SolidColorBrush x:Key="AccentSwitchHoverBrush" Color="#5A3FB8"/>
+    <SolidColorBrush x:Key="AccentSwitchPressedBrush" Color="#4A2FA8"/>
+    <SolidColorBrush x:Key="AccentDangerBrush" Color="#D32F2F"/>
+    <SolidColorBrush x:Key="AccentDangerHoverBrush" Color="#C02020"/>
+    <SolidColorBrush x:Key="AccentDangerPressedBrush" Color="#A51515"/>
+    <SolidColorBrush x:Key="AccentGoldBrush" Color="#C9A000"/>
+
+</ResourceDictionary>

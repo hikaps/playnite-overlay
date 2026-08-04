@@ -57,6 +57,11 @@ public class OverlaySettingsViewModel : MVVM.ObservableObject, ISettings
             errors.Add("Controller combo must be Guide, Start+Back, or LB+RB.");
         }
 
+        if (!ThemeManager.BuiltInThemes.Contains(Settings.ThemeName ?? string.Empty, StringComparer.OrdinalIgnoreCase))
+        {
+            errors.Add($"Theme must be one of: {string.Join(", ", ThemeManager.BuiltInThemes)}.");
+        }
+
         if (Settings.MaxRunningApps < 1 || Settings.MaxRunningApps > 50)
         {
             errors.Add("Maximum running apps must be between 1 and 50.");

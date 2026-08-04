@@ -50,11 +50,13 @@ public partial class OverlayWindow : Window
     private int shortcutsSelectedIndex = -1;
     private bool isClosing;
     private bool isInitializingAudio = false;
-    private static readonly SolidColorBrush HighlightBrush = new(Color.FromRgb(0xFF, 0xFF, 0xFF));
     private static readonly SolidColorBrush TransparentBrush = new(Colors.Transparent);
 
-    public OverlayWindow(Action onSwitch, Action onExit, OverlayItem? currentGame, IEnumerable<RunningApp> runningApps, IEnumerable<OverlayItem> recentGames, IEnumerable<AudioDevice>? audioDevices = null, Action<string, Action<bool>>? onAudioDeviceChanged = null, GameVolumeService? gameVolumeService = null, int? currentGameProcessId = null, GameSwitcher? gameSwitcher = null, IEnumerable<Models.OverlayShortcut>? shortcuts = null)
+    public OverlayWindow(Action onSwitch, Action onExit, OverlayItem? currentGame, IEnumerable<RunningApp> runningApps, IEnumerable<OverlayItem> recentGames, IEnumerable<AudioDevice>? audioDevices = null, Action<string, Action<bool>>? onAudioDeviceChanged = null, GameVolumeService? gameVolumeService = null, int? currentGameProcessId = null, GameSwitcher? gameSwitcher = null, IEnumerable<Models.OverlayShortcut>? shortcuts = null, string? themeName = null)
     {
+        // Apply the theme before parsing XAML so {DynamicResource} references resolve.
+        ThemeManager.ApplyTo(this, themeName);
+
         InitializeComponent();
         this.onSwitch = onSwitch;
         this.onExit = onExit;
@@ -286,26 +288,28 @@ public partial class OverlayWindow : Window
         
         ClearSectionHighlights();
         
+        var focusBrush = ThemeManager.GetBrush(this, "FocusBorderBrush");
+
         switch (section)
         {
             case NavigationTarget.CurrentGameSection:
-                CurrentGameSection.BorderBrush = HighlightBrush;
+                CurrentGameSection.BorderBrush = focusBrush;
                 CurrentGameSection.BringIntoView();
                 Keyboard.Focus(CurrentGameSection);
                 break;
             case NavigationTarget.ShortcutsSection:
-                ShortcutsSection.BorderBrush = HighlightBrush;
+                ShortcutsSection.BorderBrush = focusBrush;
                 ShortcutsSection.BringIntoView();
                 Keyboard.Focus(ShortcutsSection);
                 break;
             case NavigationTarget.RunningAppsSection:
-                RunningAppsSection.BorderBrush = HighlightBrush;
+                RunningAppsSection.BorderBrush = focusBrush;
                 RunningAppsSection.BringIntoView();
                 Keyboard.Focus(RunningAppsSection);
                 break;
 
             case NavigationTarget.RecentGamesSection:
-                RecentGamesSection.BorderBrush = HighlightBrush;
+                RecentGamesSection.BorderBrush = focusBrush;
                 RecentGamesSection.BringIntoView();
                 Keyboard.Focus(RecentGamesSection);
                 break;
@@ -1143,7 +1147,7 @@ public partial class OverlayWindow : Window
             {
                 Text = $"\U0001F3C6 {achievement.Name}",
                 FontSize = 11,
-                Foreground = new SolidColorBrush(Color.FromRgb(0xFF, 0xD7, 0x00)),
+                Foreground = ThemeManager.GetBrush(this, "AccentGoldBrush"),
                 Margin = new Thickness(0, 2, 0, 0),
                 TextTrimming = TextTrimming.CharacterEllipsis
             };
@@ -1157,7 +1161,7 @@ public partial class OverlayWindow : Window
             {
                 Text = $"\U0001F512 {achievement.Name}",
                 FontSize = 11,
-                Foreground = new SolidColorBrush(Color.FromRgb(0x88, 0x88, 0x88)),
+                Foreground = ThemeManager.GetBrush(this, "TextMutedBrush"),
                 Margin = new Thickness(0, 2, 0, 0),
                 TextTrimming = TextTrimming.CharacterEllipsis
             };
@@ -1302,14 +1306,20 @@ public partial class OverlayWindow : Window
         }
         foreach (var shortcut in shortcuts)
         {
+            var controlBrush = ThemeManager.GetBrush(this, "ControlBackgroundBrush");
+            var onAccentBrush = ThemeManager.GetBrush(this, "OnAccentBrush");
+            var hoverBrush = ThemeManager.GetBrush(this, "ControlHoverBrush");
+            var pressedBrush = ThemeManager.GetBrush(this, "ControlPressedBrush");
+            var focusBrush = ThemeManager.GetBrush(this, "FocusBorderBrush");
+
             var button = new Button
             {
                 Content = shortcut.Label,
                 Margin = new Thickness(0, 0, 8, 8),
                 Padding = new Thickness(16, 8, 16, 8),
                 MinWidth = 110,
-                Background = new SolidColorBrush(Color.FromRgb(0x3A, 0x3A, 0x3A)),
-                Foreground = new SolidColorBrush(Colors.White),
+                Background = controlBrush,
+                Foreground = onAccentBrush,
                 BorderBrush = TransparentBrush,
                 BorderThickness = new Thickness(2),
                 FontSize = 13,
@@ -1335,15 +1345,15 @@ public partial class OverlayWindow : Window
             
             // Add triggers to ControlTemplate (not Style) so we can use TargetName
             var mouseOverTrigger = new Trigger { Property = Button.IsMouseOverProperty, Value = true };
-            mouseOverTrigger.Setters.Add(new Setter { TargetName = "ButtonBorder", Property = Border.BackgroundProperty, Value = new SolidColorBrush(Color.FromRgb(0x4A, 0x4A, 0x4A)) });
+            mouseOverTrigger.Setters.Add(new Setter { TargetName = "ButtonBorder", Property = Border.BackgroundProperty, Value = hoverBrush });
             template.Triggers.Add(mouseOverTrigger);
             
             var pressedTrigger = new Trigger { Property = Button.IsPressedProperty, Value = true };
-            pressedTrigger.Setters.Add(new Setter { TargetName = "ButtonBorder", Property = Border.BackgroundProperty, Value = new SolidColorBrush(Color.FromRgb(0x2A, 0x2A, 0x2A)) });
+            pressedTrigger.Setters.Add(new Setter { TargetName = "ButtonBorder", Property = Border.BackgroundProperty, Value = pressedBrush });
             template.Triggers.Add(pressedTrigger);
             
             var focusTrigger = new Trigger { Property = Button.IsKeyboardFocusedProperty, Value = true };
-            focusTrigger.Setters.Add(new Setter { TargetName = "ButtonBorder", Property = Border.BorderBrushProperty, Value = new SolidColorBrush(Colors.White) });
+            focusTrigger.Setters.Add(new Setter { TargetName = "ButtonBorder", Property = Border.BorderBrushProperty, Value = focusBrush });
             template.Triggers.Add(focusTrigger);
             
             style.Setters.Add(new Setter(Button.TemplateProperty, template));
