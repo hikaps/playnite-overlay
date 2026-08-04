@@ -43,7 +43,7 @@
                             
                             <Border Grid.Column="0" Background="#1A1A1A" CornerRadius="6" 
                                     Width="120" Height="160" HorizontalAlignment="Left" VerticalAlignment="Top">
-                                <Image x:Name="CurrentGameCover" Stretch="UniformToFill" ClipToBounds="True"/>
+                                <Image x:Name="CurrentGameCover" Stretch="Uniform" ClipToBounds="True"/>
                             </Border>
                             
                             <StackPanel Grid.Column="2" VerticalAlignment="Top">
@@ -452,7 +452,7 @@
                                                     Margin="0,0,12,0">
                                                 <Grid>
                                                     <Image Source="{Binding ImagePath}" 
-                                                           Stretch="UniformToFill" ClipToBounds="True"/>
+                                                           Stretch="Uniform" ClipToBounds="True"/>
                                                     <TextBlock x:Name="NoAppImage" Text="🎮" FontSize="16" 
                                                                HorizontalAlignment="Center" VerticalAlignment="Center"
                                                                Foreground="#555555" Visibility="Collapsed"/>
@@ -587,7 +587,7 @@
                                                 Margin="0,0,14,0">
                                             <Grid>
                                                 <Image Source="{Binding ImagePath}" 
-                                                       Stretch="UniformToFill" ClipToBounds="True"/>
+                                                       Stretch="Uniform" ClipToBounds="True"/>
                                                 <TextBlock x:Name="NoImageText" Text="🎮" FontSize="24" 
                                                            HorizontalAlignment="Center" VerticalAlignment="Center"
                                                            Foreground="#555555" Visibility="Collapsed"/>
