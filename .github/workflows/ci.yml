@@ -3,17 +3,19 @@ name: CI
 on:
   pull_request:
     branches: [develop]
+  push:
+    branches: [develop]
   workflow_dispatch:
 
-jobs:
-  build-test:
-    name: Build and Test
-    runs-on: windows-latest
-    env:
-      DOTNET_NOLOGO: true
-      DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
-      DOTNET_CLI_TELEMETRY_OPTOUT: true
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
 
+jobs:
+  core-tests:
+    name: Core Tests (Linux)
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -27,9 +29,32 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.nuget/packages
-          key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj') }}
+          key: ${{ runner.os }}-nuget-core-${{ hashFiles('src/OverlayPlugin.Core/**/*.csproj') }}
           restore-keys: |
-            ${{ runner.os }}-nuget-
+            ${{ runner.os }}-nuget-core-
+
+      - name: Test
+        run: dotnet test tests/OverlayPlugin.Core.Tests/OverlayPlugin.Core.Tests.csproj -c Release
+
+  plugin-build-test:
+    name: Plugin Build & Test (Windows)
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Cache NuGet
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: ${{ runner.os }}-nuget-plugin-${{ hashFiles('**/*.csproj') }}
+          restore-keys: |
+            ${{ runner.os }}-nuget-plugin-
 
       - name: Restore
         run: |
@@ -39,8 +64,21 @@ jobs:
       - name: Build Plugin
         run: dotnet build src/OverlayPlugin/OverlayPlugin.csproj -c Release --no-restore
 
-      - name: Test
+      - name: Test (Windows-only)
         run: dotnet test tests/OverlayPlugin.Tests/OverlayPlugin.Tests.csproj -c Release --no-restore
+
+  package:
+    name: Package
+    needs: [plugin-build-test]
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
 
       - name: Determine version
         id: ver

@@ -10,8 +10,9 @@
   <ItemGroup>
     <PackageReference Include="PlayniteSDK" Version="6.16.0" />
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.*" />
-    <PackageReference Include="NAudio" Version="2.2.1" />
-    <PackageReference Include="System.Data.SQLite" Version="1.0.119" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="../OverlayPlugin.Core/OverlayPlugin.Core.csproj" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="PresentationFramework" />
