@@ -76,7 +76,7 @@ internal sealed class OverlayService
 
             Application.Current?.Dispatcher.Invoke(() =>
             {
-                window = new OverlayWindow(onSwitch, onExit, currentGame, runningApps, recentGames, audioDevices, onAudioDeviceChanged, gameVolumeService, currentGameProcessId, gameSwitcher, shortcuts: shortcuts);
+                window = new OverlayWindow(onSwitch, onExit, currentGame, runningApps, recentGames, audioDevices, onAudioDeviceChanged, gameVolumeService, currentGameProcessId, gameSwitcher, shortcuts: shortcuts, themeName: settings?.ThemeName);
 
                 window.Loaded += (_, _) =>
                 {

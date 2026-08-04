@@ -11,6 +11,16 @@ public class OverlaySettings : MVVM.ObservableObject
         set => SetProperty(ref useControllerToOpen, value);
     }
 
+    private string themeName = ThemeManager.DefaultTheme;
+    /// <summary>
+    /// Name of the overlay theme to apply. Must be one of ThemeManager.BuiltInThemes.
+    /// </summary>
+    public string ThemeName
+    {
+        get => themeName;
+        set => SetProperty(ref themeName, value);
+    }
+
     private string controllerCombo = "Guide"; // Placeholder; later map to explicit buttons
     public string ControllerCombo
     {

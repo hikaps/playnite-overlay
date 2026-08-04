@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Playnite.SDK;
 using MVVM = CommunityToolkit.Mvvm.ComponentModel;
 
@@ -55,6 +56,11 @@ public class OverlaySettingsViewModel : MVVM.ObservableObject, ISettings
         if (!allowed.Contains(Settings.ControllerCombo ?? string.Empty))
         {
             errors.Add("Controller combo must be Guide, Start+Back, or LB+RB.");
+        }
+
+        if (!ThemeManager.BuiltInThemes.Contains(Settings.ThemeName ?? string.Empty, StringComparer.OrdinalIgnoreCase))
+        {
+            errors.Add($"Theme must be one of: {string.Join(", ", ThemeManager.BuiltInThemes)}.");
         }
 
         if (Settings.MaxRunningApps < 1 || Settings.MaxRunningApps > 50)

@@ -34,6 +34,25 @@
                 </StackPanel>
             </GroupBox>
 
+            <GroupBox Header="Appearance">
+                <StackPanel Margin="10">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="Theme:" VerticalAlignment="Center"/>
+                        <ComboBox Width="160" Margin="8,0,0,0"
+                                  SelectedValuePath="Content"
+                                  SelectedValue="{Binding Settings.ThemeName}">
+                            <ComboBoxItem Content="Default"/>
+                            <ComboBoxItem Content="Light"/>
+                            <ComboBoxItem Content="Minimal"/>
+                            <ComboBoxItem Content="Vibrant"/>
+                        </ComboBox>
+                    </StackPanel>
+                    <TextBlock Margin="0,6,0,0" TextWrapping="Wrap"
+                               Foreground="Gray"
+                               Text="Applies to the overlay window. The new theme is used the next time the overlay opens."/>
+                </StackPanel>
+            </GroupBox>
+
             <GroupBox Header="Controller">
                 <StackPanel Margin="10">
                     <CheckBox Content="Allow opening overlay with controller"

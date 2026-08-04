@@ -3,7 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         WindowStyle="None"
         AllowsTransparency="True"
-        Background="#B3000000"
+        Background="{DynamicResource OverlayBackgroundBrush}"
         ShowInTaskbar="False"
         Topmost="True"
         WindowStartupLocation="Manual"
@@ -11,7 +11,7 @@
         ResizeMode="NoResize"
         Focusable="True">
     <Grid x:Name="Backdrop" Background="Transparent">
-        <Border x:Name="RootCard" CornerRadius="10" Background="#EE1A1A1A" 
+        <Border x:Name="RootCard" CornerRadius="10" Background="{DynamicResource CardBackgroundBrush}" 
                 Padding="28" HorizontalAlignment="Center" VerticalAlignment="Center" 
                 Width="920" MaxHeight="620" Opacity="0">
             <ScrollViewer x:Name="ContentScroller" 
@@ -21,16 +21,16 @@
                 <StackPanel>
                     <Grid Margin="0,0,0,20">
                         <TextBlock Text="Playnite Overlay" FontSize="24" FontWeight="SemiBold" 
-                                   Foreground="#EEEEEE" HorizontalAlignment="Left" VerticalAlignment="Bottom"/>
+                                   Foreground="{DynamicResource TextPrimaryBrush}" HorizontalAlignment="Left" VerticalAlignment="Bottom"/>
                         <StackPanel HorizontalAlignment="Right" VerticalAlignment="Bottom" Orientation="Vertical">
                             <TextBlock x:Name="TimeDisplay" Text="" FontSize="14" FontWeight="Medium"
-                                       Foreground="#AAAAAA" TextAlignment="Right"/>
+                                       Foreground="{DynamicResource TextSecondaryBrush}" TextAlignment="Right"/>
                             <TextBlock x:Name="PlaytimeDisplay" Text="" FontSize="11"
-                                       Foreground="#888888" TextAlignment="Right" Visibility="Collapsed"/>
+                                       Foreground="{DynamicResource TextMutedBrush}" TextAlignment="Right" Visibility="Collapsed"/>
                         </StackPanel>
                     </Grid>
                     
-                    <Border x:Name="CurrentGameSection" Background="#252525" CornerRadius="8" 
+                    <Border x:Name="CurrentGameSection" Background="{DynamicResource SectionBackgroundBrush}" CornerRadius="8" 
                             Padding="20" Margin="0,0,0,20" Visibility="Collapsed"
                             BorderThickness="2" BorderBrush="Transparent" Focusable="True">
                         <Grid>
@@ -41,23 +41,23 @@
                                 <ColumnDefinition Width="220"/>
                             </Grid.ColumnDefinitions>
                             
-                            <Border Grid.Column="0" Background="#1A1A1A" CornerRadius="6" 
+                            <Border Grid.Column="0" Background="{DynamicResource PanelBackgroundBrush}" CornerRadius="6" 
                                     Width="120" Height="160" HorizontalAlignment="Left" VerticalAlignment="Top">
                                 <Image x:Name="CurrentGameCover" Stretch="Uniform" ClipToBounds="True"/>
                             </Border>
                             
                             <StackPanel Grid.Column="2" VerticalAlignment="Top">
                                 <TextBlock Text="NOW PLAYING" FontSize="10" FontWeight="Bold" 
-                                           Foreground="#888888" Margin="0,0,0,10"/>
+                                           Foreground="{DynamicResource TextMutedBrush}" Margin="0,0,0,10"/>
                                 <TextBlock x:Name="CurrentGameTitle" FontSize="22" 
-                                           FontWeight="SemiBold" Foreground="#FFFFFF" 
+                                           FontWeight="SemiBold" Foreground="{DynamicResource TextBrightBrush}" 
                                            TextTrimming="CharacterEllipsis" Margin="0,0,0,6" TextWrapping="NoWrap"/>
                                 <TextBlock x:Name="CurrentGameInfo" FontSize="13" 
-                                           Foreground="#AAAAAA" Margin="0,0,0,12" TextWrapping="Wrap"/>
+                                           Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,12" TextWrapping="Wrap"/>
                                 
                                 <StackPanel x:Name="AchievementsPanel" Visibility="Collapsed" Margin="0,0,0,12">
                                     <TextBlock x:Name="AchievementsProgress" FontSize="12" 
-                                               Foreground="#AAAAAA" Margin="0,0,0,6"/>
+                                               Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,6"/>
                                     <StackPanel x:Name="RecentAchievementsList"/>
                                     <StackPanel x:Name="LockedAchievementsList"/>
                                 </StackPanel>
@@ -65,7 +65,7 @@
                                 <StackPanel Orientation="Horizontal">
                                     <Button x:Name="SwitchBtn" Content="Return to Playnite" 
                                             Margin="0,0,12,0" Padding="16,8" MinWidth="150"
-                                            Background="#3A3A3A" Foreground="White" BorderThickness="0"
+                                            Background="{DynamicResource ControlBackgroundBrush}" Foreground="{DynamicResource OnAccentBrush}" BorderThickness="0"
                                             FontSize="13" FontWeight="Medium" Cursor="Hand">
                                         <Button.Style>
                                             <Style TargetType="Button">
@@ -81,13 +81,13 @@
                                                             </Border>
                                                             <ControlTemplate.Triggers>
                                                                 <Trigger Property="IsMouseOver" Value="True">
-                                                                    <Setter TargetName="ButtonBorder" Property="Background" Value="#4A4A4A"/>
+                                                                    <Setter TargetName="ButtonBorder" Property="Background" Value="{DynamicResource ControlHoverBrush}"/>
                                                                 </Trigger>
                                                                 <Trigger Property="IsPressed" Value="True">
-                                                                    <Setter TargetName="ButtonBorder" Property="Background" Value="#2A2A2A"/>
+                                                                    <Setter TargetName="ButtonBorder" Property="Background" Value="{DynamicResource ControlPressedBrush}"/>
                                                                 </Trigger>
                                                                 <Trigger Property="IsKeyboardFocused" Value="True">
-                                                                    <Setter TargetName="ButtonBorder" Property="BorderBrush" Value="#FFFFFF"/>
+                                                                    <Setter TargetName="ButtonBorder" Property="BorderBrush" Value="{DynamicResource FocusBorderBrush}"/>
                                                                 </Trigger>
                                                             </ControlTemplate.Triggers>
                                                         </ControlTemplate>
@@ -98,7 +98,7 @@
                                     </Button>
                                     <Button x:Name="ExitBtn" Content="Exit Game" 
                                             Padding="16,8" MinWidth="110"
-                                            Background="#D32F2F" Foreground="White" BorderThickness="0"
+                                            Background="{DynamicResource AccentDangerBrush}" Foreground="{DynamicResource OnAccentBrush}" BorderThickness="0"
                                             FontSize="13" FontWeight="Medium" Cursor="Hand">
                                         <Button.Style>
                                             <Style TargetType="Button">
@@ -114,13 +114,13 @@
                                                             </Border>
                                                             <ControlTemplate.Triggers>
                                                                 <Trigger Property="IsMouseOver" Value="True">
-                                                                    <Setter TargetName="ButtonBorder" Property="Background" Value="#E53935"/>
+                                                                    <Setter TargetName="ButtonBorder" Property="Background" Value="{DynamicResource AccentDangerHoverBrush}"/>
                                                                 </Trigger>
                                                                 <Trigger Property="IsPressed" Value="True">
-                                                                    <Setter TargetName="ButtonBorder" Property="Background" Value="#C62828"/>
+                                                                    <Setter TargetName="ButtonBorder" Property="Background" Value="{DynamicResource AccentDangerPressedBrush}"/>
                                                                 </Trigger>
                                                                 <Trigger Property="IsKeyboardFocused" Value="True">
-                                                                    <Setter TargetName="ButtonBorder" Property="BorderBrush" Value="#FFFFFF"/>
+                                                                    <Setter TargetName="ButtonBorder" Property="BorderBrush" Value="{DynamicResource FocusBorderBrush}"/>
                                                                 </Trigger>
                                                             </ControlTemplate.Triggers>
                                                         </ControlTemplate>
@@ -142,9 +142,9 @@
                                     </Grid.ColumnDefinitions>
                                     <ComboBox x:Name="AudioDeviceCombo"
                                               Grid.Column="0"
-                                              Background="#2A2A2A"
-                                              Foreground="#EEEEEE"
-                                              BorderBrush="#3A3A3A"
+                                              Background="{DynamicResource ControlBackgroundBrush}"
+                                              Foreground="{DynamicResource TextPrimaryBrush}"
+                                              BorderBrush="{DynamicResource ControlBorderBrush}"
                                               BorderThickness="2"
                                               FontSize="11"
                                               Padding="8,6"
@@ -172,7 +172,7 @@
                                                                                 HorizontalAlignment="Left"
                                                                                 IsHitTestVisible="False"/>
                                                                 <Path Data="M 0 0 L 4 4 L 8 0 Z"
-                                                                      Fill="#EEEEEE"
+                                                                      Fill="{DynamicResource TextPrimaryBrush}"
                                                                       HorizontalAlignment="Right"
                                                                       VerticalAlignment="Center"
                                                                       Margin="0,0,10,0"
@@ -181,8 +181,8 @@
                                                                        Placement="Bottom"
                                                                        AllowsTransparency="True"
                                                                        Focusable="False">
-                                                                    <Border Background="#252525"
-                                                                            BorderBrush="#3A3A3A"
+                                                                    <Border Background="{DynamicResource SectionBackgroundBrush}"
+                                                                            BorderBrush="{DynamicResource ControlBorderBrush}"
                                                                             BorderThickness="1"
                                                                             MinWidth="{TemplateBinding ActualWidth}"
                                                                             MaxHeight="200">
@@ -194,7 +194,7 @@
                                                             </Grid>
                                                             <ControlTemplate.Triggers>
                                                                 <Trigger Property="IsKeyboardFocused" Value="True">
-                                                                    <Setter TargetName="ToggleButton" Property="BorderBrush" Value="#FFFFFF"/>
+                                                                    <Setter TargetName="ToggleButton" Property="BorderBrush" Value="{DynamicResource FocusBorderBrush}"/>
                                                                 </Trigger>
                                                             </ControlTemplate.Triggers>
                                                         </ControlTemplate>
@@ -204,8 +204,8 @@
                                         </ComboBox.Style>
                                         <ComboBox.ItemContainerStyle>
                                             <Style TargetType="ComboBoxItem">
-                                                <Setter Property="Background" Value="#2A2A2A"/>
-                                                <Setter Property="Foreground" Value="#EEEEEE"/>
+                                                <Setter Property="Background" Value="{DynamicResource ControlBackgroundBrush}"/>
+                                                <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
                                                 <Setter Property="Padding" Value="8,6"/>
                                                 <Setter Property="Template">
                                                     <Setter.Value>
@@ -217,10 +217,10 @@
                                                             </Border>
                                                             <ControlTemplate.Triggers>
                                                                 <Trigger Property="IsHighlighted" Value="True">
-                                                                    <Setter TargetName="ItemBorder" Property="Background" Value="#3A3A3A"/>
+                                                                    <Setter TargetName="ItemBorder" Property="Background" Value="{DynamicResource ComboHighlightBackgroundBrush}"/>
                                                                 </Trigger>
                                                                 <Trigger Property="IsSelected" Value="True">
-                                                                    <Setter TargetName="ItemBorder" Property="Background" Value="#4A4A4A"/>
+                                                                    <Setter TargetName="ItemBorder" Property="Background" Value="{DynamicResource ComboSelectedBackgroundBrush}"/>
                                                                 </Trigger>
                                                             </ControlTemplate.Triggers>
                                                         </ControlTemplate>
@@ -236,7 +236,7 @@
                                                     <TextBlock Text="{Binding Name}" FontSize="11" 
                                                                VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
                                                     <TextBlock x:Name="DefaultIndicator" Text=" •" 
-                                                               FontSize="11" Foreground="#4A90E2" 
+                                                               FontSize="11" Foreground="{DynamicResource AccentPrimaryBrush}" 
                                                                VerticalAlignment="Center" Visibility="Collapsed"/>
                                                 </StackPanel>
                                                 <DataTemplate.Triggers>
@@ -253,8 +253,8 @@
                                             Width="28"
                                             Height="24"
                                             Margin="4,0,0,0"
-                                            Background="#3A3A3A"
-                                            Foreground="#EEEEEE"
+                                            Background="{DynamicResource ControlBackgroundBrush}"
+                                            Foreground="{DynamicResource TextPrimaryBrush}"
                                             BorderThickness="0"
                                             FontSize="12"
                                             Cursor="Hand"
@@ -275,13 +275,13 @@
                                                             </Border>
                                                             <ControlTemplate.Triggers>
                                                                 <Trigger Property="IsMouseOver" Value="True">
-                                                                    <Setter TargetName="ButtonBorder" Property="Background" Value="#4A4A4A"/>
+                                                                    <Setter TargetName="ButtonBorder" Property="Background" Value="{DynamicResource ControlHoverBrush}"/>
                                                                 </Trigger>
                                                                 <Trigger Property="IsPressed" Value="True">
-                                                                    <Setter TargetName="ButtonBorder" Property="Background" Value="#2A2A2A"/>
+                                                                    <Setter TargetName="ButtonBorder" Property="Background" Value="{DynamicResource ControlPressedBrush}"/>
                                                                 </Trigger>
                                                                 <Trigger Property="IsKeyboardFocused" Value="True">
-                                                                    <Setter TargetName="ButtonBorder" Property="BorderBrush" Value="#FFFFFF"/>
+                                                                    <Setter TargetName="ButtonBorder" Property="BorderBrush" Value="{DynamicResource FocusBorderBrush}"/>
                                                                 </Trigger>
                                                             </ControlTemplate.Triggers>
                                                         </ControlTemplate>
@@ -292,8 +292,8 @@
                                     </Button>
                                 </Grid>
                                 <Border x:Name="VolumeControls"
-                                        Background="#2A2A2A"
-                                        BorderBrush="#3A3A3A"
+                                        Background="{DynamicResource ControlBackgroundBrush}"
+                                        BorderBrush="{DynamicResource ControlBorderBrush}"
                                         BorderThickness="2"
                                         CornerRadius="5"
                                         Height="28"
@@ -307,8 +307,8 @@
                                             Focusable="True"
                                             VerticalAlignment="Center"
                                             Margin="8,0"
-                                            Foreground="#4A90E2"
-                                            Background="#4A4A4A"
+                                            Foreground="{DynamicResource AccentPrimaryBrush}"
+                                            Background="{DynamicResource ControlHoverBrush}"
                                             BorderBrush="Transparent">
                                         <Slider.Style>
                                             <Style TargetType="Slider">
@@ -323,7 +323,7 @@
                                                                 <Track x:Name="PART_Track">
                                                                     <Track.DecreaseRepeatButton>
                                                                         <RepeatButton Command="Slider.DecreaseLarge" 
-                                                                                      Background="#4A90E2"
+                                                                                      Background="{DynamicResource AccentPrimaryBrush}"
                                                                                       Height="6"
                                                                                       VerticalAlignment="Center">
                                                                             <RepeatButton.Style>
@@ -342,7 +342,7 @@
                                                                     </Track.DecreaseRepeatButton>
                                                                     <Track.IncreaseRepeatButton>
                                                                         <RepeatButton Command="Slider.IncreaseLarge"
-                                                                                      Background="#4A4A4A"
+                                                                                      Background="{DynamicResource ControlHoverBrush}"
                                                                                       Height="6"
                                                                                       VerticalAlignment="Center">
                                                                             <RepeatButton.Style>
@@ -361,8 +361,8 @@
                                                                     </Track.IncreaseRepeatButton>
                                                                     <Track.Thumb>
                                                                         <Thumb Width="14" Height="18"
-                                                                               Background="#EEEEEE"
-                                                                               BorderBrush="#CCCCCC"
+                                                                               Background="{DynamicResource TextPrimaryBrush}"
+                                                                               BorderBrush="{DynamicResource SliderThumbBorderBrush}"
                                                                                BorderThickness="1"
                                                                                Cursor="Hand"
                                                                                VerticalAlignment="Center">
@@ -386,7 +386,7 @@
                                                             </Border>
                                                             <ControlTemplate.Triggers>
                                                                 <Trigger Property="IsKeyboardFocused" Value="True">
-                                                                    <Setter TargetName="SliderBorder" Property="BorderBrush" Value="#FFFFFF"/>
+                                                                    <Setter TargetName="SliderBorder" Property="BorderBrush" Value="{DynamicResource FocusBorderBrush}"/>
                                                                 </Trigger>
                                                             </ControlTemplate.Triggers>
                                                         </ControlTemplate>
@@ -399,12 +399,12 @@
                             </StackPanel>
                         </Grid>
                     </Border>
-                    <Border x:Name="RunningAppsSection" Background="#252525" CornerRadius="8" 
+                    <Border x:Name="RunningAppsSection" Background="{DynamicResource SectionBackgroundBrush}" CornerRadius="8" 
                             Padding="16" Margin="0,0,0,20" Visibility="Collapsed"
                             BorderThickness="2" BorderBrush="Transparent" Focusable="True">
                         <StackPanel>
                             <TextBlock Text="RUNNING APPS" FontSize="10" FontWeight="Bold" 
-                                       Foreground="#888888" Margin="0,0,0,10"/>
+                                       Foreground="{DynamicResource TextMutedBrush}" Margin="0,0,0,10"/>
                             
                             <ListBox x:Name="RunningAppsList" Background="Transparent" 
                                      BorderThickness="0" HorizontalContentAlignment="Stretch"
@@ -419,17 +419,17 @@
                                             <Setter.Value>
                                                 <ControlTemplate TargetType="ListBoxItem">
                                                     <Border x:Name="Container" CornerRadius="5" 
-                                                            Background="#2A2A2A" Padding="10">
+                                                            Background="{DynamicResource ControlBackgroundBrush}" Padding="10">
                                                         <ContentPresenter />
                                                     </Border>
                                                     <ControlTemplate.Triggers>
                                                         <Trigger Property="IsSelected" Value="True">
-                                                            <Setter TargetName="Container" Property="Background" Value="#353535"/>
-                                                            <Setter TargetName="Container" Property="BorderBrush" Value="#6A4FC8"/>
+                                                            <Setter TargetName="Container" Property="Background" Value="{DynamicResource RunningAppSelectedBackgroundBrush}"/>
+                                                            <Setter TargetName="Container" Property="BorderBrush" Value="{DynamicResource AccentSwitchBrush}"/>
                                                             <Setter TargetName="Container" Property="BorderThickness" Value="2"/>
                                                         </Trigger>
                                                         <Trigger Property="IsMouseOver" Value="True">
-                                                            <Setter TargetName="Container" Property="Background" Value="#333333"/>
+                                                            <Setter TargetName="Container" Property="Background" Value="{DynamicResource RunningAppHoverBackgroundBrush}"/>
                                                         </Trigger>
                                                     </ControlTemplate.Triggers>
                                                 </ControlTemplate>
@@ -447,7 +447,7 @@
                                                 <ColumnDefinition Width="Auto"/>
                                             </Grid.ColumnDefinitions>
                                             
-                                            <Border Grid.Column="0" Background="#1A1A1A" 
+                                            <Border Grid.Column="0" Background="{DynamicResource PanelBackgroundBrush}" 
                                                     CornerRadius="4" Width="32" Height="32" 
                                                     Margin="0,0,12,0">
                                                 <Grid>
@@ -455,18 +455,18 @@
                                                            Stretch="Uniform" ClipToBounds="True"/>
                                                     <TextBlock x:Name="NoAppImage" Text="🎮" FontSize="16" 
                                                                HorizontalAlignment="Center" VerticalAlignment="Center"
-                                                               Foreground="#555555" Visibility="Collapsed"/>
+                                                               Foreground="{DynamicResource PlaceholderBrush}" Visibility="Collapsed"/>
                                                 </Grid>
                                             </Border>
                                             
                                             <TextBlock Grid.Column="1" Text="{Binding Title}" 
-                                                       FontSize="13" Foreground="#EEEEEE" FontWeight="Medium"
+                                                       FontSize="13" Foreground="{DynamicResource TextPrimaryBrush}" FontWeight="Medium"
                                                        VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
                                             
                                             <Button Grid.Column="2" Content="↗ Switch" Width="90" 
                                                     Height="30" VerticalAlignment="Center" 
                                                     CommandParameter="{Binding}"
-                                                    Background="#6A4FC8" Foreground="White" BorderThickness="0"
+                                                    Background="{DynamicResource AccentSwitchBrush}" Foreground="{DynamicResource OnAccentBrush}" BorderThickness="0"
                                                     FontSize="12" FontWeight="Medium" Cursor="Hand">
                                                 <Button.Style>
                                                     <Style TargetType="Button">
@@ -482,13 +482,13 @@
                                                                     </Border>
                                                                     <ControlTemplate.Triggers>
                                                                         <Trigger Property="IsMouseOver" Value="True">
-                                                                            <Setter TargetName="ButtonBorder" Property="Background" Value="#7D5FDB"/>
+                                                                            <Setter TargetName="ButtonBorder" Property="Background" Value="{DynamicResource AccentSwitchHoverBrush}"/>
                                                                         </Trigger>
                                                                         <Trigger Property="IsPressed" Value="True">
-                                                                            <Setter TargetName="ButtonBorder" Property="Background" Value="#5A3FB5"/>
+                                                                            <Setter TargetName="ButtonBorder" Property="Background" Value="{DynamicResource AccentSwitchPressedBrush}"/>
                                                                         </Trigger>
                                                                         <Trigger Property="IsKeyboardFocused" Value="True">
-                                                                            <Setter TargetName="ButtonBorder" Property="BorderBrush" Value="#FFFFFF"/>
+                                                                            <Setter TargetName="ButtonBorder" Property="BorderBrush" Value="{DynamicResource FocusBorderBrush}"/>
                                                                         </Trigger>
                                                                     </ControlTemplate.Triggers>
                                                                 </ControlTemplate>
@@ -509,33 +509,33 @@
                         </StackPanel>
                     </Border>
                     
-                    <Border x:Name="ShortcutsSection" Background="#252525" CornerRadius="8" 
+                    <Border x:Name="ShortcutsSection" Background="{DynamicResource SectionBackgroundBrush}" CornerRadius="8" 
                             Padding="16" Margin="0,0,0,20" Visibility="Collapsed"
                             BorderThickness="2" BorderBrush="Transparent" Focusable="True">
                         <StackPanel>
                             <TextBlock Text="QUICK ACTIONS" FontSize="10" FontWeight="Bold" 
-                                       Foreground="#888888" Margin="0,0,0,10"/>
+                                       Foreground="{DynamicResource TextMutedBrush}" Margin="0,0,0,10"/>
                             
                             <WrapPanel x:Name="ShortcutsPanel" />
                         </StackPanel>
                     </Border>
                     
-                    <Border x:Name="RecentGamesSection" Background="#252525" CornerRadius="8"
+                    <Border x:Name="RecentGamesSection" Background="{DynamicResource SectionBackgroundBrush}" CornerRadius="8"
                             Padding="16" BorderThickness="2" BorderBrush="Transparent" Focusable="True">
                         <StackPanel>
                             <TextBlock Text="RECENT GAMES" FontSize="10" FontWeight="Bold" 
-                                       Foreground="#888888" Margin="0,0,0,10"/>
+                                       Foreground="{DynamicResource TextMutedBrush}" Margin="0,0,0,10"/>
                         
-                            <Border x:Name="EmptyState" Background="#1A1A1A" CornerRadius="6" 
+                            <Border x:Name="EmptyState" Background="{DynamicResource PanelBackgroundBrush}" CornerRadius="6" 
                                     Padding="40,32" Visibility="Collapsed">
                             <StackPanel HorizontalAlignment="Center">
                                 <TextBlock Text="📚" FontSize="32" HorizontalAlignment="Center" 
                                            Margin="0,0,0,12" Opacity="0.5"/>
                                 <TextBlock Text="No recent games" FontSize="15" 
-                                           Foreground="#BBBBBB" HorizontalAlignment="Center" 
+                                           Foreground="{DynamicResource TextFaintBrush}" HorizontalAlignment="Center" 
                                            Margin="0,0,0,8" FontWeight="Medium"/>
                                 <TextBlock Text="Launch a game to see it here" 
-                                           FontSize="12" Foreground="#777777" 
+                                           FontSize="12" Foreground="{DynamicResource TextSubtleBrush}" 
                                            HorizontalAlignment="Center"/>
                             </StackPanel>
                         </Border>
@@ -554,17 +554,17 @@
                                         <Setter.Value>
                                             <ControlTemplate TargetType="ListBoxItem">
                                                 <Border x:Name="Container" CornerRadius="6" 
-                                                        Background="#252525" Padding="12">
+                                                        Background="{DynamicResource SectionBackgroundBrush}" Padding="12">
                                                     <ContentPresenter />
                                                 </Border>
                                                 <ControlTemplate.Triggers>
                                                     <Trigger Property="IsSelected" Value="True">
-                                                        <Setter TargetName="Container" Property="Background" Value="#303030"/>
-                                                        <Setter TargetName="Container" Property="BorderBrush" Value="#4A90E2"/>
+                                                        <Setter TargetName="Container" Property="Background" Value="{DynamicResource RecentSelectedBackgroundBrush}"/>
+                                                        <Setter TargetName="Container" Property="BorderBrush" Value="{DynamicResource AccentPrimaryBrush}"/>
                                                         <Setter TargetName="Container" Property="BorderThickness" Value="2"/>
                                                     </Trigger>
                                                     <Trigger Property="IsMouseOver" Value="True">
-                                                        <Setter TargetName="Container" Property="Background" Value="#2A2A2A"/>
+                                                        <Setter TargetName="Container" Property="Background" Value="{DynamicResource RecentHoverBackgroundBrush}"/>
                                                     </Trigger>
                                                 </ControlTemplate.Triggers>
                                             </ControlTemplate>
@@ -582,7 +582,7 @@
                                             <ColumnDefinition Width="Auto"/>
                                         </Grid.ColumnDefinitions>
                                         
-                                        <Border Grid.Column="0" Background="#1A1A1A" 
+                                        <Border Grid.Column="0" Background="{DynamicResource PanelBackgroundBrush}" 
                                                 CornerRadius="4" Width="50" Height="68" 
                                                 Margin="0,0,14,0">
                                             <Grid>
@@ -590,22 +590,22 @@
                                                        Stretch="Uniform" ClipToBounds="True"/>
                                                 <TextBlock x:Name="NoImageText" Text="🎮" FontSize="24" 
                                                            HorizontalAlignment="Center" VerticalAlignment="Center"
-                                                           Foreground="#555555" Visibility="Collapsed"/>
+                                                           Foreground="{DynamicResource PlaceholderBrush}" Visibility="Collapsed"/>
                                             </Grid>
                                         </Border>
                                         
                                         <StackPanel Grid.Column="1" VerticalAlignment="Center">
                                             <TextBlock Text="{Binding Title}" FontSize="14" 
-                                                       Foreground="#EEEEEE" FontWeight="Medium" 
+                                                       Foreground="{DynamicResource TextPrimaryBrush}" FontWeight="Medium" 
                                                        TextTrimming="CharacterEllipsis" Margin="0,0,0,4"/>
                                             <TextBlock Text="{Binding SecondaryText}" 
-                                                       FontSize="11" Foreground="#888888"/>
+                                                       FontSize="11" Foreground="{DynamicResource TextMutedBrush}"/>
                                         </StackPanel>
                                         
                                         <Button Grid.Column="2" Content="▶ Play" Width="90" 
                                                 Height="34" VerticalAlignment="Center" 
                                                 CommandParameter="{Binding}"
-                                                Background="#4A90E2" Foreground="White" BorderThickness="0"
+                                                Background="{DynamicResource AccentPrimaryBrush}" Foreground="{DynamicResource OnAccentBrush}" BorderThickness="0"
                                                 FontSize="12" FontWeight="Medium" Cursor="Hand">
                                             <Button.Style>
                                                 <Style TargetType="Button">
@@ -621,13 +621,13 @@
                                                                 </Border>
                                                                 <ControlTemplate.Triggers>
                                                                     <Trigger Property="IsMouseOver" Value="True">
-                                                                        <Setter TargetName="ButtonBorder" Property="Background" Value="#5BA3F5"/>
+                                                                        <Setter TargetName="ButtonBorder" Property="Background" Value="{DynamicResource AccentPrimaryHoverBrush}"/>
                                                                     </Trigger>
                                                                     <Trigger Property="IsPressed" Value="True">
-                                                                        <Setter TargetName="ButtonBorder" Property="Background" Value="#3A7BC8"/>
+                                                                        <Setter TargetName="ButtonBorder" Property="Background" Value="{DynamicResource AccentPrimaryPressedBrush}"/>
                                                                     </Trigger>
                                                                     <Trigger Property="IsKeyboardFocused" Value="True">
-                                                                        <Setter TargetName="ButtonBorder" Property="BorderBrush" Value="#FFFFFF"/>
+                                                                        <Setter TargetName="ButtonBorder" Property="BorderBrush" Value="{DynamicResource FocusBorderBrush}"/>
                                                                     </Trigger>
                                                                 </ControlTemplate.Triggers>
                                                             </ControlTemplate>
