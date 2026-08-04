@@ -3,8 +3,8 @@
 ## Build & Test Commands
 - Build Core: `dotnet build src/OverlayPlugin.Core/OverlayPlugin.Core.csproj`
 - Build Plugin: `dotnet build src/OverlayPlugin/OverlayPlugin.csproj`
-- Test Core (Linux): `dotnet test tests/OverlayPlugin.Core.Tests/OverlayPlugin.Core.Tests.csproj`
-- Test Plugin (Windows): `dotnet test tests/OverlayPlugin.Tests/OverlayPlugin.Tests.csproj`
+- Test Core: `dotnet test tests/OverlayPlugin.Core.Tests/OverlayPlugin.Core.Tests.csproj`
+- Test Plugin: `dotnet test tests/OverlayPlugin.Tests/OverlayPlugin.Tests.csproj`
 - Test single: `dotnet test --filter "FullyQualifiedName~TestMethodName"`
 - Package: `pwsh tools/pack.ps1` (Windows only)
 
