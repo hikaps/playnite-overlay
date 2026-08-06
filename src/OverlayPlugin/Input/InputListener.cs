@@ -128,6 +128,8 @@ internal sealed class InputListener
         enableController = settings.UseControllerToOpen;
         controllerCombo = string.IsNullOrWhiteSpace(settings.ControllerCombo) ? "Guide" : settings.ControllerCombo;
 
+        logger.Info($"Controller settings: enabled={enableController}, combo={controllerCombo}, hotkey={customHotkeyGesture ?? "(none)"}");
+
         TryRegisterHotkey();
     }
 
@@ -144,6 +146,7 @@ internal sealed class InputListener
     {
         if (!enableController || !runtimeControllerEnabled || button == ControllerInput.None)
         {
+            logger.Debug($"[Controller {controllerInstanceId}] Ignored {state}: {button} (enabled={enableController}, runtime={runtimeControllerEnabled})");
             return;
         }
 
@@ -194,6 +197,7 @@ internal sealed class InputListener
                 {
                     lastToggleTime = DateTime.Now;
                     comboTriggered[controllerInstanceId] = true;
+                    logger.Info($"[Controller {controllerInstanceId}] Combo triggered: {FormatButtonNames(pressed)} (config: {controllerCombo})");
                     TriggerToggle();
                 }
             }
@@ -279,6 +283,16 @@ internal sealed class InputListener
             dict[controllerInstanceId] = set;
         }
         return set;
+    }
+
+    private static string FormatButtonNames(HashSet<ControllerInput> buttons)
+    {
+        var names = new List<string>();
+        foreach (var button in buttons)
+        {
+            names.Add(button.ToString());
+        }
+        return string.Join(", ", names);
     }
 
     private static ControllerInput[] ResolveComboMask(string combo)
